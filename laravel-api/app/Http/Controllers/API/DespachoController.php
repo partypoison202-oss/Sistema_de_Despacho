@@ -3660,7 +3660,7 @@ class DespachoController extends Controller
                     ->orWhereDate('created_at', $hoyMexico)
                     ->orWhereDate('created_at', $hoyUtc);
             })
-            ->orderBy('id', 'desc')
+            ->orderBy('id', 'asc')
             ->get()
             ->keyBy('unidad_id');
 
@@ -3721,9 +3721,8 @@ class DespachoController extends Controller
             $estatusNorm = strtolower(trim($reg->estatus ?? 'reserva'));
             $isOperacion = ($estatusNorm === 'operacion');
 
-            // Una unidad solo está encerrada si NO está en operación y figura en historial de encierro
-            $isEncerrada = ! $isOperacion && in_array((int) $reg->unidad_id, $idsEncerradasHoy, true);
-            $encierroReg = $isEncerrada ? $encierrosHoy->get($reg->unidad_id) : null;
+            // Encierro histórico si existe
+            $encierroReg = $encierrosHoy->get($reg->unidad_id);
 
             // Solo desincorporamos datos de servicio si está en mantenimiento o percance
             $isDesincorporada = in_array($estatusNorm, ['mantenimiento', 'percance'], true);
@@ -3732,14 +3731,42 @@ class DespachoController extends Controller
                 : ($reg->hora_real_salida_patio ?: ($encierroReg?->hora_real_salida_patio ?? $encierroReg?->hora_salida ?? null));
 
             // Evaluar si es un encierro por cumplimiento programado / fin de turno
-            $motivoEncierro = strtolower((string) ($encierroReg?->motivo_estatus ?? $reg->motivo_estatus ?? ''));
+            $motivoEncierro = strtolower((string) ($encierroReg?->motivo_estatus ?? $reg->motivo_estatus ?? $reg->motivo ?? ''));
             $isFinTurno = str_contains($motivoEncierro, 'fin de turno') ||
                           str_contains($motivoEncierro, 'encierro programado') ||
-                          str_contains($motivoEncierro, 'encierro regular');
+                          str_contains($motivoEncierro, 'encierro regular') ||
+                          str_contains($motivoEncierro, 'turno cumplido') ||
+                          str_contains($motivoEncierro, 'cumplio turno') ||
+                          str_contains($motivoEncierro, 'cumplió turno') ||
+                          str_contains($motivoEncierro, 'cumplimiento') ||
+                          str_contains($motivoEncierro, 'termino de turno') ||
+                          str_contains($motivoEncierro, 'término de turno') ||
+                          str_contains($motivoEncierro, 'fin de servicio') ||
+                          str_contains($motivoEncierro, 'concluyo servicio') ||
+                          str_contains($motivoEncierro, 'concluyó servicio') ||
+                          str_contains($motivoEncierro, 'servicio concluido') ||
+                          str_contains($motivoEncierro, 'fin de jornada') ||
+                          str_contains($motivoEncierro, 'encierro') ||
+                          str_contains($motivoEncierro, 'encerrada') ||
+                          str_contains($motivoEncierro, 'patio');
 
-            // Solo cuenta como turno cumplido si fue encerrada estrictamente por fin de turno/programado.
-            // Si ya cumplió su turno programado y fue encerrada, cuenta como turno cumplido incluso si después ingresó a taller/mantenimiento.
-            $isTurnoCumplido = $isEncerrada && $isFinTurno;
+            $esFallaOPercance = str_contains($motivoEncierro, 'falla') ||
+                               str_contains($motivoEncierro, 'averia') ||
+                               str_contains($motivoEncierro, 'siniestro') ||
+                               str_contains($motivoEncierro, 'percance') ||
+                               str_contains($motivoEncierro, 'mantenimiento') ||
+                               str_contains($motivoEncierro, 'taller');
+
+            // Una unidad está encerrada si NO está en operación y:
+            // 1. Figura en historial de encierro de hoy, O
+            // 2. Su motivo operativo actual indica encierro programado / fin de turno
+            $isEncerrada = ! $isOperacion && (
+                in_array((int) $reg->unidad_id, $idsEncerradasHoy, true) ||
+                ($isFinTurno && ! $esFallaOPercance)
+            );
+
+            // Solo cuenta como turno cumplido si fue encerrada y no fue por falla o percance
+            $isTurnoCumplido = $isEncerrada && ! $isDesincorporada && ($isFinTurno || empty($motivoEncierro) || ! $esFallaOPercance);
 
             // Relevo dinámico si ya entró en vigor por horario
             $conductorEfectivo = $reg->nombre_conductor;

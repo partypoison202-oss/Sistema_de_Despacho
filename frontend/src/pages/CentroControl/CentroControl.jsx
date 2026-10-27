@@ -183,11 +183,11 @@ export default function CentroControl() {
         return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
       });
       // Reserva = todas las que tienen estatus 'reserva'
-      const unidadesReserva      = units.filter((d) => getEstatus(d) === 'RESERVA');
+      const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
       // Mantenimiento = todas las que tienen estatus 'mantenimiento'
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
       // Percance = todas las que tienen estatus 'percance'
-      const unidadesPercance     = units.filter((d) => getEstatus(d).includes('PERCANCE'));
+      const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
       // Encierro programado / Fin de turno cumplido (unidades que ya completaron su servicio programado)
       const unidadesEncerradasProgramadas = units.filter((d) => {
@@ -197,33 +197,55 @@ export default function CentroControl() {
         if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
 
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        if (!isEncerrada) return false;
-
         const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
-        return motivo.includes('fin de turno') ||
+
+        const esFallaOPercance = motivo.includes('falla') ||
+          motivo.includes('averia') ||
+          motivo.includes('siniestro') ||
+          motivo.includes('taller') ||
+          motivo.includes('mantenimiento') ||
+          motivo.includes('percance');
+
+        if (esFallaOPercance) return false;
+
+        const esEncierroMotivo = motivo.includes('fin de turno') ||
           motivo.includes('encierro programado') ||
-          motivo.includes('encierro regular');
+          motivo.includes('encierro regular') ||
+          motivo.includes('encierro') ||
+          motivo.includes('turno cumplido') ||
+          motivo.includes('cumplio turno') ||
+          motivo.includes('cumplió turno') ||
+          motivo.includes('cumplimiento') ||
+          motivo.includes('termino de turno') ||
+          motivo.includes('término de turno') ||
+          motivo.includes('servicio concluido') ||
+          motivo.includes('fin de servicio') ||
+          motivo.includes('concluyo servicio') ||
+          motivo.includes('concluyó servicio') ||
+          motivo.includes('fin de jornada');
+
+        return isEncerrada || esEncierroMotivo;
       });
 
-      const total        = units.length;
-      const operacion    = unidadesOperacion.length;
+      const total = units.length;
+      const operacion = unidadesOperacion.length;
       const desincItinerario = unidadesDesincItinerario.length;
-      const circulando   = unidadesCirculando.length;
+      const circulando = unidadesCirculando.length;
       const encerradasProgramadas = unidadesEncerradasProgramadas.length;
       const mantenimiento = unidadesMantenimiento.length;
-      const reserva      = unidadesReserva.length;
-      const percance     = unidadesPercance.length;
-      const otros        = 0;
-      
+      const reserva = unidadesReserva.length;
+      const percance = unidadesPercance.length;
+      const otros = 0;
+
       // Total Programadas fijo: Unidades en operación programadas al inicio del día (snapshot de cambio de día)
       const hasSnapshot = Array.isArray(inicioData) && inicioData.length > 0;
       const programadasInicio = hasSnapshot
         ? inicioData.filter(d => {
-            const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
-            const estatusNorm = normStr(d.ESTATUS || d.estatus);
-            const isOperacion = estatusNorm.includes('OPERACI');
-            return matchesModel && isOperacion;
-          }).length
+          const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+          const estatusNorm = normStr(d.ESTATUS || d.estatus);
+          const isOperacion = estatusNorm.includes('OPERACI');
+          return matchesModel && isOperacion;
+        }).length
         : 0;
 
       // Si el snapshot está disponible, se respeta el congelado de inicio de día para cada modelo.
@@ -269,8 +291,8 @@ export default function CentroControl() {
     { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, encerradasProgramadas: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
   );
 
-  const eficienciaGlobal = totales.programadas > 0 
-    ? Math.min(100, Math.round(((totales.circulando + (totales.desincItinerario || 0) + (totales.encerradasProgramadas || 0)) / totales.programadas) * 100)) 
+  const eficienciaGlobal = totales.programadas > 0
+    ? Math.min(100, Math.round(((totales.circulando + (totales.desincItinerario || 0) + (totales.encerradasProgramadas || 0)) / totales.programadas) * 100))
     : 0;
 
   const handleGenerarReporte = () => {
@@ -314,7 +336,7 @@ export default function CentroControl() {
         throw new Error('No hay datos disponibles para generar el reporte.');
       }
       await generarPDFReporteOperacionalPorHora(apiData);
-      
+
       Swal.fire({
         icon: 'success',
         title: '¡Reporte Generado!',
@@ -400,11 +422,11 @@ export default function CentroControl() {
         if (estaDesincorporadaPorItinerario(u)) {
           colorClass = 'itinerario';
           labelStatus = 'DESINCORPORADA POR ITINERARIO';
-        } else if (estatus.includes('OPERACI')) { 
+        } else if (estatus.includes('OPERACI')) {
           if (horaSalida !== '') {
-            colorClass = 'operacion'; labelStatus = 'Operación (Circulando)'; 
+            colorClass = 'operacion'; labelStatus = 'Operación (Circulando)';
           } else {
-            colorClass = 'operacion'; labelStatus = 'Operación'; 
+            colorClass = 'operacion'; labelStatus = 'Operación';
           }
         }
         else if (estatus.includes('MANTENIMIENTO')) { colorClass = 'mantenimiento'; labelStatus = 'Mantenimiento'; }
@@ -551,12 +573,34 @@ export default function CentroControl() {
         if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
 
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        if (!isEncerrada) return false;
-
         const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
-        return motivo.includes('fin de turno') ||
+
+        const esFallaOPercance = motivo.includes('falla') ||
+          motivo.includes('averia') ||
+          motivo.includes('siniestro') ||
+          motivo.includes('taller') ||
+          motivo.includes('mantenimiento') ||
+          motivo.includes('percance');
+
+        if (esFallaOPercance) return false;
+
+        const esEncierroMotivo = motivo.includes('fin de turno') ||
           motivo.includes('encierro programado') ||
-          motivo.includes('encierro regular');
+          motivo.includes('encierro regular') ||
+          motivo.includes('encierro') ||
+          motivo.includes('turno cumplido') ||
+          motivo.includes('cumplio turno') ||
+          motivo.includes('cumplió turno') ||
+          motivo.includes('cumplimiento') ||
+          motivo.includes('termino de turno') ||
+          motivo.includes('término de turno') ||
+          motivo.includes('servicio concluido') ||
+          motivo.includes('fin de servicio') ||
+          motivo.includes('concluyo servicio') ||
+          motivo.includes('concluyó servicio') ||
+          motivo.includes('fin de jornada');
+
+        return isEncerrada || esEncierroMotivo;
       });
 
       const total = units.length;
@@ -1287,7 +1331,7 @@ export default function CentroControl() {
               </svg>
               Ver Resumen de Mesa de Control
             </button>
-            
+
             {/* 4. Reporte Operativo por Hora */}
             <button
               className="centro-btn-report centro-btn-report--hora"

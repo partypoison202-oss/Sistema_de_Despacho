@@ -48,13 +48,25 @@ const construirResumen = (registros, tipo) => {
     const estRaw = String(registro.estatus || '').toLowerCase().trim();
     const isEncerrada = Boolean(registro.YA_ENCERRADA || registro.ya_encerrada || registro.TURNO_CUMPLIDO || registro.turno_cumplido);
     const motivo = String(registro.motivo_estatus || registro.motivo || '').toLowerCase();
+    const esFallaOPercance = estRaw.includes('mantenimiento') ||
+      estRaw.includes('percance') ||
+      motivo.includes('falla') ||
+      motivo.includes('averia') ||
+      motivo.includes('mantenimiento') ||
+      motivo.includes('percance');
+
+    const esEncierroMotivo = motivo.includes('fin de turno') ||
+      motivo.includes('encierro programado') ||
+      motivo.includes('encierro regular') ||
+      motivo.includes('turno cumplido') ||
+      motivo.includes('cumplio turno') ||
+      motivo.includes('servicio concluido') ||
+      motivo.includes('fin de servicio') ||
+      motivo.includes('fin de jornada');
+
     const isFinTurno = (
       Boolean(registro.TURNO_CUMPLIDO || registro.turno_cumplido) ||
-      (Boolean(registro.YA_ENCERRADA || registro.ya_encerrada) && (
-        motivo.includes('fin de turno') ||
-        motivo.includes('encierro programado') ||
-        motivo.includes('encierro regular')
-      ))
+      (!esFallaOPercance && (Boolean(registro.YA_ENCERRADA || registro.ya_encerrada) || esEncierroMotivo))
     );
 
     if (!estRaw.includes('operaci') && !isFinTurno) return;
@@ -232,14 +244,14 @@ export default function Dashboard() {
   const registrosNormalizados = React.useMemo(() => {
     return Array.isArray(registrosHoy)
       ? registrosHoy.map((registro) => ({
-          ...registro,
-          economico: registro.ECONOMICO || registro.economico || registro.numero_eco || '',
-          ruta: registro.RUTA || registro.ruta || '',
-          estatus: registro.ESTATUS || registro.estatus || '',
-          corridas: registro.CORRIDAS || registro.corridas || '',
-          motivo: registro.MOTIVO || registro.motivo || '',
-          ciclo: registro.CICLO || registro.ciclo || '',
-        }))
+        ...registro,
+        economico: registro.ECONOMICO || registro.economico || registro.numero_eco || '',
+        ruta: registro.RUTA || registro.ruta || '',
+        estatus: registro.ESTATUS || registro.estatus || '',
+        corridas: registro.CORRIDAS || registro.corridas || '',
+        motivo: registro.MOTIVO || registro.motivo || '',
+        ciclo: registro.CICLO || registro.ciclo || '',
+      }))
       : [];
   }, [registrosHoy]);
 
@@ -285,9 +297,8 @@ export default function Dashboard() {
           >
             <span>Tabla informativa servicio troncal</span>
             <span
-              className={`dashboard__etiqueta-flecha ${
-                mostrarTroncal ? 'dashboard__etiqueta-flecha--abierta' : ''
-              }`}
+              className={`dashboard__etiqueta-flecha ${mostrarTroncal ? 'dashboard__etiqueta-flecha--abierta' : ''
+                }`}
             >
               ▾
             </span>
@@ -312,9 +323,8 @@ export default function Dashboard() {
           >
             <span>Tabla informativa de servicio alimentador</span>
             <span
-              className={`dashboard__etiqueta-flecha ${
-                mostrarAlimentador ? 'dashboard__etiqueta-flecha--abierta' : ''
-              }`}
+              className={`dashboard__etiqueta-flecha ${mostrarAlimentador ? 'dashboard__etiqueta-flecha--abierta' : ''
+                }`}
             >
               ▾
             </span>
@@ -339,9 +349,8 @@ export default function Dashboard() {
           >
             <span>Tabla de unidades faltantes</span>
             <span
-              className={`dashboard__etiqueta-flecha ${
-                mostrarFaltantes ? 'dashboard__etiqueta-flecha--abierta' : ''
-              }`}
+              className={`dashboard__etiqueta-flecha ${mostrarFaltantes ? 'dashboard__etiqueta-flecha--abierta' : ''
+                }`}
             >
               ▾
             </span>
@@ -360,9 +369,8 @@ export default function Dashboard() {
           >
             <span>Bitácora General</span>
             <span
-              className={`dashboard__etiqueta-flecha ${
-                mostrarBitacoraGeneral ? 'dashboard__etiqueta-flecha--abierta' : ''
-              }`}
+              className={`dashboard__etiqueta-flecha ${mostrarBitacoraGeneral ? 'dashboard__etiqueta-flecha--abierta' : ''
+                }`}
             >
               ▾
             </span>
@@ -378,9 +386,8 @@ export default function Dashboard() {
           >
             <span>Rutas Alimentadoras</span>
             <span
-              className={`dashboard__etiqueta-flecha ${
-                mostrarRutasAlimentadoras ? 'dashboard__etiqueta-flecha--abierta' : ''
-              }`}
+              className={`dashboard__etiqueta-flecha ${mostrarRutasAlimentadoras ? 'dashboard__etiqueta-flecha--abierta' : ''
+                }`}
             >
               ▾
             </span>

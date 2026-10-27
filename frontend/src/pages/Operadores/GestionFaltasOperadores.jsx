@@ -2,6 +2,7 @@ import React, { useState, useMemo, useContext } from 'react';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { AuthContext } from '../../context/AuthContext';
+import { getFechaActualLocal } from '../../utils/itinerarioUtils';
 
 const getFaltasArray = (conductor) => {
   if (!conductor) return [];
@@ -18,35 +19,15 @@ const getFaltasArray = (conductor) => {
     }
   }
 
-  // Filtrar estrictamente los que fueron convertidos a retardo
-  items = items.filter(f => f.estado !== 'retardo');
-
-  // Si el conductor tiene una cantidad de faltas numéricas superior a los items registrados en faltas_detalle,
-  // generamos faltas pendientes virtuales para que el usuario pueda seleccionar y justificar cada una.
-  const faltasNumericas = Number(conductor.faltas) || 0;
-  const pendientesRegistradas = items.filter(f => f.estado !== 'justificada' && !f.justificada).length;
-  
-  if (faltasNumericas > pendientesRegistradas) {
-    const faltasFaltantes = faltasNumericas - pendientesRegistradas;
-    for (let i = 0; i < faltasFaltantes; i++) {
-      items.push({
-        id: `virtual_falta_${conductor.id}_${i}_${Date.now()}`,
-        fecha: new Date().toISOString().substring(0, 10),
-        motivo: 'Inasistencia no justificada en sistema',
-        estado: 'pendiente',
-        justificada: false
-      });
-    }
-  }
-
-  return items;
+  // Filtrar estrictamente los que fueron convertidos a retardo y asegurar que sean objetos válidos
+  return items.filter(f => f && typeof f === 'object' && f.estado !== 'retardo');
 };
 
 const calcularEstadoPlazoFalta = (fechaStr) => {
   if (!fechaStr || fechaStr === 'Fecha sin registrar') {
     return { diasTranscurridos: 0, vencida: false, diasRestantes: 3, textoPlazo: 'Plazo activo (3 días)' };
   }
-  
+
   const fechaPartes = fechaStr.substring(0, 10).split('-');
   if (fechaPartes.length !== 3) {
     return { diasTranscurridos: 0, vencida: false, diasRestantes: 3, textoPlazo: 'Plazo activo' };
@@ -92,7 +73,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       setBusqueda(initialBusqueda);
     }
   }, [initialBusqueda]);
-  
+
   // Modal de Subida de Justificante
   const [modalSubidaOpen, setModalSubidaOpen] = useState(false);
   const [faltaAJustificar, setFaltaAJustificar] = useState(null);
@@ -102,7 +83,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
   // Modal para agregar falta manual
   const [modalNuevaFaltaOpen, setModalNuevaFaltaOpen] = useState(false);
-  const [nuevaFechaFalta, setNuevaFechaFalta] = useState(new Date().toISOString().substring(0, 10));
+  const [nuevaFechaFalta, setNuevaFechaFalta] = useState(getFechaActualLocal());
   const [nuevoMotivoFalta, setNuevoMotivoFalta] = useState('Inasistencia no justificada');
   const [registrandoFalta, setRegistrandoFalta] = useState(false);
 
@@ -110,7 +91,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
   const conductoresConFaltas = useMemo(() => {
     return conductores.map(c => {
       const listaFaltas = getFaltasArray(c);
-      const pendientesCount = (Number(c.faltas) || 0);
+      const pendientesCount = listaFaltas.filter(f => f.estado !== 'justificada' && !f.justificada).length;
       const justificadasCount = listaFaltas.filter(f => f.estado === 'justificada' || f.justificada).length;
       const totalHistorico = pendientesCount + justificadasCount;
       const esInhabilitado = c.estatus === 'inhabilitado' || c.info_ventana_faltas?.inhabilitado;
@@ -155,7 +136,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
     conductores.forEach(c => {
       const lista = getFaltasArray(c);
-      const pend = Number(c.faltas) || 0;
+      const pend = lista.filter(f => f.estado !== 'justificada' && !f.justificada).length;
       const just = lista.filter(f => f.estado === 'justificada' || f.justificada).length;
       const esInhabilitado = c.estatus === 'inhabilitado' || c.info_ventana_faltas?.inhabilitado;
 
@@ -174,7 +155,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
     const actualizado = conductores.find(c => c.id === conductorSeleccionado.id);
     if (!actualizado) return conductorSeleccionado;
     const listaFaltas = getFaltasArray(actualizado);
-    const pendientesCount = Number(actualizado.faltas) || 0;
+    const pendientesCount = listaFaltas.filter(f => f.estado !== 'justificada' && !f.justificada).length;
     const justificadasCount = listaFaltas.filter(f => f.estado === 'justificada' || f.justificada).length;
 
     return {
@@ -318,7 +299,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
   // Handler para marcar retardo en lugar de falta
   const handleMarcarRetardo = async (faltaInfo) => {
     if (!conductorActualData) return;
-    
+
     const confirm = await Swal.fire({
       title: '¿Convertir a retardo?',
       text: 'Esta acción cambiará la falta a un retardo, descontando una falta del historial y sumando un retardo al operador.',
@@ -442,7 +423,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
   return (
     <div className="gestion-faltas-container space-y-6">
-      
+
       {/* TARJETAS RESUMEN DE KPIS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 border-l-4 border-l-[#6b1d33]">
@@ -478,17 +459,16 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
       {/* BARRA DE FILTROS Y BÚSQUEDA */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
-        
+
         {/* CHIPS DE FILTRO */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setFiltroEstatus('TODOS')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              filtroEstatus === 'TODOS'
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filtroEstatus === 'TODOS'
                 ? 'bg-[#6b1d33] text-white shadow-sm'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+              }`}
           >
             Todos ({kpis.totalConductoresConFaltas})
           </button>
@@ -496,11 +476,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
           <button
             type="button"
             onClick={() => setFiltroEstatus('PENDIENTES')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              filtroEstatus === 'PENDIENTES'
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filtroEstatus === 'PENDIENTES'
                 ? 'bg-red-600 text-white shadow-sm'
                 : 'bg-red-50 text-red-600 hover:bg-red-100'
-            }`}
+              }`}
           >
             Faltas Pendientes ({kpis.totalFaltasPendientes})
           </button>
@@ -508,11 +487,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
           <button
             type="button"
             onClick={() => setFiltroEstatus('JUSTIFICADAS')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              filtroEstatus === 'JUSTIFICADAS'
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filtroEstatus === 'JUSTIFICADAS'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-            }`}
+              }`}
           >
             Justificadas ({kpis.totalFaltasJustificadas})
           </button>
@@ -520,11 +498,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
           <button
             type="button"
             onClick={() => setFiltroEstatus('INHABILITADOS')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              filtroEstatus === 'INHABILITADOS'
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filtroEstatus === 'INHABILITADOS'
                 ? 'bg-[#dc2626] text-white shadow-sm ring-2 ring-red-400'
                 : 'bg-red-100 text-red-800 hover:bg-red-200'
-            }`}
+              }`}
           >
             No Asignados ({kpis.totalInhabilitados})
           </button>
@@ -625,11 +602,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                           NO ASIGNADO
                         </span>
                       ) : (
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                          c.estado_servicio === 'falta' ? 'bg-red-100 text-red-800' :
-                          c.estado_servicio === 'en_servicio' ? 'bg-emerald-100 text-emerald-800' :
-                          'bg-slate-100 text-slate-700'
-                        }`}>
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${c.estado_servicio === 'falta' ? 'bg-red-100 text-red-800' :
+                            c.estado_servicio === 'en_servicio' ? 'bg-emerald-100 text-emerald-800' :
+                              'bg-slate-100 text-slate-700'
+                          }`}>
                           {(c.estado_servicio || 'disponible').toUpperCase().replace('_', ' ')}
                         </span>
                       )}
@@ -659,7 +635,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       {conductorActualData && (
         <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 overflow-hidden">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
-            
+
             {/* Header del Modal */}
             <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
@@ -720,7 +696,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
             {/* Contenido principal del Modal: Lista de Faltas */}
             <div className="p-6 overflow-y-auto space-y-4 flex-1 min-h-0">
-              
+
               {/* Tarjeta Informativa de la Ventana de 30 Días */}
               {(() => {
                 const infoV = conductorActualData.info_ventana_faltas || {};
@@ -728,11 +704,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                 const faltasV = infoV.faltas_ventana_activa ?? conductorActualData.pendientesCount;
 
                 return (
-                  <div className={`p-4 rounded-xl border ${
-                    esInhab ? 'bg-red-50 border-red-300 ring-2 ring-red-400' :
-                    faltasV >= 3 ? 'bg-amber-50 border-amber-300' :
-                    'bg-slate-50 border-slate-200'
-                  }`}>
+                  <div className={`p-4 rounded-xl border ${esInhab ? 'bg-red-50 border-red-300 ring-2 ring-red-400' :
+                      faltasV >= 3 ? 'bg-amber-50 border-amber-300' :
+                        'bg-slate-50 border-slate-200'
+                    }`}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
@@ -788,13 +763,12 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                   return (
                     <div
                       key={falta.id || idx}
-                      className={`p-4 rounded-xl border transition-all ${
-                        esJustificada
+                      className={`p-4 rounded-xl border transition-all ${esJustificada
                           ? 'bg-emerald-50/40 border-emerald-200'
                           : estadoPlazo?.vencida
-                          ? 'bg-slate-50 border-slate-300 shadow-sm opacity-90'
-                          : 'bg-red-50/40 border-red-200 shadow-sm'
-                      }`}
+                            ? 'bg-slate-50 border-slate-300 shadow-sm opacity-90'
+                            : 'bg-red-50/40 border-red-200 shadow-sm'
+                        }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="space-y-1">
@@ -829,7 +803,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                               </span>
                             )}
                           </div>
-                          
+
                           <p className="text-xs text-slate-600 font-medium">
                             Motivo: <strong>{falta.motivo || 'Inasistencia'}</strong>
                           </p>
@@ -1012,7 +986,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       {modalSubidaOpen && faltaAJustificar && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-fadeIn">
-            
+
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
                 <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
@@ -1103,7 +1077,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fadeIn">
             <h3 className="font-extrabold text-slate-900 text-base">Registrar Nueva Falta a Operador</h3>
-            
+
             <form onSubmit={handleRegistrarNuevaFalta} className="space-y-4 text-xs">
               <div>
                 <label htmlFor="input-fecha-nueva-falta" className="block font-bold text-slate-700 mb-1">Fecha de la Falta:</label>
@@ -1111,6 +1085,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                   id="input-fecha-nueva-falta"
                   type="date"
                   value={nuevaFechaFalta}
+                  max={getFechaActualLocal()}
                   onChange={(e) => setNuevaFechaFalta(e.target.value)}
                   className="w-full p-2 border border-slate-300 rounded-lg outline-none"
                   required

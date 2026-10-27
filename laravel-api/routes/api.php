@@ -284,6 +284,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gestión de Conductores
     Route::get('/conductores', [ConductorController::class, 'index']);
     Route::get('/conductores/resumen-inasistencias', [ConductorController::class, 'resumenInasistencias']);
+    Route::post('/conductores/limpiar-faltas-futuras', [ConductorController::class, 'limpiarFaltasFuturasRoute']);
     Route::get('/conductores/{id}', [ConductorController::class, 'show']);
     Route::get('/conductores/{id}/historial-completo', [ConductorController::class, 'getHistorialCompleto']);
     Route::post('/conductores', [ConductorController::class, 'store']);

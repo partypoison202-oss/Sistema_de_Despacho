@@ -42,13 +42,13 @@ const fetchImageAsPng = async (url, tintWhite = false) => {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
-      
+
       if (tintWhite) {
         ctx.globalCompositeOperation = 'source-in';
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
-      
+
       resolve(canvas.toDataURL('image/png'));
     };
     img.onerror = () => resolve(null);
@@ -75,11 +75,17 @@ function procesarModelos(listaUnidades) {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
       if (status.includes('MANTENIMIENTO') || status.includes('PERCANCE') || status.includes('TALLER')) return false;
       const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-      if (!isEncerrada) return false;
       const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
-      return motivo.includes('fin de turno') ||
+      const esEncierroMotivo = motivo.includes('fin de turno') ||
         motivo.includes('encierro programado') ||
-        motivo.includes('encierro regular');
+        motivo.includes('encierro regular') ||
+        motivo.includes('encierro') ||
+        motivo.includes('turno cumplido') ||
+        motivo.includes('cumplio turno') ||
+        motivo.includes('servicio concluido') ||
+        motivo.includes('fin de servicio') ||
+        motivo.includes('fin de jornada');
+      return isEncerrada || esEncierroMotivo;
     };
 
     const prog = units.filter(d => {
@@ -253,7 +259,7 @@ export async function descargarResumenDespachoExcel(setLoading) {
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Resumen Despacho');
-    
+
     const COLOR_VINO = 'FF601A2A';
     const COLOR_GOLD = 'FFC5A059';
     const COLOR_GRAY = 'FF7F7F7F';
@@ -264,18 +270,18 @@ export async function descargarResumenDespachoExcel(setLoading) {
 
     const applyThinBorders = (cell) => {
       cell.border = {
-        top: {style:'thin', color: {argb:'FF000000'}}, left: {style:'thin', color: {argb:'FF000000'}},
-        bottom: {style:'thin', color: {argb:'FF000000'}}, right: {style:'thin', color: {argb:'FF000000'}}
+        top: { style: 'thin', color: { argb: 'FF000000' } }, left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } }, right: { style: 'thin', color: { argb: 'FF000000' } }
       };
     };
 
-    for(let i=1; i<=5; i++) {
-        ws.mergeCells(`A${i}:F${i}`);
-        const r = ws.getRow(i); r.height = 20;
-        const c = ws.getCell(`A${i}`);
-        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VINO } };
-        c.font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
-        c.alignment = { horizontal: 'center', vertical: 'middle' };
+    for (let i = 1; i <= 5; i++) {
+      ws.mergeCells(`A${i}:F${i}`);
+      const r = ws.getRow(i); r.height = 20;
+      const c = ws.getCell(`A${i}`);
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VINO } };
+      c.font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
+      c.alignment = { horizontal: 'center', vertical: 'middle' };
     }
     ws.getCell('A1').value = 'SISTEMA INTEGRADO DE TRANSPORTE MASIVO DE HIDALGO';
     ws.getCell('A2').value = 'Dirección de Operación';
@@ -288,7 +294,7 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.mergeCells('A6:C6'); ws.mergeCells('D6:F6');
     ws.getCell('A6').value = `Inicio despacho: ${inicioDespacho}`;
     ws.getCell('D6').value = `Termino despacho: ${terminoDespacho}`;
-    for(let j of ['A','D']) {
+    for (let j of ['A', 'D']) {
       const c = ws.getCell(`${j}6`);
       c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VINO } };
       c.font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
@@ -296,19 +302,19 @@ export async function descargarResumenDespachoExcel(setLoading) {
     }
 
     try {
-        // Logo SITMAH (Izquierda) - columna A
-        const imgSitmah = await fetchImageAsPng('/images/sitmah_logo.webp', false);
-        if (imgSitmah) { 
-            const imageId = wb.addImage({ base64: imgSitmah, extension: 'png' }); 
-            ws.addImage(imageId, { tl: { col: 0.05, row: 0.3 }, ext: { width: 110, height: 42 } }); 
-        }
-        // Logo STM - ajustado
-        const imgStm = await fetchImageAsPng('/images/sistema_de_tm.webp', false);
-        if (imgStm) { 
-            const imageId3 = wb.addImage({ base64: imgStm, extension: 'png' }); 
-            ws.addImage(imageId3, { tl: { col: 5.95, row: 0.4 }, ext: { width: 85, height: 38 } }); 
-        }
-    } catch(e) { console.log(e); }
+      // Logo SITMAH (Izquierda) - columna A
+      const imgSitmah = await fetchImageAsPng('/images/sitmah_logo.webp', false);
+      if (imgSitmah) {
+        const imageId = wb.addImage({ base64: imgSitmah, extension: 'png' });
+        ws.addImage(imageId, { tl: { col: 0.05, row: 0.3 }, ext: { width: 110, height: 42 } });
+      }
+      // Logo STM - ajustado
+      const imgStm = await fetchImageAsPng('/images/sistema_de_tm.webp', false);
+      if (imgStm) {
+        const imageId3 = wb.addImage({ base64: imgStm, extension: 'png' });
+        ws.addImage(imageId3, { tl: { col: 5.95, row: 0.4 }, ext: { width: 85, height: 38 } });
+      }
+    } catch (e) { console.log(e); }
 
     const r7 = ws.getRow(7); r7.height = 75;
     ws.getCell('A7').value = 'Modelo';
@@ -317,12 +323,12 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A7').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A7'));
 
     const modelosTitulos = ['Urbanuss', 'Zafiro', 'Vagoneta', 'Orión'];
-    for(let i=0; i<4; i++) {
-        const colLetter = String.fromCharCode(66 + i);
-        const cell = ws.getCell(`${colLetter}7`);
-        cell.value = modelosTitulos[i];
-        cell.font = { name: 'Arial', color: { argb: 'FF800000' }, bold: true };
-        cell.alignment = { horizontal: 'center', vertical: 'top' }; applyThinBorders(cell);
+    for (let i = 0; i < 4; i++) {
+      const colLetter = String.fromCharCode(66 + i);
+      const cell = ws.getCell(`${colLetter}7`);
+      cell.value = modelosTitulos[i];
+      cell.font = { name: 'Arial', color: { argb: 'FF800000' }, bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'top' }; applyThinBorders(cell);
     }
 
     ws.getCell('F7').value = 'Totales';
@@ -331,28 +337,28 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('F7').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('F7'));
 
     try {
-        // Centrado exacto: col_width=154px, row_height=100px
-        // offset_col = (col_px - img_w) / (2 * col_px) = fracción de columna
-        // offset_row = (row_px - img_h) / (2 * row_px) = fracción de fila
-        const colPx = 154; // 22 chars * 7px
-        const rowPx = 100; // 75pts ~= 100px
-        const buses = [
-            { path: '/images/urbanu.webp',      col: 1, w: 110, h: 48 },
-            { path: '/images/zafiro.webp',      col: 2, w: 100, h: 52 },
-            { path: '/images/vagoneta.webp',    col: 3, w: 95,  h: 48 },
-            { path: '/images/orionfrente.webp', col: 4, w: 80,  h: 55 }
-        ];
-        for (const bus of buses) {
-            const imgBus = await fetchImageAsPng(bus.path, false);
-            if(imgBus) {
-                const imgId = wb.addImage({ base64: imgBus, extension: 'png' });
-                const offsetCol = (colPx - bus.w) / (2 * colPx) + 0.45;
-                const offsetRow = (rowPx - bus.h) / (2 * rowPx);
-                ws.addImage(imgId, { tl: { col: bus.col + offsetCol, row: 6 + offsetRow }, ext: { width: bus.w, height: bus.h } });
-            }
+      // Centrado exacto: col_width=154px, row_height=100px
+      // offset_col = (col_px - img_w) / (2 * col_px) = fracción de columna
+      // offset_row = (row_px - img_h) / (2 * row_px) = fracción de fila
+      const colPx = 154; // 22 chars * 7px
+      const rowPx = 100; // 75pts ~= 100px
+      const buses = [
+        { path: '/images/urbanu.webp', col: 1, w: 110, h: 48 },
+        { path: '/images/zafiro.webp', col: 2, w: 100, h: 52 },
+        { path: '/images/vagoneta.webp', col: 3, w: 95, h: 48 },
+        { path: '/images/orionfrente.webp', col: 4, w: 80, h: 55 }
+      ];
+      for (const bus of buses) {
+        const imgBus = await fetchImageAsPng(bus.path, false);
+        if (imgBus) {
+          const imgId = wb.addImage({ base64: imgBus, extension: 'png' });
+          const offsetCol = (colPx - bus.w) / (2 * colPx) + 0.45;
+          const offsetRow = (rowPx - bus.h) / (2 * rowPx);
+          ws.addImage(imgId, { tl: { col: bus.col + offsetCol, row: 6 + offsetRow }, ext: { width: bus.w, height: bus.h } });
         }
-    } catch(e) {
-        // Ignorar fallo al cargar imagenes decorativas
+      }
+    } catch (e) {
+      // Ignorar fallo al cargar imagenes decorativas
     }
 
     const r8 = ws.getRow(8); r8.height = 40;
@@ -362,11 +368,11 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A8').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A8'));
 
     modelStats.forEach((m, idx) => {
-        const col = String.fromCharCode(66 + idx);
-        const cell = ws.getCell(`${col}8`);
-        cell.value = `${m.eficiencia}%`;
-        cell.font = { name: 'Arial', color: { argb: 'FF00B050' }, bold: true, size: 22 };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
+      const col = String.fromCharCode(66 + idx);
+      const cell = ws.getCell(`${col}8`);
+      cell.value = `${m.eficiencia}%`;
+      cell.font = { name: 'Arial', color: { argb: 'FF00B050' }, bold: true, size: 22 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
     });
     ws.getCell('F8').value = `${totales.totalEficiencia}%`;
     ws.getCell('F8').font = { name: 'Arial', color: { argb: 'FF00B050' }, bold: true, size: 22 };
@@ -379,12 +385,12 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A9').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A9'));
 
     modelStats.forEach((m, idx) => {
-        const col = String.fromCharCode(66 + idx);
-        const cell = ws.getCell(`${col}9`);
-        cell.value = m.operacion;
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6DFCA' } };
-        cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 16 };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
+      const col = String.fromCharCode(66 + idx);
+      const cell = ws.getCell(`${col}9`);
+      cell.value = m.operacion;
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6DFCA' } };
+      cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 16 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
     });
     ws.getCell('F9').value = totales.totalOperacion;
     ws.getCell('F9').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6DFCA' } };
@@ -396,13 +402,13 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A10').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
     ws.getCell('A10').font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true };
     ws.getCell('A10').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; applyThinBorders(ws.getCell('A10'));
-    
+
     modelStats.forEach((m, idx) => {
-        const col = String.fromCharCode(66 + idx);
-        const cell = ws.getCell(`${col}10`);
-        cell.value = m.programadas;
-        cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 16 };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
+      const col = String.fromCharCode(66 + idx);
+      const cell = ws.getCell(`${col}10`);
+      cell.value = m.programadas;
+      cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 16 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
     });
     ws.getCell('F10').value = totales.totalProgramadas;
     ws.getCell('F10').font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 18 };
@@ -418,12 +424,12 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A12').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_GRAY } };
     ws.getCell('A12').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('A12').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A12'));
-    for(let i=0; i<4; i++) {
-        const col = String.fromCharCode(66 + i);
-        const cell = ws.getCell(`${col}12`);
-        cell.value = modelosTitulos[i];
-        cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
+    for (let i = 0; i < 4; i++) {
+      const col = String.fromCharCode(66 + i);
+      const cell = ws.getCell(`${col}12`);
+      cell.value = modelosTitulos[i];
+      cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
     }
     ws.mergeCells('F12:F13');
     ws.getCell('F12').value = 'Total en reserva';
@@ -437,11 +443,11 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A13').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('A13').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A13'));
     modelStats.forEach((m, idx) => {
-        const col = String.fromCharCode(66 + idx);
-        const cell = ws.getCell(`${col}13`);
-        cell.value = m.reservaEcosText;
-        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-        cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true }; applyThinBorders(cell);
+      const col = String.fromCharCode(66 + idx);
+      const cell = ws.getCell(`${col}13`);
+      cell.value = m.reservaEcosText;
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true }; applyThinBorders(cell);
     });
 
     ws.getRow(14).height = 30;
@@ -450,11 +456,11 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A14').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('A14').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A14'));
     modelStats.forEach((m, idx) => {
-        const col = String.fromCharCode(66 + idx);
-        const cell = ws.getCell(`${col}14`);
-        cell.value = m.reservaCount;
-        cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 14 };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
+      const col = String.fromCharCode(66 + idx);
+      const cell = ws.getCell(`${col}14`);
+      cell.value = m.reservaCount;
+      cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 14 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
     });
     ws.getCell('F14').value = totales.totalEnReserva;
     ws.getCell('F14').font = { name: 'Arial', color: { argb: COLOR_GRAY }, bold: true, size: 24 };
@@ -470,12 +476,12 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A16').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_GRAY } };
     ws.getCell('A16').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('A16').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A16'));
-    for(let i=0; i<4; i++) {
-        const col = String.fromCharCode(66 + i);
-        const cell = ws.getCell(`${col}16`);
-        cell.value = modelosTitulos[i];
-        cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
+    for (let i = 0; i < 4; i++) {
+      const col = String.fromCharCode(66 + i);
+      const cell = ws.getCell(`${col}16`);
+      cell.value = modelosTitulos[i];
+      cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
     }
     ws.mergeCells('F16:F17');
     ws.getCell('F16').value = 'Total en mantenimiento';
@@ -489,11 +495,11 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A17').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('A17').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A17'));
     modelStats.forEach((m, idx) => {
-        const col = String.fromCharCode(66 + idx);
-        const cell = ws.getCell(`${col}17`);
-        cell.value = m.mantFallasText;
-        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-        cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 9 }; applyThinBorders(cell);
+      const col = String.fromCharCode(66 + idx);
+      const cell = ws.getCell(`${col}17`);
+      cell.value = m.mantFallasText;
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 9 }; applyThinBorders(cell);
     });
 
     ws.getRow(18).height = 30;
@@ -502,11 +508,11 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A18').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('A18').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A18'));
     modelStats.forEach((m, idx) => {
-        const col = String.fromCharCode(66 + idx);
-        const cell = ws.getCell(`${col}18`);
-        cell.value = m.mantCount;
-        cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 14 };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
+      const col = String.fromCharCode(66 + idx);
+      const cell = ws.getCell(`${col}18`);
+      cell.value = m.mantCount;
+      cell.font = { name: 'Arial', color: { argb: 'FF000000' }, bold: true, size: 14 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(cell);
     });
     ws.getCell('F18').value = totales.totalEnMantenimiento;
     ws.getCell('F18').font = { name: 'Arial', color: { argb: 'FF9C1E3F' }, bold: true, size: 24 };
@@ -562,16 +568,16 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell(`F${rIdx}`).value = conductoresConFalta.length;
     ws.getCell(`F${rIdx}`).font = { name: 'Arial', color: { argb: 'FF9C1E3F' }, bold: true };
     ws.getCell(`F${rIdx}`).alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell(`F${rIdx}`));
-    rIdx+=2;
+    rIdx += 2;
 
-    if(conductoresConFalta.length > 0) {
+    if (conductoresConFalta.length > 0) {
       ws.mergeCells(`A${rIdx}:F${rIdx}`);
       ws.getCell(`A${rIdx}`).value = 'Conductores con falta';
       ws.getCell(`A${rIdx}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VINO } };
       ws.getCell(`A${rIdx}`).font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
       ws.getCell(`A${rIdx}`).alignment = { horizontal: 'center', vertical: 'middle' };
       rIdx++;
-      
+
       conductoresConFalta.forEach(c => {
         ws.mergeCells(`A${rIdx}:C${rIdx}`);
         ws.getCell(`A${rIdx}`).value = `${c.nombres || ''} ${c.apellidos || ''}`.trim() || c.nombre || '';
@@ -589,7 +595,7 @@ export async function descargarResumenDespachoExcel(setLoading) {
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const fDate = new Date().toLocaleDateString('es-MX').replace(/\//g, '-');
     saveAs(blob, `Resumen_Despacho_${fDate}.xlsx`);
-    
+
     Swal.fire({ icon: 'success', title: '¡Reporte Generado!', text: 'El Resumen de Excel se generó correctamente.', confirmButtonColor: '#601a2a', timer: 3000 });
   } catch (error) {
     console.error('Error Excel:', error);
