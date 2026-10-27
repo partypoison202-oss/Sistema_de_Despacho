@@ -20,7 +20,12 @@ BOLD='\033[1m'
 DIM='\033[2m'
 NC='\033[0m'
 
-BRANCH="${1:-main}"
+# Detectar automáticamente la rama activa del servidor (o usar argumento $1 si se proporciona)
+CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "despliegue-hoy")
+if [ "$CURRENT_GIT_BRANCH" = "HEAD" ] || [ -z "$CURRENT_GIT_BRANCH" ]; then
+    CURRENT_GIT_BRANCH="despliegue-hoy"
+fi
+BRANCH="${1:-$CURRENT_GIT_BRANCH}"
 
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}${BOLD}🔍 VERIFICACIÓN Y DIAGNÓSTICO PREVIO AL DESPLIEGUE (ACOTMA)${NC}"
