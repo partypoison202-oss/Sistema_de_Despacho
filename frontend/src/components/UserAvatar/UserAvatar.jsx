@@ -76,7 +76,7 @@ export default function UserAvatar({
         borderRadius: '50%',
         ...style,
       }}
-      title={`${nombre}${shouldRenderBadge ? (isOnline ? ' (En línea)' : ' (Desconectado)') : ''}`}
+      title={`${nombre}${shouldRenderBadge ? (isOnline ? ' (En línea)' : ' (Sin conexión)') : ''}`}
     >
       {avatarContent}
       {shouldRenderBadge && (
@@ -86,7 +86,7 @@ export default function UserAvatar({
             width: `${badgeSize}px`,
             height: `${badgeSize}px`,
           }}
-          aria-label={isOnline ? 'En línea' : 'Desconectado'}
+          aria-label={isOnline ? 'En línea' : 'Sin conexión'}
         />
       )}
     </div>

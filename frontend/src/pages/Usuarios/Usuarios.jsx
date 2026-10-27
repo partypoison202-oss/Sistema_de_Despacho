@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useMemo } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
@@ -13,6 +13,7 @@ export default function Usuarios() {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterActivity, setFilterActivity] = useState('TODOS'); // 'TODOS' | 'CON_ACTIVIDAD' | 'EN_LINEA' | 'SIN_CONEXION'
 
   // Form state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -132,7 +133,7 @@ export default function Usuarios() {
             ...u,
             is_online: Boolean(info.is_online),
             last_seen: info.last_seen,
-            last_seen_text: info.last_seen_text || 'Desconectado',
+            last_seen_text: info.last_seen_text || 'Sin conexión',
           };
         })
       );
@@ -727,41 +728,107 @@ export default function Usuarios() {
     }
   };
 
-  // Filtrado y ordenamiento de usuarios
-  const filteredUsers = users
-    .filter(
-      (user) =>
-        (user.nombre_completo || user.usuario || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.role?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      const roleA = (a.role?.nombre || '').toLowerCase();
-      const roleB = (b.role?.nombre || '').toLowerCase();
+  // Conteo de usuarios por actividad para las píldoras de filtro
+  const userActivityCounts = useMemo(() => {
+    let conActividad = 0;
+    let enLinea = 0;
+    let sinConexion = 0;
 
-      const isAdminA = roleA === 'administrador';
-      const isAdminB = roleB === 'administrador';
+    users.forEach((u) => {
+      const isOnline = Boolean(u.is_online);
+      const hasActivity = isOnline || (u.last_seen && u.last_seen_text && u.last_seen_text !== 'Desconectado' && u.last_seen_text !== 'Sin conexión');
 
-      // 1. Administradores siempre arriba
-      if (isAdminA && !isAdminB) return -1;
-      if (!isAdminA && isAdminB) return 1;
-
-      // 2. Ordenar alfabéticamente por Rol
-      if (roleA < roleB) return -1;
-      if (roleA > roleB) return 1;
-
-      // 3. Activos primero
-      if (a.activo && !b.activo) return -1;
-      if (!a.activo && b.activo) return 1;
-
-      // 4. Ordenar alfabéticamente por Nombre
-      const nameA = (a.nombre_completo || '').toLowerCase();
-      const nameB = (b.nombre_completo || '').toLowerCase();
-      if (nameA < nameB) return -1;
-      if (nameA > nameB) return 1;
-
-      return a.id - b.id;
+      if (isOnline) enLinea++;
+      if (hasActivity) conActividad++;
+      else sinConexion++;
     });
+
+    return {
+      todos: users.length,
+      conActividad,
+      enLinea,
+      sinConexion,
+    };
+  }, [users]);
+
+  // Filtrado y ordenamiento de usuarios
+  const filteredUsers = useMemo(() => {
+    return users
+      .filter((user) => {
+        // 1. Filtro por texto de búsqueda
+        const term = searchTerm.toLowerCase();
+        const matchesSearch =
+          (user.nombre_completo || user.usuario || '').toLowerCase().includes(term) ||
+          user.usuario.toLowerCase().includes(term) ||
+          (user.role?.nombre || '').toLowerCase().includes(term);
+
+        if (!matchesSearch) return false;
+
+        // 2. Filtro por actividad de conexión
+        const isOnline = Boolean(user.is_online);
+        const hasActivity = isOnline || (user.last_seen && user.last_seen_text && user.last_seen_text !== 'Desconectado' && user.last_seen_text !== 'Sin conexión');
+
+        if (filterActivity === 'CON_ACTIVIDAD') {
+          return hasActivity;
+        }
+        if (filterActivity === 'EN_LINEA') {
+          return isOnline;
+        }
+        if (filterActivity === 'SIN_CONEXION') {
+          return !hasActivity;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const roleA = (a.role?.nombre || '').toLowerCase();
+        const roleB = (b.role?.nombre || '').toLowerCase();
+
+        const isAdminA = roleA === 'administrador';
+        const isAdminB = roleB === 'administrador';
+
+        // 1. Administradores siempre arriba
+        if (isAdminA && !isAdminB) return -1;
+        if (!isAdminA && isAdminB) return 1;
+
+        // 2. Agrupar personas con actividad primero (En línea primero, luego actividad reciente, al final sin conexión)
+        const aOnline = Boolean(a.is_online);
+        const bOnline = Boolean(b.is_online);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+
+        const aHasActivity = aOnline || (a.last_seen && a.last_seen_text && a.last_seen_text !== 'Desconectado' && a.last_seen_text !== 'Sin conexión');
+        const bHasActivity = bOnline || (b.last_seen && b.last_seen_text && b.last_seen_text !== 'Desconectado' && b.last_seen_text !== 'Sin conexión');
+
+        if (aHasActivity && !bHasActivity) return -1;
+        if (!aHasActivity && bHasActivity) return 1;
+
+        // Si ambos tienen actividad y no están online, ordenar por última conexión más reciente
+        if (aHasActivity && bHasActivity && a.last_seen && b.last_seen) {
+          const timeA = new Date(a.last_seen).getTime();
+          const timeB = new Date(b.last_seen).getTime();
+          if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
+            return timeB - timeA;
+          }
+        }
+
+        // 3. Ordenar alfabéticamente por Rol
+        if (roleA < roleB) return -1;
+        if (roleA > roleB) return 1;
+
+        // 4. Activos primero (estado de cuenta)
+        if (a.activo && !b.activo) return -1;
+        if (!a.activo && b.activo) return 1;
+
+        // 5. Ordenar alfabéticamente por Nombre
+        const nameA = (a.nombre_completo || '').toLowerCase();
+        const nameB = (b.nombre_completo || '').toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+
+        return a.id - b.id;
+      });
+  }, [users, searchTerm, filterActivity]);
 
   // Validación del formulario
   const isFormValid =
@@ -800,6 +867,45 @@ export default function Usuarios() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          {/* Filtro de actividad de usuarios */}
+          <div className="usuarios-filter-chips">
+            <button
+              type="button"
+              className={`filter-chip-btn ${filterActivity === 'TODOS' ? 'active' : ''}`}
+              onClick={() => setFilterActivity('TODOS')}
+            >
+              Todos <span className="filter-chip-count">{userActivityCounts.todos}</span>
+            </button>
+            <button
+              type="button"
+              className={`filter-chip-btn ${filterActivity === 'CON_ACTIVIDAD' ? 'active' : ''}`}
+              onClick={() => setFilterActivity('CON_ACTIVIDAD')}
+              title="Usuarios con actividad de conexión registrada"
+            >
+              <span className="chip-dot-activity"></span>
+              Con actividad <span className="filter-chip-count">{userActivityCounts.conActividad}</span>
+            </button>
+            <button
+              type="button"
+              className={`filter-chip-btn ${filterActivity === 'EN_LINEA' ? 'active' : ''}`}
+              onClick={() => setFilterActivity('EN_LINEA')}
+              title="Usuarios actualmente conectados"
+            >
+              <span className="chip-dot-online"></span>
+              En línea <span className="filter-chip-count">{userActivityCounts.enLinea}</span>
+            </button>
+            <button
+              type="button"
+              className={`filter-chip-btn ${filterActivity === 'SIN_CONEXION' ? 'active' : ''}`}
+              onClick={() => setFilterActivity('SIN_CONEXION')}
+              title="Usuarios sin registro de conexión"
+            >
+              <span className="chip-dot-offline"></span>
+              Sin conexión <span className="filter-chip-count">{userActivityCounts.sinConexion}</span>
+            </button>
+          </div>
+
           <div className="usuarios-actions" style={{ display: 'flex', gap: '0.75rem' }}>
             {currentUser && ['Jeanet García Chávez', 'Israel Moreno Gómez', 'Enrique Hernandez Hernandez'].includes(currentUser.nombre_completo) && (
               <button
@@ -874,7 +980,7 @@ export default function Usuarios() {
                             </span>
                           ) : (
                             <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#cbd5e1', display: 'inline-block' }}></span> {user.last_seen_text && user.last_seen_text !== 'Desconectado' ? `Últ. vez: ${user.last_seen_text}` : 'Desconectado'}
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#cbd5e1', display: 'inline-block' }}></span> {user.last_seen_text && user.last_seen_text !== 'Desconectado' && user.last_seen_text !== 'Sin conexión' ? `Últ. vez: ${user.last_seen_text}` : 'Sin conexión'}
                             </span>
                           )}
                         </div>

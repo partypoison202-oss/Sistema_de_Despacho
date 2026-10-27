@@ -66,7 +66,7 @@ class UserController extends Controller
             // En línea SOLAMENTE si tiene token activo en personal_access_tokens en los últimos 5 minutos O caché activa
             $isOnlineFromToken = ($fechaToken && abs($ahora->diffInMinutes($fechaToken, false)) <= 5);
             $isOnline = $isOnlineFromCache || $isOnlineFromToken;
-            $lastSeenText = 'Desconectado';
+            $lastSeenText = 'Sin conexión';
 
             if ($isOnline) {
                 $lastSeenText = 'En línea';
@@ -104,7 +104,7 @@ class UserController extends Controller
             $info = $presencias[$u->id] ?? null;
             $u->is_online = $info['is_online'] ?? false;
             $u->last_seen = $info['last_seen'] ?? null;
-            $u->last_seen_text = $info['last_seen_text'] ?? 'Desconectado';
+            $u->last_seen_text = $info['last_seen_text'] ?? 'Sin conexión';
             return $u;
         });
 
