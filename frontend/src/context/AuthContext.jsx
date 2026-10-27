@@ -38,9 +38,50 @@ export const AuthProvider = ({ children }) => {
     return localStorage.getItem('token') || null;
   });
   const [loading, setLoading] = useState(true);
+  const sessionExpiredModalRef = useRef(false);
 
-  // El cierre de sesión por inactividad fue removido por solicitud del usuario.
-  // La sesión persistirá hasta que el token expire en el backend (ej. días después) o cierren sesión.
+  const handleSessionExpired = () => {
+    // Si ya estamos en la pantalla de acceso, no mostrar modal
+    if (window.location.pathname === '/' || window.location.pathname === '/login') {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      return;
+    }
+
+    if (sessionExpiredModalRef.current) return;
+    sessionExpiredModalRef.current = true;
+
+    // Limpiar sesión local inmediatamente
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+
+    Swal.fire({
+      icon: 'info',
+      title: 'Sesión expirada',
+      text: 'Tu sesión ha finalizado. Por favor, inicia sesión nuevamente para continuar.',
+      confirmButtonText: 'Iniciar Sesión',
+      confirmButtonColor: '#6b1d33',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+    }).then(() => {
+      sessionExpiredModalRef.current = false;
+      window.location.href = '/';
+    });
+  };
+
+  useEffect(() => {
+    const handleGlobalSessionExpired = () => {
+      handleSessionExpired();
+    };
+    window.addEventListener('auth:session_expired', handleGlobalSessionExpired);
+    return () => {
+      window.removeEventListener('auth:session_expired', handleGlobalSessionExpired);
+    };
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -48,6 +89,10 @@ export const AuthProvider = ({ children }) => {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => {
+        if (res.status === 401) {
+          handleSessionExpired();
+          throw new Error('Token invalido');
+        }
         if (!res.ok) throw new Error('Token invalido');
         return res.json();
       })
@@ -55,7 +100,9 @@ export const AuthProvider = ({ children }) => {
         setUser(data);
       })
       .catch(() => {
-        logout();
+        if (!sessionExpiredModalRef.current) {
+          logout();
+        }
       })
       .finally(() => {
         setLoading(false);
@@ -65,26 +112,30 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
-  // Heartbeat periódico para presencia en línea (punto verde en tiempo real)
+  // Heartbeat periódico para presencia en línea (punto verde en tiempo real) y chequeo de sesión
   useEffect(() => {
     if (!token) return;
 
     const sendHeartbeat = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-        return;
-      }
       fetch(`${API_BASE}/api/heartbeat`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
-      }).catch(() => {});
+      })
+      .then(res => {
+        if (res.status === 401) {
+          handleSessionExpired();
+        }
+      })
+      .catch(() => {});
     };
 
     sendHeartbeat();
 
-    const timer = setInterval(sendHeartbeat, 40000);
+    // Comprobación periódica cada 6 segundos para detección rápida
+    const timer = setInterval(sendHeartbeat, 6000);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {

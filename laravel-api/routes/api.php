@@ -237,6 +237,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::post('/users/{id}/cerrar-sesion', [UserController::class, 'cerrarSesion']);
 
     // Gestión del Catálogo de Rutas
     Route::get('/rutas', [RutaController::class, 'index']);

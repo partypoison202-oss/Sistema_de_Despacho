@@ -95,18 +95,23 @@ class AuthController extends Controller
             Cache::put('user_online_' . $user->id, true, now()->addMinutes(5));
             Cache::put('user_last_seen_' . $user->id, Carbon::now($tz)->toIso8601String(), now()->addDays(7));
 
-            $token = $user->currentAccessToken();
-            if ($token && method_exists($token, 'forceFill')) {
-                try {
-                    $token->forceFill(['last_used_at' => now()])->save();
-                } catch (\Throwable $e) {
-                }
-            }
+            // Optimización: evitar escrituras intensivas en base de datos. Solo sincronizar DB cada 60s.
+            if (!Cache::has('user_db_sync_' . $user->id)) {
+                Cache::put('user_db_sync_' . $user->id, true, now()->addSeconds(60));
 
-            try {
-                $user->forceFill(['ultima_conexion' => now()])->save();
-            } catch (\Throwable $e) {
-                // Silencioso si la columna aún no existe
+                $token = $user->currentAccessToken();
+                if ($token && method_exists($token, 'forceFill')) {
+                    try {
+                        $token->forceFill(['last_used_at' => now()])->save();
+                    } catch (\Throwable $e) {
+                    }
+                }
+
+                try {
+                    $user->forceFill(['ultima_conexion' => now()])->save();
+                } catch (\Throwable $e) {
+                    // Silencioso si la columna aún no existe
+                }
             }
         }
 

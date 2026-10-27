@@ -115,6 +115,7 @@ function App() {
           <Routes>
             {/* Pantalla de Inicio de Sesión */}
             <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
 
             {/* Ruta protegida de detalle de despacho (pantalla "General" nueva) */}
             <Route path="/despacho/:id" element={

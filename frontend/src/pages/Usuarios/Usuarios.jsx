@@ -33,6 +33,7 @@ export default function Usuarios() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingUserId, setTogglingUserId] = useState(null);
+  const [closingSessionUserId, setClosingSessionUserId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isOtroRol, setIsOtroRol] = useState(false);
   const [nuevoRolNombre, setNuevoRolNombre] = useState('');
@@ -728,6 +729,77 @@ export default function Usuarios() {
     }
   };
 
+  // Expulsar / cerrar sesión forzada de un usuario
+  const handleCerrarSesion = async (userToKick) => {
+    if (!userToKick) return;
+
+    if (currentUser && userToKick.id === currentUser.id) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Tu propia sesión',
+        text: 'Para cerrar tu propia sesión utiliza la opción "Cerrar Sesión" en el menú principal.',
+        confirmButtonColor: '#6b1d33',
+      });
+      return;
+    }
+
+    const userName = userToKick.nombre_completo || userToKick.usuario;
+    const result = await Swal.fire({
+      title: '¿Cerrar sesión del usuario?',
+      html: `
+        <div style="text-align: left; font-size: 14px; color: #475569; line-height: 1.5;">
+          <p>Estás a punto de cerrar la sesión activa de <strong>${userName}</strong>.</p>
+          <p style="margin-top: 8px; font-size: 13px; color: #64748b;">En su pantalla se mostrará una notificación amigable de <em>"Sesión expirada"</em> y deberá iniciar sesión nuevamente.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!result.isConfirmed) return;
+
+    setClosingSessionUserId(userToKick.id);
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${userToKick.id}/cerrar-sesion`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Sesión finalizada',
+          text: data.message || `La sesión de ${userName} se cerró correctamente.`,
+          confirmButtonColor: '#c5a059',
+          timer: 2500,
+        });
+
+        // Actualizar el estado local inmediatamente a Sin conexión
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userToKick.id
+              ? { ...u, is_online: false, last_seen_text: 'Sin conexión' }
+              : u
+          )
+        );
+      } else {
+        Swal.fire('No se pudo cerrar sesión', data.message || 'Error desconocido', 'error');
+      }
+    } catch (_err) {
+      Swal.fire('Error', 'No se pudo comunicar con el servidor para cerrar la sesión', 'error');
+    } finally {
+      setClosingSessionUserId(null);
+    }
+  };
+
   // Conteo de usuarios por actividad para las píldoras de filtro
   const userActivityCounts = useMemo(() => {
     let enLinea = 0;
@@ -785,28 +857,7 @@ export default function Usuarios() {
         if (isAdminA && !isAdminB) return -1;
         if (!isAdminA && isAdminB) return 1;
 
-        // 2. Agrupar personas con actividad primero (En línea primero, luego actividad reciente, al final sin conexión)
-        const aOnline = Boolean(a.is_online);
-        const bOnline = Boolean(b.is_online);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-
-        const aHasActivity = aOnline || (a.last_seen && a.last_seen_text && a.last_seen_text !== 'Desconectado' && a.last_seen_text !== 'Sin conexión');
-        const bHasActivity = bOnline || (b.last_seen && b.last_seen_text && b.last_seen_text !== 'Desconectado' && b.last_seen_text !== 'Sin conexión');
-
-        if (aHasActivity && !bHasActivity) return -1;
-        if (!aHasActivity && bHasActivity) return 1;
-
-        // Si ambos tienen actividad y no están online, ordenar por última conexión más reciente
-        if (aHasActivity && bHasActivity && a.last_seen && b.last_seen) {
-          const timeA = new Date(a.last_seen).getTime();
-          const timeB = new Date(b.last_seen).getTime();
-          if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
-            return timeB - timeA;
-          }
-        }
-
-        // 3. Ordenar alfabéticamente por Rol
+        // 2. Ordenar alfabéticamente por Rol (Jerarquía estándar)
         if (roleA < roleB) return -1;
         if (roleA > roleB) return 1;
 
@@ -1002,6 +1053,34 @@ export default function Usuarios() {
                       </td>
                       <td>
                         <div className="actions-container">
+                          {/* Botón Expulsar / Cerrar sesión activa */}
+                          <button
+                            className="btn-icon-action btn-icon-kick"
+                            onClick={() => handleCerrarSesion(user)}
+                            title={user.is_online ? `Cerrar sesión activa de ${user.nombre_completo || user.usuario} (En línea)` : `Cerrar sesión activa de ${user.nombre_completo || user.usuario}`}
+                            disabled={closingSessionUserId === user.id || (currentUser && user.id === currentUser.id)}
+                          >
+                            {closingSessionUserId === user.id ? (
+                              <span
+                                className="spinner"
+                                style={{ width: '1rem', height: '1rem', borderWidth: '2px' }}
+                              ></span>
+                            ) : (
+                              <svg
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                />
+                              </svg>
+                            )}
+                          </button>
                           <button
                             className="btn-icon-action btn-icon-edit"
                             onClick={() => handleOpenModal(user)}
