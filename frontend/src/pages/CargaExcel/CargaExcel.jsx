@@ -15,6 +15,7 @@ import ModalComparativaAlimentadoras from './ModalComparativaAlimentadoras';
 import ModalCiclos from './ModalCiclos';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
+import { getFechaActualLocal } from '../../utils/itinerarioUtils';
 
 // Campos que se editan juntos (si cambia uno del grupo, se considera cambiado todo el grupo).
 const GRUPOS_FILA = [
@@ -237,6 +238,9 @@ export default function CargaExcel({ isPasteles = false }) {
 
 
   const solicitarFaltaSiAplica = async (originalTarjeton, originalName, ecoUnidad, rol = 'conductor') => {
+    // Si no estamos en la pestaña del día operativo (HOY), ej. DÍA SIGUIENTE (MANANA),
+    // no se debe registrar falta al operador reemplazado porque es planificación futura.
+    if (tabActiva !== 'HOY') return;
     if (!originalTarjeton) return;
     const origConductorObj = catalogConductores.find(
       c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(originalTarjeton)
@@ -267,7 +271,7 @@ export default function CargaExcel({ isPasteles = false }) {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            fecha: new Date().toISOString().split('T')[0],
+            fecha: getFechaActualLocal(),
             motivo: `Inasistencia por reemplazo de tarjetón en Programación (Eco: ${ecoUnidad || 'N/A'})`
           })
         });

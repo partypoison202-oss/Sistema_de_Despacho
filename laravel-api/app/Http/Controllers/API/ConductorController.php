@@ -59,11 +59,109 @@ class ConductorController extends Controller
         }
     }
 
+    /**
+     * Limpia de forma segura faltas erróneas registradas con fecha futura y sincroniza
+     * la columna numérica 'faltas' con los registros reales pendientes de 'faltas_detalle'.
+     */
+    public static function limpiarFaltasFuturasErroneas()
+    {
+        $hoyMexico = \Carbon\Carbon::today('America/Mexico_City')->toDateString();
+        $corregidos = 0;
+
+        try {
+            // 1. Conductores con detalle de faltas: limpiar fechas futuras y recalcular
+            $conductoresConDetalle = Conductor::whereNotNull('faltas_detalle')->get();
+            foreach ($conductoresConDetalle as $c) {
+                $raw = $c->faltas_detalle;
+                $items = is_string($raw) ? json_decode($raw, true) : (is_array($raw) ? $raw : []);
+                if (!is_array($items)) continue;
+
+                $cambiado = false;
+                $itemsFiltrados = [];
+                foreach ($items as $f) {
+                    if (!is_array($f)) continue;
+                    $fechaStr = substr((string)($f['fecha'] ?? ''), 0, 10);
+                    if ($fechaStr && $fechaStr > $hoyMexico) {
+                        $cambiado = true; // Falta futura detectada y descartada
+                    } else {
+                        $itemsFiltrados[] = $f;
+                    }
+                }
+
+                $pendientesCount = 0;
+                foreach ($itemsFiltrados as $f) {
+                    $esJust = (!empty($f['justificada'])) || (isset($f['estado']) && $f['estado'] === 'justificada');
+                    if (!$esJust && (!isset($f['estado']) || $f['estado'] !== 'retardo')) {
+                        $pendientesCount++;
+                    }
+                }
+
+                if ($cambiado || (int)$c->faltas !== $pendientesCount) {
+                    $c->faltas_detalle = array_values($itemsFiltrados);
+                    $c->faltas = $pendientesCount;
+                    if ($c->faltas === 0 && $c->estado_servicio === 'falta') {
+                        $c->estado_servicio = 'disponible';
+                    }
+                    $eval = $c->evaluarInhabilitacionFaltas();
+                    if ($c->estatus === 'inhabilitado' && empty($eval['inhabilitado'])) {
+                        $c->estatus = 'activo';
+                    }
+                    $c->save();
+                    $corregidos++;
+                }
+            }
+
+            // 2. Conductores donde faltas_detalle es NULL o vacío pero faltas > 0 (ej. Operador 0383)
+            $conductoresDesfasados = Conductor::where(function ($q) {
+                $q->whereNull('faltas_detalle')
+                  ->orWhere('faltas_detalle', '')
+                  ->orWhere('faltas_detalle', '[]')
+                  ->orWhere('faltas_detalle', 'null');
+            })->where('faltas', '>', 0)->get();
+
+            foreach ($conductoresDesfasados as $c) {
+                $c->faltas = 0;
+                if ($c->estado_servicio === 'falta') {
+                    $c->estado_servicio = 'disponible';
+                }
+                if ($c->estatus === 'inhabilitado') {
+                    $c->estatus = 'activo';
+                }
+                $c->save();
+                $corregidos++;
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Error en limpiarFaltasFuturasErroneas: ' . $e->getMessage());
+        }
+
+        return $corregidos;
+    }
+
+    /**
+     * Endpoint API para limpiar faltas erróneas con fecha futura y sincronizar contadores.
+     */
+    public function limpiarFaltasFuturasRoute(Request $request)
+    {
+        $corregidos = self::limpiarFaltasFuturasErroneas();
+        return response()->json([
+            'status' => 'success',
+            'message' => "Proceso completado. Se sincronizaron y corrigieron {$corregidos} conductores.",
+            'conductores_corregidos' => $corregidos
+        ]);
+    }
+
     public function index(Request $request)
     {
         @ini_set('memory_limit', '512M');
         try {
             $this->ensureColumnsExist();
+
+            // Auto-sincronizar faltas desfasadas de manera transparente
+            try {
+                self::limpiarFaltasFuturasErroneas();
+            } catch (\Throwable $e) {
+                // Silencioso
+            }
 
             $query = Conductor::query();
 
@@ -936,6 +1034,14 @@ class ConductorController extends Controller
             'motivo' => 'nullable|string|max:255',
         ]);
 
+        $fechaInput = substr((string)$request->input('fecha'), 0, 10);
+        $hoyMexico = \Carbon\Carbon::today('America/Mexico_City')->toDateString();
+        if ($fechaInput > $hoyMexico) {
+            return response()->json([
+                'message' => 'No es posible registrar una falta con fecha futura (' . $fechaInput . '). Solo se permiten inasistencias de hoy o días anteriores.'
+            ], 422);
+        }
+
         $conductor = is_numeric($id) ? Conductor::find($id) : null;
         if (!$conductor) {
             $conductor = Conductor::where('tarjeton', $id)
@@ -963,7 +1069,18 @@ class ConductorController extends Controller
 
         $detalle[] = $nuevaFalta;
         $conductor->faltas_detalle = $detalle;
-        $conductor->faltas = ((int)($conductor->faltas ?? 0)) + 1;
+
+        // Recalcular conteo exacto de faltas pendientes no justificadas
+        $pendientesCount = 0;
+        foreach ($detalle as $item) {
+            if (is_array($item)) {
+                $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+                if (!$esJust && (!isset($item['estado']) || $item['estado'] !== 'retardo')) {
+                    $pendientesCount++;
+                }
+            }
+        }
+        $conductor->faltas = $pendientesCount;
 
         // Evaluar regla de 4 faltas en 30 días
         $eval = $conductor->evaluarInhabilitacionFaltas();

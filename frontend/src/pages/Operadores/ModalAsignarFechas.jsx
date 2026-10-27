@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import { getFechaActualLocal, formatFechaLocal } from '../../utils/itinerarioUtils';
 
 const colorStyles = {
   asistencia: { dot: '#16a34a', text: 'Asistencia (A)' },
@@ -36,7 +37,7 @@ function CustomColorSelect({ value, onChange }) {
 
   return (
     <div ref={dropdownRef} className="relative w-full">
-      <div 
+      <div
         onClick={() => setIsOpen(!isOpen)}
         className="bg-white text-slate-800 px-3.5 py-2.5 rounded-xl font-semibold cursor-pointer flex justify-between items-center border border-slate-300 transition-colors shadow-2xs hover:border-slate-400"
       >
@@ -46,11 +47,11 @@ function CustomColorSelect({ value, onChange }) {
         </div>
         <span className="text-slate-400 text-xs">▼</span>
       </div>
-      
+
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-[1000] overflow-hidden divide-y divide-slate-100">
           {Object.entries(colorStyles).map(([key, style]) => (
-            <div 
+            <div
               key={key}
               onClick={() => {
                 onChange(key);
@@ -95,9 +96,9 @@ function SearchableConductorSelect({ label, sublabel, selectedId, onSelect, cond
     if (excludeId && String(c.id) === String(excludeId)) return false;
     const term = busqueda.toLowerCase().trim();
     if (!term) return true;
-    return (c.nombres || '').toLowerCase().includes(term) || 
-           (c.apellidos || '').toLowerCase().includes(term) || 
-           (c.tarjeton || '').toLowerCase().includes(term);
+    return (c.nombres || '').toLowerCase().includes(term) ||
+      (c.apellidos || '').toLowerCase().includes(term) ||
+      (c.tarjeton || '').toLowerCase().includes(term);
   }).sort((a, b) => (a.nombres || '').localeCompare(b.nombres || ''));
 
   return (
@@ -137,10 +138,10 @@ function SearchableConductorSelect({ label, sublabel, selectedId, onSelect, cond
       ) : (
         <div className="relative w-full" ref={dropdownRef}>
           <div className="relative flex items-center">
-            <input 
+            <input
               ref={inputRef}
-              type="text" 
-              placeholder={placeholder || "Buscar por nombre o tarjetón..."} 
+              type="text"
+              placeholder={placeholder || "Buscar por nombre o tarjetón..."}
               value={busqueda}
               onFocus={() => setIsOpen(true)}
               onClick={() => setIsOpen(true)}
@@ -179,7 +180,7 @@ function SearchableConductorSelect({ label, sublabel, selectedId, onSelect, cond
                 </div>
               ) : (
                 condFiltrados.map(c => (
-                  <div 
+                  <div
                     key={c.id}
                     onClick={() => {
                       onSelect(c.id);
@@ -205,9 +206,9 @@ function SearchableConductorSelect({ label, sublabel, selectedId, onSelect, cond
   );
 }
 
-function BatchConductorSelect({ 
-  conductores = [], 
-  selectedIds = [], 
+function BatchConductorSelect({
+  conductores = [],
+  selectedIds = [],
   onChangeSelectedIds,
   placeholder = "Buscar conductores para agregar al grupo..."
 }) {
@@ -234,9 +235,9 @@ function BatchConductorSelect({
     if (c.estatus !== 'activo') return false;
     const term = busqueda.toLowerCase().trim();
     if (!term) return true;
-    return (c.nombres || '').toLowerCase().includes(term) || 
-           (c.apellidos || '').toLowerCase().includes(term) || 
-           (c.tarjeton || '').toLowerCase().includes(term);
+    return (c.nombres || '').toLowerCase().includes(term) ||
+      (c.apellidos || '').toLowerCase().includes(term) ||
+      (c.tarjeton || '').toLowerCase().includes(term);
   }).sort((a, b) => (a.nombres || '').localeCompare(b.nombres || ''));
 
   const toggleConductor = (id) => {
@@ -260,7 +261,7 @@ function BatchConductorSelect({
     onChangeSelectedIds([]);
   };
 
-  const conductoresSeleccionadosData = conductores.filter(c => 
+  const conductoresSeleccionadosData = conductores.filter(c =>
     selectedIds.some(id => String(id) === String(c.id))
   );
 
@@ -284,7 +285,7 @@ function BatchConductorSelect({
               Vaciar grupo
             </button>
           </div>
-          
+
           <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1 p-1 bg-slate-50/50 rounded-lg border border-slate-100">
             {conductoresSeleccionadosData.map(c => (
               <div
@@ -315,10 +316,10 @@ function BatchConductorSelect({
       {/* Input de búsqueda y lista desplegable con checkboxes */}
       <div className="relative w-full" ref={dropdownRef}>
         <div className="relative flex items-center">
-          <input 
+          <input
             ref={inputRef}
-            type="text" 
-            placeholder={placeholder} 
+            type="text"
+            placeholder={placeholder}
             value={busqueda}
             onFocus={() => setIsOpen(true)}
             onClick={() => setIsOpen(true)}
@@ -379,18 +380,17 @@ function BatchConductorSelect({
               condFiltrados.map(c => {
                 const estaSeleccionado = selectedIds.some(id => String(id) === String(c.id));
                 return (
-                  <div 
+                  <div
                     key={c.id}
                     onClick={() => toggleConductor(c.id)}
-                    className={`p-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between transition-colors ${
-                      estaSeleccionado ? 'bg-amber-50/60' : ''
-                    }`}
+                    className={`p-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between transition-colors ${estaSeleccionado ? 'bg-amber-50/60' : ''
+                      }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 pr-2">
                       <input
                         type="checkbox"
                         checked={estaSeleccionado}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         className="w-4 h-4 rounded text-[#6b1d33] border-slate-300 focus:ring-[#6b1d33] cursor-pointer"
                       />
                       <span className="font-mono font-bold text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded shrink-0">
@@ -416,14 +416,14 @@ function BatchConductorSelect({
   );
 }
 
-export default function ModalAsignarFechas({ 
-  isOpen, 
-  onClose, 
-  conductores = [], 
-  getAuthHeaders, 
-  onSuccess, 
-  initialConductorId = '', 
-  initialEstado = 'asistencia', 
+export default function ModalAsignarFechas({
+  isOpen,
+  onClose,
+  conductores = [],
+  getAuthHeaders,
+  onSuccess,
+  initialConductorId = '',
+  initialEstado = 'asistencia',
   lockEstado = false,
   origen = 'Itinerario de Asistencias'
 }) {
@@ -432,8 +432,8 @@ export default function ModalAsignarFechas({
   const [selectedConductorIds, setSelectedConductorIds] = useState([]);
   const [conductorRelacionadoId, setConductorRelacionadoId] = useState('');
   const [estado, setEstado] = useState('asistencia');
-  const [fechaDesde, setFechaDesde] = useState(() => new Date().toISOString().split('T')[0]);
-  const [fechaHasta, setFechaHasta] = useState(() => new Date().toISOString().split('T')[0]);
+  const [fechaDesde, setFechaDesde] = useState(() => getFechaActualLocal());
+  const [fechaHasta, setFechaHasta] = useState(() => getFechaActualLocal());
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
 
@@ -446,7 +446,7 @@ export default function ModalAsignarFechas({
       setEsGrupal(false);
       setConductorRelacionadoId('');
       setEstado(initialEstado);
-      const hoy = new Date().toISOString().split('T')[0];
+      const hoy = getFechaActualLocal();
       setFechaDesde(hoy);
       setFechaHasta(hoy);
       setMotivo('');
@@ -471,9 +471,11 @@ export default function ModalAsignarFechas({
 
   const calcularMaxHasta = (f1) => {
     if (!f1) return undefined;
-    const d = new Date(f1 + 'T00:00:00');
+    const partes = f1.split('-');
+    if (partes.length !== 3) return undefined;
+    const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10));
     d.setDate(d.getDate() + 4); // Permite hasta 5 días en total (desde inclusive)
-    return d.toISOString().split('T')[0];
+    return formatFechaLocal(d);
   };
 
   const maxHasta = calcularMaxHasta(fechaDesde);
@@ -525,11 +527,15 @@ export default function ModalAsignarFechas({
 
     const faltas = parseJson(selectedConductorData.faltas_detalle);
     const retardos = parseJson(selectedConductorData.retardos_detalle);
-    
+
     const yaTieneFaltaORetardo = faltas.some(f => f.fecha === fechaDesde) || retardos.some(r => r.fecha === fechaDesde);
 
     if (yaTieneFaltaORetardo) {
       errorMessage = `Ya existe una falta o retardo para el ${fechaDesde}.`;
+    }
+
+    if (estado === 'falta' && fechaDesde > getFechaActualLocal()) {
+      errorMessage = 'No se puede registrar una falta con fecha futura.';
     }
   }
 
@@ -537,7 +543,7 @@ export default function ModalAsignarFechas({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (estado === 'permuta') {
       if (!conductorId) {
         return Swal.fire({
@@ -641,7 +647,7 @@ export default function ModalAsignarFechas({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error al guardar asignación');
-      
+
       Swal.fire({
         icon: 'success',
         title: 'Asignado',
@@ -666,7 +672,7 @@ export default function ModalAsignarFechas({
 
   const modalContent = (
     <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center z-[99999] p-3 sm:p-4 overflow-y-auto overscroll-contain" onClick={onClose}>
-      <div 
+      <div
         className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-100 max-h-[92vh] flex flex-col overscroll-contain"
         onClick={e => e.stopPropagation()}
       >
@@ -676,18 +682,18 @@ export default function ModalAsignarFechas({
             <h2 className="text-base sm:text-lg font-extrabold m-0">Asignar Fechas al Itinerario</h2>
             <p className="text-slate-200 text-xs mt-0.5 m-0 font-medium">Agendar asistencia, vacaciones, descansos, permutas, faltas o retardo.</p>
           </div>
-          <button 
-            type="button" 
-            onClick={onClose} 
+          <button
+            type="button"
+            onClick={onClose}
             className="text-white hover:text-slate-200 text-2xl font-light leading-none p-1 transition-opacity opacity-80 hover:opacity-100 cursor-pointer"
           >
             &times;
           </button>
         </div>
-        
+
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto shrink grow">
-          
+
           {/* Tipo de asignación (Si no está bloqueado) */}
           {!lockEstado && (
             <div className="space-y-1 relative z-[60]">
@@ -699,7 +705,7 @@ export default function ModalAsignarFechas({
           {/* Selección de Conductores (Individual o Grupal) */}
           {estado === 'permuta' ? (
             <div className="space-y-3.5 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200 relative z-[50]">
-              <SearchableConductorSelect 
+              <SearchableConductorSelect
                 label="1. Conductor que Descansa (DP)"
                 sublabel="Persona que tomará el día de descanso por permuta"
                 selectedId={conductorId}
@@ -708,7 +714,7 @@ export default function ModalAsignarFechas({
                 placeholder="Buscar al primer conductor (que descansa)..."
               />
 
-              <SearchableConductorSelect 
+              <SearchableConductorSelect
                 label="2. Conductor que Asiste en su lugar (AP)"
                 sublabel="Persona que cubrirá la asistencia por permuta"
                 selectedId={conductorRelacionadoId}
@@ -727,8 +733,8 @@ export default function ModalAsignarFechas({
                     {esGrupal ? 'CONDUCTORES (GRUPAL)' : 'CONDUCTOR'}
                   </label>
                   <p className="text-[11px] text-slate-500 m-0 font-medium">
-                    {esGrupal 
-                      ? 'Selecciona varios operadores para asignar al mismo tiempo' 
+                    {esGrupal
+                      ? 'Selecciona varios operadores para asignar al mismo tiempo'
                       : 'Selecciona a una sola persona conductora'}
                   </p>
                 </div>
@@ -737,11 +743,10 @@ export default function ModalAsignarFechas({
                   <button
                     type="button"
                     onClick={() => setEsGrupal(false)}
-                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                      !esGrupal 
-                        ? 'bg-white text-[#6b1d33] shadow-xs' 
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${!esGrupal
+                        ? 'bg-white text-[#6b1d33] shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     Individual
                   </button>
@@ -753,17 +758,15 @@ export default function ModalAsignarFechas({
                         setSelectedConductorIds([conductorId]);
                       }
                     }}
-                    className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      esGrupal 
-                        ? 'bg-[#6b1d33] text-white shadow-xs' 
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${esGrupal
+                        ? 'bg-[#6b1d33] text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     <span>Grupal</span>
                     {selectedConductorIds.length > 0 && (
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                        esGrupal ? 'bg-white text-[#6b1d33]' : 'bg-[#6b1d33] text-white'
-                      }`}>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${esGrupal ? 'bg-white text-[#6b1d33]' : 'bg-[#6b1d33] text-white'
+                        }`}>
                         {selectedConductorIds.length}
                       </span>
                     )}
@@ -772,14 +775,14 @@ export default function ModalAsignarFechas({
               </div>
 
               {esGrupal ? (
-                <BatchConductorSelect 
+                <BatchConductorSelect
                   conductores={conductores}
                   selectedIds={selectedConductorIds}
                   onChangeSelectedIds={setSelectedConductorIds}
                   placeholder="Buscar conductores para agregar al grupo..."
                 />
               ) : (
-                <SearchableConductorSelect 
+                <SearchableConductorSelect
                   label=""
                   sublabel=""
                   selectedId={conductorId}
@@ -808,10 +811,10 @@ export default function ModalAsignarFechas({
                   <label className="text-[11px] font-bold text-slate-700 block tracking-wide">
                     DE QUÉ DÍA (INICIO):
                   </label>
-                  <AppleDatePicker 
-                    value={fechaDesde} 
-                    onChange={handleFechaDesdeChange} 
-                    disableFuture={false} 
+                  <AppleDatePicker
+                    value={fechaDesde}
+                    onChange={handleFechaDesdeChange}
+                    disableFuture={estado === 'falta'}
                     showIcon={false}
                   />
                 </div>
@@ -819,12 +822,12 @@ export default function ModalAsignarFechas({
                   <label className="text-[11px] font-bold text-slate-700 block tracking-wide">
                     A QUÉ DÍA (FIN):
                   </label>
-                  <AppleDatePicker 
-                    value={fechaHasta} 
-                    onChange={handleFechaHastaChange} 
-                    minDate={fechaDesde} 
-                    maxDate={maxHasta} 
-                    disableFuture={false} 
+                  <AppleDatePicker
+                    value={fechaHasta}
+                    onChange={handleFechaHastaChange}
+                    minDate={fechaDesde}
+                    maxDate={maxHasta}
+                    disableFuture={false}
                     showIcon={false}
                   />
                 </div>
@@ -844,10 +847,10 @@ export default function ModalAsignarFechas({
           {/* Motivo (Opcional) */}
           <div className="space-y-1">
             <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">MOTIVO (OPCIONAL)</label>
-            <input 
-              type="text" 
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6b1d33] focus:border-transparent transition-all shadow-2xs" 
-              value={motivo} 
+            <input
+              type="text"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6b1d33] focus:border-transparent transition-all shadow-2xs"
+              value={motivo}
               onChange={e => setMotivo(e.target.value.toUpperCase())}
               placeholder={`EJ. ${estado === 'asistencia' ? 'ASISTENCIA REGISTRADA DESDE ' + origen.toUpperCase() : estado === 'retardo' ? 'RETARDO REGISTRADO DESDE ' + origen.toUpperCase() : estado === 'falta' ? 'FALTA REGISTRADA DESDE ' + origen.toUpperCase() : 'VACACIONES / ACUERDO ENTRE OPERADORES'}`}
             />
@@ -861,16 +864,16 @@ export default function ModalAsignarFechas({
               </div>
             )}
             <div className="flex items-center justify-end gap-3">
-              <button 
-                type="button" 
-                onClick={onClose} 
+              <button
+                type="button"
+                onClick={onClose}
                 className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
-              <button 
-                type="submit" 
-                disabled={isBotonDeshabilitado} 
+              <button
+                type="submit"
+                disabled={isBotonDeshabilitado}
                 className="px-4 py-2.5 rounded-xl border-none bg-[#6b1d33] text-white text-xs sm:text-sm font-bold hover:bg-[#831843] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2"
               >
                 {enviando ? (

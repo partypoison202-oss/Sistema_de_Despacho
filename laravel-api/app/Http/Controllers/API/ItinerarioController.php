@@ -416,6 +416,14 @@ class ItinerarioController extends Controller
             }
         }
 
+        // Si es falta, rechazar cualquier asignación para fechas futuras
+        if ($estado === 'falta' && $hasta->toDateString() > Carbon::today('America/Mexico_City')->toDateString()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No es posible registrar una falta con fecha futura. Solo se permiten inasistencias del día de hoy o fechas pasadas.'
+            ], 422);
+        }
+
         // Lógica especial para PERMUTA (Involucra a 2 conductores: 1 descansa [DP], 2 asiste [AP])
         if ($estado === 'permuta') {
             $conductor = Conductor::findOrFail($conductorIds[0]);
