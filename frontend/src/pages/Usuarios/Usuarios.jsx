@@ -13,7 +13,7 @@ export default function Usuarios() {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterActivity, setFilterActivity] = useState('TODOS'); // 'TODOS' | 'CON_ACTIVIDAD' | 'EN_LINEA' | 'SIN_CONEXION'
+  const [filterActivity, setFilterActivity] = useState('TODOS'); // 'TODOS' | 'EN_LINEA' | 'SIN_CONEXION'
 
   // Form state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -730,7 +730,6 @@ export default function Usuarios() {
 
   // Conteo de usuarios por actividad para las píldoras de filtro
   const userActivityCounts = useMemo(() => {
-    let conActividad = 0;
     let enLinea = 0;
     let sinConexion = 0;
 
@@ -739,13 +738,11 @@ export default function Usuarios() {
       const hasActivity = isOnline || (u.last_seen && u.last_seen_text && u.last_seen_text !== 'Desconectado' && u.last_seen_text !== 'Sin conexión');
 
       if (isOnline) enLinea++;
-      if (hasActivity) conActividad++;
-      else sinConexion++;
+      else if (!hasActivity) sinConexion++;
     });
 
     return {
       todos: users.length,
-      conActividad,
       enLinea,
       sinConexion,
     };
@@ -768,9 +765,6 @@ export default function Usuarios() {
         const isOnline = Boolean(user.is_online);
         const hasActivity = isOnline || (user.last_seen && user.last_seen_text && user.last_seen_text !== 'Desconectado' && user.last_seen_text !== 'Sin conexión');
 
-        if (filterActivity === 'CON_ACTIVIDAD') {
-          return hasActivity;
-        }
         if (filterActivity === 'EN_LINEA') {
           return isOnline;
         }
@@ -876,15 +870,6 @@ export default function Usuarios() {
               onClick={() => setFilterActivity('TODOS')}
             >
               Todos <span className="filter-chip-count">{userActivityCounts.todos}</span>
-            </button>
-            <button
-              type="button"
-              className={`filter-chip-btn ${filterActivity === 'CON_ACTIVIDAD' ? 'active' : ''}`}
-              onClick={() => setFilterActivity('CON_ACTIVIDAD')}
-              title="Usuarios con actividad de conexión registrada"
-            >
-              <span className="chip-dot-activity"></span>
-              Con actividad <span className="filter-chip-count">{userActivityCounts.conActividad}</span>
             </button>
             <button
               type="button"
