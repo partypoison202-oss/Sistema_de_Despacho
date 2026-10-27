@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
-import { getFechaActualLocal } from '../../utils/itinerarioUtils';
 
 const colorStyles = {
   asistencia: { dot: '#16a34a', text: 'Asistencia (A)' },
@@ -433,8 +432,8 @@ export default function ModalAsignarFechas({
   const [selectedConductorIds, setSelectedConductorIds] = useState([]);
   const [conductorRelacionadoId, setConductorRelacionadoId] = useState('');
   const [estado, setEstado] = useState('asistencia');
-  const [fechaDesde, setFechaDesde] = useState(() => getFechaActualLocal());
-  const [fechaHasta, setFechaHasta] = useState(() => getFechaActualLocal());
+  const [fechaDesde, setFechaDesde] = useState(() => new Date().toISOString().split('T')[0]);
+  const [fechaHasta, setFechaHasta] = useState(() => new Date().toISOString().split('T')[0]);
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
 
@@ -447,7 +446,7 @@ export default function ModalAsignarFechas({
       setEsGrupal(false);
       setConductorRelacionadoId('');
       setEstado(initialEstado);
-      const hoy = getFechaActualLocal();
+      const hoy = new Date().toISOString().split('T')[0];
       setFechaDesde(hoy);
       setFechaHasta(hoy);
       setMotivo('');
@@ -474,10 +473,7 @@ export default function ModalAsignarFechas({
     if (!f1) return undefined;
     const d = new Date(f1 + 'T00:00:00');
     d.setDate(d.getDate() + 4); // Permite hasta 5 días en total (desde inclusive)
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return d.toISOString().split('T')[0];
   };
 
   const maxHasta = calcularMaxHasta(fechaDesde);

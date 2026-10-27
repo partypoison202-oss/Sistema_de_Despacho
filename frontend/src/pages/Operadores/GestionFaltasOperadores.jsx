@@ -2,7 +2,6 @@ import React, { useState, useMemo, useContext } from 'react';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { AuthContext } from '../../context/AuthContext';
-import { getFechaActualLocal } from '../../utils/itinerarioUtils';
 
 const getFaltasArray = (conductor) => {
   if (!conductor) return [];
@@ -32,9 +31,8 @@ const getFaltasArray = (conductor) => {
     for (let i = 0; i < faltasFaltantes; i++) {
       items.push({
         id: `virtual_falta_${conductor.id}_${i}_${Date.now()}`,
-        fecha: 'Fecha sin registrar',
-        esHistorica: true,
-        motivo: 'Falta acumulada en expediente previo',
+        fecha: new Date().toISOString().substring(0, 10),
+        motivo: 'Inasistencia no justificada en sistema',
         estado: 'pendiente',
         justificada: false
       });
@@ -44,9 +42,9 @@ const getFaltasArray = (conductor) => {
   return items;
 };
 
-const calcularEstadoPlazoFalta = (fechaStr, esHistorica = false) => {
-  if (esHistorica || !fechaStr || fechaStr === 'Fecha sin registrar' || fechaStr.includes('Sin fecha') || fechaStr.includes('expediente') || fechaStr.includes('previa') || fechaStr.includes('Antecedente')) {
-    return { diasTranscurridos: 0, vencida: false, diasRestantes: 0, esHistorica: true, textoPlazo: 'Saldo previo en expediente' };
+const calcularEstadoPlazoFalta = (fechaStr) => {
+  if (!fechaStr || fechaStr === 'Fecha sin registrar') {
+    return { diasTranscurridos: 0, vencida: false, diasRestantes: 3, textoPlazo: 'Plazo activo (3 días)' };
   }
   
   const fechaPartes = fechaStr.substring(0, 10).split('-');
@@ -104,7 +102,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
   // Modal para agregar falta manual
   const [modalNuevaFaltaOpen, setModalNuevaFaltaOpen] = useState(false);
-  const [nuevaFechaFalta, setNuevaFechaFalta] = useState(() => getFechaActualLocal());
+  const [nuevaFechaFalta, setNuevaFechaFalta] = useState(new Date().toISOString().substring(0, 10));
   const [nuevoMotivoFalta, setNuevoMotivoFalta] = useState('Inasistencia no justificada');
   const [registrandoFalta, setRegistrandoFalta] = useState(false);
 
@@ -785,8 +783,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
               ) : (
                 conductorActualData.listaFaltas.map((falta, idx) => {
                   const esJustificada = falta.estado === 'justificada' || falta.justificada;
-                  const esHistorica = falta.esHistorica || falta.id?.startsWith?.('virtual_falta_') || falta.fecha === 'Fecha sin registrar' || falta.fecha === 'Sin fecha registrada' || !falta.fecha;
-                  const estadoPlazo = !esJustificada ? calcularEstadoPlazoFalta(falta.fecha, esHistorica) : null;
+                  const estadoPlazo = !esJustificada ? calcularEstadoPlazoFalta(falta.fecha) : null;
 
                   return (
                     <div
@@ -794,8 +791,6 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                       className={`p-4 rounded-xl border transition-all ${
                         esJustificada
                           ? 'bg-emerald-50/40 border-emerald-200'
-                          : esHistorica
-                          ? 'bg-slate-50/90 border-slate-200 shadow-sm'
                           : estadoPlazo?.vencida
                           ? 'bg-slate-50 border-slate-300 shadow-sm opacity-90'
                           : 'bg-red-50/40 border-red-200 shadow-sm'
@@ -805,7 +800,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-extrabold text-slate-800 text-sm">
-                              Fecha: {esHistorica ? 'Sin fecha desglosada (Historial previo)' : (falta.fecha || 'Sin fecha registrada')}
+                              Fecha: {falta.fecha || 'Sin fecha registrada'}
                             </span>
                             {esJustificada ? (
                               <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
@@ -813,13 +808,6 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                 </svg>
                                 JUSTIFICADA
-                              </span>
-                            ) : esHistorica ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-full border border-slate-300">
-                                <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                SALDO PREVIO EN EXPEDIENTE
                               </span>
                             ) : estadoPlazo?.vencida ? (
                               <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-full border border-slate-300">

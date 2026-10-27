@@ -15,7 +15,6 @@ import ModalComparativaAlimentadoras from './ModalComparativaAlimentadoras';
 import ModalCiclos from './ModalCiclos';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
-import { getFechaActualLocal } from '../../utils/itinerarioUtils';
 
 // Campos que se editan juntos (si cambia uno del grupo, se considera cambiado todo el grupo).
 const GRUPOS_FILA = [
@@ -268,7 +267,7 @@ export default function CargaExcel({ isPasteles = false }) {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            fecha: getFechaActualLocal(),
+            fecha: new Date().toISOString().split('T')[0],
             motivo: `Inasistencia por reemplazo de tarjetón en Programación (Eco: ${ecoUnidad || 'N/A'})`
           })
         });
@@ -965,7 +964,7 @@ export default function CargaExcel({ isPasteles = false }) {
         didOpen: () => Swal.showLoading(),
       });
 
-      const fecha = getFechaActualLocal();
+      const fecha = new Date().toISOString().split('T')[0];
       const pdfBase64 = await generarPDFProgramacion();
 
       const res = await fetch(`${API_BASE}/api/despacho/enviar-pdf-fortaleza`, {
@@ -1168,7 +1167,7 @@ export default function CargaExcel({ isPasteles = false }) {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
-    const fecha = getFechaActualLocal();
+    const fecha = new Date().toISOString().split('T')[0];
     const fileName = isRelevos
       ? `Relevos_T6_${fecha}.xlsx`
       : isPasteles
@@ -1242,7 +1241,7 @@ export default function CargaExcel({ isPasteles = false }) {
       XLSX.utils.book_append_sheet(workbook, worksheet, tipo);
     });
 
-    const fecha = getFechaActualLocal();
+    const fecha = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Plantilla_Programacion_${fecha}.xlsx`, { cellStyles: true });
   };
 

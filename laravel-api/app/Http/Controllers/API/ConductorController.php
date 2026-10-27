@@ -344,7 +344,7 @@ class ConductorController extends Controller
                          ($nuevoEstado === 'descanso' ? 'descansos_detalle' : 
                          ($nuevoEstado === 'vacaciones' ? 'vacaciones_detalle' : 'incapacidades_detalle'));
                 
-                $hoy = Carbon::now('America/Mexico_City')->toDateString();
+                $hoy = date('Y-m-d');
                 $rawDetalle = $conductor->$campo;
                 $detalle = [];
                 if (is_array($rawDetalle)) $detalle = $rawDetalle;
@@ -605,12 +605,12 @@ class ConductorController extends Controller
         }
 
         if (!$targetFecha) {
-            $targetFecha = Carbon::now('America/Mexico_City')->toDateString();
+            $targetFecha = date('Y-m-d');
         }
 
         if (!$isAdmin && $targetFecha && $targetFecha !== 'Fecha sin registrar') {
             $faltaTs = strtotime(substr($targetFecha, 0, 10));
-            $todayTs = strtotime(Carbon::now('America/Mexico_City')->toDateString());
+            $todayTs = strtotime(date('Y-m-d'));
             if ($faltaTs !== false) {
                 $diasDiferencia = (int)floor(($todayTs - $faltaTs) / 86400);
                 if ($diasDiferencia > 3) {
@@ -671,7 +671,7 @@ class ConductorController extends Controller
                         $item['justificada'] = true;
                         $item['justificante_url'] = '/api/justificantes/' . $filename;
                         $item['justificante_nombre'] = $safeOriginalName;
-                        $item['justificante_fecha'] = Carbon::now('America/Mexico_City')->format('Y-m-d H:i');
+                        $item['justificante_fecha'] = date('Y-m-d H:i');
                         $item['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
                         $updated = true;
                         break;
@@ -691,7 +691,7 @@ class ConductorController extends Controller
                         $item['justificada'] = true;
                         $item['justificante_url'] = '/api/justificantes/' . $filename;
                         $item['justificante_nombre'] = $safeOriginalName;
-                        $item['justificante_fecha'] = Carbon::now('America/Mexico_City')->format('Y-m-d H:i');
+                        $item['justificante_fecha'] = date('Y-m-d H:i');
                         $item['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
                         $updated = true;
                         break;
@@ -706,7 +706,7 @@ class ConductorController extends Controller
                 $detalle[$faltaIndex]['justificada'] = true;
                 $detalle[$faltaIndex]['justificante_url'] = '/api/justificantes/' . $filename;
                 $detalle[$faltaIndex]['justificante_nombre'] = $safeOriginalName;
-                $detalle[$faltaIndex]['justificante_fecha'] = Carbon::now('America/Mexico_City')->format('Y-m-d H:i');
+                $detalle[$faltaIndex]['justificante_fecha'] = date('Y-m-d H:i');
                 $detalle[$faltaIndex]['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
                 $updated = true;
             }
@@ -715,13 +715,13 @@ class ConductorController extends Controller
             if (!$updated) {
                 $detalle[] = [
                     'id' => 'falta_' . time() . '_' . random_int(1000, 9999),
-                    'fecha' => $fechaFalta ?: Carbon::now('America/Mexico_City')->toDateString(),
+                    'fecha' => $fechaFalta ?: date('Y-m-d'),
                     'motivo' => $request->input('motivo_falta') ?: 'Falta registrada',
                     'estado' => 'justificada',
                     'justificada' => true,
                     'justificante_url' => '/api/justificantes/' . $filename,
                     'justificante_nombre' => $safeOriginalName,
-                    'justificante_fecha' => Carbon::now('America/Mexico_City')->format('Y-m-d H:i'),
+                    'justificante_fecha' => date('Y-m-d H:i'),
                     'observaciones_justificacion' => $request->input('observaciones') ?: 'Justificante adjuntado correctamente',
                 ];
             }
@@ -810,7 +810,7 @@ class ConductorController extends Controller
             $fechaFalta = $detalle[$faltaIndex]['fecha'] ?? null;
         }
         if (!$fechaFalta) {
-            $fechaFalta = Carbon::now('America/Mexico_City')->toDateString();
+            $fechaFalta = date('Y-m-d');
         }
 
         // 2. Validar que no exista ya un retardo en esa misma fecha dentro de faltas_detalle
@@ -905,7 +905,7 @@ class ConductorController extends Controller
             $conductor->tarjeton,
             $conductor->nombres . ' ' . $conductor->apellidos,
             'RETARDO',
-            "Falta convertida a retardo para la fecha " . ($fechaFalta ?? Carbon::now('America/Mexico_City')->toDateString()),
+            "Falta convertida a retardo para la fecha " . ($fechaFalta ?? date('Y-m-d')),
             $request
         );
 
@@ -1093,7 +1093,7 @@ class ConductorController extends Controller
             // NO se debe tocar ni eliminar ningún elemento del arreglo $detalle existente.
             $nuevoDetalle = $detalle;
             $eliminada = [
-                'fecha' => $fechaFalta ?: Carbon::now('America/Mexico_City')->toDateString(),
+                'fecha' => $fechaFalta ?: date('Y-m-d'),
                 'motivo' => $request->input('motivo_anulacion') ?: 'Falta eliminada por Administrador',
                 'estado' => 'pendiente',
                 'justificada' => false,
@@ -1144,7 +1144,7 @@ class ConductorController extends Controller
             // 4. Si la falta no estaba explícita en el array
             if ($eliminada === null && $conductor->faltas > 0) {
                 $eliminada = [
-                    'fecha' => $fechaFalta ?: Carbon::now('America/Mexico_City')->toDateString(),
+                    'fecha' => $fechaFalta ?: date('Y-m-d'),
                     'motivo' => 'Falta eliminada por ajuste manual'
                 ];
                 $nuevoDetalle = $detalle;

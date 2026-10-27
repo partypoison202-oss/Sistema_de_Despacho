@@ -8,5 +8,3 @@ frontend/dist/
 laravel-api/export.sql
 .env
 contrasenas_originales.txt
-respaldo_archivos_originales/
-*.patch
