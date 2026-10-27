@@ -41,10 +41,19 @@ export const AuthProvider = ({ children }) => {
   const sessionExpiredModalRef = useRef(false);
 
   const handleSessionExpired = () => {
+    // Si ya estamos en la pantalla de acceso, no mostrar modal
+    if (window.location.pathname === '/' || window.location.pathname === '/login') {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      return;
+    }
+
     if (sessionExpiredModalRef.current) return;
     sessionExpiredModalRef.current = true;
 
-    // Limpiar sesión local
+    // Limpiar sesión local inmediatamente
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
@@ -53,14 +62,14 @@ export const AuthProvider = ({ children }) => {
     Swal.fire({
       icon: 'info',
       title: 'Sesión expirada',
-      text: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente para continuar.',
+      text: 'Tu sesión ha finalizado. Por favor, inicia sesión nuevamente para continuar.',
       confirmButtonText: 'Iniciar Sesión',
       confirmButtonColor: '#6b1d33',
       allowOutsideClick: false,
       allowEscapeKey: false,
     }).then(() => {
       sessionExpiredModalRef.current = false;
-      window.location.href = '/login';
+      window.location.href = '/';
     });
   };
 
@@ -91,7 +100,9 @@ export const AuthProvider = ({ children }) => {
         setUser(data);
       })
       .catch(() => {
-        logout();
+        if (!sessionExpiredModalRef.current) {
+          logout();
+        }
       })
       .finally(() => {
         setLoading(false);
@@ -106,9 +117,6 @@ export const AuthProvider = ({ children }) => {
     if (!token) return;
 
     const sendHeartbeat = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-        return;
-      }
       fetch(`${API_BASE}/api/heartbeat`, {
         method: 'POST',
         headers: {
@@ -126,8 +134,8 @@ export const AuthProvider = ({ children }) => {
 
     sendHeartbeat();
 
-    // Comprobación periódica cada 15 segundos
-    const timer = setInterval(sendHeartbeat, 15000);
+    // Comprobación periódica cada 6 segundos para detección rápida
+    const timer = setInterval(sendHeartbeat, 6000);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {

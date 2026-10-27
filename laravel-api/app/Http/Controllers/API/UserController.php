@@ -362,10 +362,12 @@ class UserController extends Controller
         try {
             // Revocar todos los tokens de acceso del usuario
             $user->tokens()->delete();
+            \Laravel\Sanctum\PersonalAccessToken::where('tokenable_id', $user->id)->delete();
 
             // Limpiar presencia en caché
             \Illuminate\Support\Facades\Cache::forget('user_online_' . $user->id);
             \Illuminate\Support\Facades\Cache::forget('user_last_seen_' . $user->id);
+            \Illuminate\Support\Facades\Cache::forget('user_db_sync_' . $user->id);
 
             // Registrar en log del sistema
             \Illuminate\Support\Facades\Log::info(
