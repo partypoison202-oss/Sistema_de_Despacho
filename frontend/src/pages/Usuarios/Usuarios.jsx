@@ -857,28 +857,7 @@ export default function Usuarios() {
         if (isAdminA && !isAdminB) return -1;
         if (!isAdminA && isAdminB) return 1;
 
-        // 2. Agrupar personas con actividad primero (En línea primero, luego actividad reciente, al final sin conexión)
-        const aOnline = Boolean(a.is_online);
-        const bOnline = Boolean(b.is_online);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-
-        const aHasActivity = aOnline || (a.last_seen && a.last_seen_text && a.last_seen_text !== 'Desconectado' && a.last_seen_text !== 'Sin conexión');
-        const bHasActivity = bOnline || (b.last_seen && b.last_seen_text && b.last_seen_text !== 'Desconectado' && b.last_seen_text !== 'Sin conexión');
-
-        if (aHasActivity && !bHasActivity) return -1;
-        if (!aHasActivity && bHasActivity) return 1;
-
-        // Si ambos tienen actividad y no están online, ordenar por última conexión más reciente
-        if (aHasActivity && bHasActivity && a.last_seen && b.last_seen) {
-          const timeA = new Date(a.last_seen).getTime();
-          const timeB = new Date(b.last_seen).getTime();
-          if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
-            return timeB - timeA;
-          }
-        }
-
-        // 3. Ordenar alfabéticamente por Rol
+        // 2. Ordenar alfabéticamente por Rol (Jerarquía estándar)
         if (roleA < roleB) return -1;
         if (roleA > roleB) return 1;
 
