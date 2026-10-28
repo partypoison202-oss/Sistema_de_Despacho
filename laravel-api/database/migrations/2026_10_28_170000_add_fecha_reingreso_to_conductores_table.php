@@ -11,12 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('conductores')) {
-            if (!Schema::hasColumn('conductores', 'fecha_reingreso')) {
-                Schema::table('conductores', function (Blueprint $table) {
-                    $table->date('fecha_reingreso')->nullable()->after('fecha_ingreso');
-                });
-            }
+        if (Schema::hasTable('conductores') && !Schema::hasColumn('conductores', 'fecha_reingreso')) {
+            Schema::table('conductores', function (Blueprint $table) {
+                $table->date('fecha_reingreso')->nullable()->after('fecha_ingreso');
+            });
         }
     }
 

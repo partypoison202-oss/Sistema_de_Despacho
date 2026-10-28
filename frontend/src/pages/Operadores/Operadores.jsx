@@ -489,7 +489,7 @@ export default function Operadores() {
         setTarjetonStatus(null);
       } else if (val.trim().length >= 1) {
         tarjetonDebounceRef.current = setTimeout(() => {
-          verificarTarjetonBackend(val);
+          void verificarTarjetonBackend(val);
         }, 350);
       }
     }
@@ -1885,7 +1885,7 @@ export default function Operadores() {
                   />
                   {verificandoTarjeton && (
                     <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}>
-                      <svg className="animate-spin" style={{ width: '16px', height: '16px', color: '#6A1B29' }} viewBox="0 0 24 24" fill="none">
+                      <svg aria-hidden="true" className="animate-spin" style={{ width: '16px', height: '16px', color: '#6A1B29' }} viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"></circle>
                         <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                       </svg>
@@ -1909,14 +1909,14 @@ export default function Operadores() {
                     {tarjetonStatus.disponible ? (
                       tarjetonStatus.es_baja ? (
                         <>
-                          <svg style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          <svg aria-hidden="true" style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           <div>
                             <strong>Reingreso detectado:</strong> El Tarjetón <b>{tarjetonStatus.tarjeton}</b> perteneció a un operador dado de baja ({tarjetonStatus.conductor?.nombres} {tarjetonStatus.conductor?.apellidos}). Al guardar, se reactivará su expediente.
                           </div>
                         </>
                       ) : (
                         <>
-                          <svg style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                          <svg aria-hidden="true" style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
                           <div>
                             <strong>Tarjetón disponible:</strong> Se asignará el Tarjetón <b>{tarjetonStatus.tarjeton}</b> para este nuevo registro.
                           </div>
@@ -1924,7 +1924,7 @@ export default function Operadores() {
                       )
                     ) : (
                       <>
-                        <svg style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <svg aria-hidden="true" style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <div>
                           <strong>Tarjetón no disponible:</strong> {tarjetonStatus.mensaje}
                         </div>
@@ -1935,8 +1935,9 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Apellidos del T6 <span style={{ color: '#ef4444' }}>*</span></label>
+                <label htmlFor="add-apellidos" className="form-label">Apellidos del T6 <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
+                  id="add-apellidos"
                   type="text"
                   required
                   placeholder="Ej. PÉREZ LÓPEZ"
@@ -1949,8 +1950,9 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre(s) del T6 <span style={{ color: '#ef4444' }}>*</span></label>
+                <label htmlFor="add-nombres" className="form-label">Nombre(s) del T6 <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
+                  id="add-nombres"
                   type="text"
                   required
                   placeholder="Ej. JUAN ARTURO"
@@ -2240,8 +2242,9 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Apellidos del T6 <span style={{ color: '#ef4444' }}>*</span></label>
+                <label htmlFor="add-apellidos" className="form-label">Apellidos del T6 <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
+                  id="add-apellidos"
                   type="text"
                   required
                   placeholder="Ej. PÉREZ LÓPEZ"
@@ -2254,8 +2257,9 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre(s) del T6 <span style={{ color: '#ef4444' }}>*</span></label>
+                <label htmlFor="add-nombres" className="form-label">Nombre(s) del T6 <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
+                  id="add-nombres"
                   type="text"
                   required
                   placeholder="Ej. JUAN ARTURO"

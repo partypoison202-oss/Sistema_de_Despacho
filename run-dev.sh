@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Asegurar que usamos el PHP de Laravel Herd o Homebrew (Apple Silicon)
-if [ -d "$HOME/Library/Application Support/Herd/bin" ]; then
+if [[ -d "$HOME/Library/Application Support/Herd/bin" ]]; then
     export PATH="$HOME/Library/Application Support/Herd/bin:$PATH"
 elif [ -d "/opt/homebrew/bin" ]; then
     export PATH="/opt/homebrew/bin:$PATH"

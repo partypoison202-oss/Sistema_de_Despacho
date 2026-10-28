@@ -11,7 +11,7 @@ export default function GeneracionGafete({ conductores }) {
   const [qrImageError, setQrImageError] = useState(false);
 
   useEffect(() => {
-    if (selectedConductor && selectedConductor.estatus === 'baja') {
+    if (selectedConductor?.estatus === 'baja') {
       setSelectedConductor(null);
       setSearchTerm('');
     }
