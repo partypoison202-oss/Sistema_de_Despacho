@@ -40,12 +40,13 @@ echo -e "  ${BLUE}[1]${NC} Matriz de Usuarios y Permisos (Seguro: Actualiza y ag
 echo -e "  ${BLUE}[2]${NC} Conductores desde Plantilla JSON (${RED}PELIGRO:${NC} Borra toda la tabla de conductores e historial)"
 echo -e "  ${BLUE}[3]${NC} Ambos"
 echo -e "  ${BLUE}[4]${NC} Extraer/Exportar Contraseñas y Usuarios (a formato CSV para Excel)"
-echo -e "  ${BLUE}[5]${NC} Inyectar estructura de Conexión Activa (ultima_conexion y trigger PostgreSQL)"
+echo -e "  ${BLUE}[5]${NC} Inyectar estructuras y columnas pendientes (fecha_reingreso, ultima_conexion, triggers)"
 echo -e "  ${GREEN}[6]${NC} Respaldar Base de Datos AHORA (Generar archivo .sql.gz con fecha)"
+echo -e "  ${CYAN}[7]${NC} Ejecutar Migraciones de Laravel (artisan migrate --force)"
 echo -e "  ${BLUE}[0]${NC} Cancelar y salir"
 echo ""
 
-read -p "Elige una opción [0-6]: " opcion
+read -p "Elige una opción [0-7]: " opcion
 
 cd laravel-api
 
@@ -102,9 +103,9 @@ case $opcion in
         echo -e "${YELLOW}(Nota: Puedes abrir este archivo CSV directamente en Excel)${NC}"
         ;;
     5)
-        echo -e "\n${BLUE}🔄 Inyectando columna 'ultima_conexion' y trigger de PostgreSQL...${NC}"
+        echo -e "\n${BLUE}🔄 Inyectando estructuras pendientes (columna 'fecha_reingreso', 'ultima_conexion' y triggers)...${NC}"
         "$PHP_BIN" artisan db:arreglar-permisos
-        echo -e "${GREEN}✔ Estructura de Conexión Activa y triggers verificados exitosamente.${NC}"
+        echo -e "${GREEN}✔ Estructuras de base de datos verificadas e inyectadas exitosamente.${NC}"
         ;;
     6)
         echo -e "\n${BLUE}💾 Generando respaldo completo de la base de datos...${NC}"
@@ -137,6 +138,11 @@ case $opcion in
         else
             echo -e "${RED}❌ No se encontró la herramienta pg_dump instalada.${NC}"
         fi
+        ;;
+    7)
+        echo -e "\n${BLUE}🗄️ Ejecutando migraciones de Laravel en base de datos...${NC}"
+        "$PHP_BIN" artisan migrate --force
+        echo -e "${GREEN}✔ Migraciones ejecutadas y verificadas correctamente.${NC}"
         ;;
     0)
         echo -e "${GREEN}Saliendo sin hacer cambios...${NC}"
