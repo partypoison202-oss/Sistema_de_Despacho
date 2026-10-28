@@ -1224,8 +1224,12 @@ class DespachoController extends Controller
             $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? $fila['HORA DE ENCIERRO'] ?? $fila['horaEncierro'] ?? $fila['HORA_DE_ENCIERRO'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_REAL_SALIDA_PATIO'] ?? $fila['HORA_SALIDA'] ?? ''));
 
+            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
+            $esNoOperativo = in_array($estatusReq, ['reserva', 'mantenimiento', 'percance']);
+
             // Si proviene de RELEVOS, los campos de titular no se gestionan en este módulo: preservar de BD si vienen vacíos
-            if ($origen === 'RELEVOS' && $prevInfo) {
+            // EXCEPTO si la fila solicita explícitamente pasar a 'reserva', 'mantenimiento' o 'percance'.
+            if ($origen === 'RELEVOS' && $prevInfo && !$esNoOperativo) {
                 if ($tarjetonVal === '' && !empty($prevInfo->numero_tarjeton)) {
                     $tarjetonVal = trim((string) $prevInfo->numero_tarjeton);
                     $conductorNombre = trim((string) ($prevInfo->nombre_conductor ?? ''));
@@ -1255,7 +1259,7 @@ class DespachoController extends Controller
             if (str_contains(strtolower($rutaVal), 'seleccione')) {
                 $rutaVal = '';
             }
-            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
+            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta) && !$esNoOperativo) {
                 $rutaVal = (string) $prevInfo->ruta;
             }
 
@@ -1296,10 +1300,12 @@ class DespachoController extends Controller
                         : ($prevInfo->hora_desincorporacion ?? null)),
             ];
 
-            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado) {
+            // Precedencia absoluta de 'reserva' o estatus no operativo sobre servicios residuales
+            if ($estatusReq === 'reserva' || $esNoOperativo) {
+                $data['estatus'] = $estatusReq;
+            } elseif ($tieneServicioAsignado) {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
@@ -1740,7 +1746,10 @@ class DespachoController extends Controller
             $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? $fila['HORA DE ENCIERRO'] ?? $fila['horaEncierro'] ?? $fila['HORA_DE_ENCIERRO'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
-            if ($origen === 'RELEVOS' && $prevInfo) {
+            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
+            $esNoOperativo = in_array($estatusReq, ['reserva', 'mantenimiento', 'percance']);
+
+            if ($origen === 'RELEVOS' && $prevInfo && !$esNoOperativo) {
                 if ($tarjetonVal === '' && !empty($prevInfo->numero_tarjeton)) {
                     $tarjetonVal = trim((string) $prevInfo->numero_tarjeton);
                     $conductorNombre = trim((string) ($prevInfo->nombre_conductor ?? ''));
@@ -1767,7 +1776,7 @@ class DespachoController extends Controller
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
             $rutaVal = trim((string) ($fila['RUTA'] ?? ''));
-            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
+            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta) && !$esNoOperativo) {
                 $rutaVal = (string) $prevInfo->ruta;
             }
             if (stripos($rutaVal, 'seleccione') !== false) {
@@ -1811,15 +1820,12 @@ class DespachoController extends Controller
                         : ($prevInfo->hora_desincorporacion ?? null)),
             ];
 
-            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado) {
-                // Si la unidad tiene asignada una ruta, conductor o corrida,
-                // su estatus operativo DEBE ser 'operacion', sin importar si previamente
-                // venía marcada como 'reserva', 'mantenimiento' o 'percance'.
-                // De lo contrario, la condición posterior de mantenimiento/reserva
-                // borraría la ruta y conductor asignados.
+            // Precedencia absoluta de 'reserva' o estatus no operativo sobre servicios residuales
+            if ($estatusReq === 'reserva' || $esNoOperativo) {
+                $data['estatus'] = $estatusReq;
+            } elseif ($tieneServicioAsignado) {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
@@ -2139,7 +2145,10 @@ class DespachoController extends Controller
             $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? $fila['HORA DE ENCIERRO'] ?? $fila['horaEncierro'] ?? $fila['HORA_DE_ENCIERRO'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
-            if ($origen === 'RELEVOS' && $prevInfo) {
+            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
+            $esNoOperativo = in_array($estatusReq, ['reserva', 'mantenimiento', 'percance']);
+
+            if ($origen === 'RELEVOS' && $prevInfo && !$esNoOperativo) {
                 if ($tarjetonVal === '' && !empty($prevInfo->numero_tarjeton)) {
                     $tarjetonVal = trim((string) $prevInfo->numero_tarjeton);
                     $conductorNombre = trim((string) ($prevInfo->nombre_conductor ?? ''));
@@ -2166,7 +2175,7 @@ class DespachoController extends Controller
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
             $rutaVal = trim((string) ($fila['RUTA'] ?? ''));
-            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
+            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta) && !$esNoOperativo) {
                 $rutaVal = (string) $prevInfo->ruta;
             }
             if (stripos($rutaVal, 'seleccione') !== false) {
@@ -2210,10 +2219,12 @@ class DespachoController extends Controller
                         : ($prevInfo->hora_desincorporacion ?? null)),
             ];
 
-            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado) {
+            // Precedencia absoluta de 'reserva' o estatus no operativo sobre servicios residuales
+            if ($estatusReq === 'reserva' || $esNoOperativo) {
+                $data['estatus'] = $estatusReq;
+            } elseif ($tieneServicioAsignado) {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
@@ -5731,7 +5742,18 @@ class DespachoController extends Controller
     }
 
     /**
-     * Obtiene la lista de rutas (troncales y alimentadoras) desde la tabla 'rutas'.
+     * Orden oficial y canónico de rutas alimentadoras reconocidas por el sistema
+     * (incluye Ruta 4B - Paseos de la Plata / E. San Antonio).
+     */
+    public const ORDEN_OFICIAL_ALIMENTADORAS = [
+        '1A', '1B', '2A', '2B', '2D', '2E', '3', '4', '4A', '4B', '5', '6',
+        '7', '8', '9', '10', '11', '12', '13', '14', '15A', '15B',
+        '15C', '16', '17', '19', '20B'
+    ];
+
+    /**
+     * Obtiene la lista de rutas (troncales y alimentadoras) desde la tabla 'rutas',
+     * garantizando el reconocimiento pleno de Ruta 4B y el orden oficial.
      */
     public function obtenerRutas()
     {
@@ -5739,10 +5761,40 @@ class DespachoController extends Controller
             return RutaController::compararCodigosRuta($a->ruta, $b->ruta);
         })->values();
 
+        // Asegurar reconocimiento oficial de Ruta 4B en el catálogo si aún no se reflejara
+        $tiene4B = $todasLasRutas->contains(function ($r) {
+            $code = strtoupper(trim($r->ruta ?? ''));
+            return $code === '4B' || $code === 'RA-04B' || $code === '04B';
+        });
+
+        if (!$tiene4B) {
+            $ruta4B = (object) [
+                'id' => 31,
+                'ruta' => '4B',
+                'tipo' => 'alimentadora',
+                'descripcion' => '4B Paseos de la Plata / E. San Antonio',
+            ];
+            $todasLasRutas->push($ruta4B);
+            $todasLasRutas = $todasLasRutas->sort(function ($a, $b) {
+                return RutaController::compararCodigosRuta($a->ruta, $b->ruta);
+            })->values();
+        }
+
         $troncales = $todasLasRutas->where('tipo', 'troncal')->pluck('ruta')->values();
         $alimentadoras = $todasLasRutas->where('tipo', 'alimentadora')->pluck('ruta')->values();
 
-        $descripciones = [];
+        // Asegurar que la clave 4B esté presente en la lista de alimentadoras
+        if (!$alimentadoras->contains('4B')) {
+            $alimentadoras->push('4B');
+        }
+
+        $descripciones = [
+            '4B' => '4B Paseos de la Plata / E. San Antonio',
+            'RA-04B' => '4B Paseos de la Plata / E. San Antonio',
+            '04B' => '4B Paseos de la Plata / E. San Antonio',
+            'Ruta 4B' => '4B Paseos de la Plata / E. San Antonio',
+        ];
+
         foreach ($todasLasRutas as $r) {
             if (!empty($r->descripcion)) {
                 $descripciones[$r->ruta] = $r->descripcion;
@@ -5759,6 +5811,7 @@ class DespachoController extends Controller
             'alimentadoras' => $alimentadoras,
             'descripciones' => $descripciones,
             'catalogo' => $todasLasRutas,
+            'orden_oficial' => self::ORDEN_OFICIAL_ALIMENTADORAS,
         ], 200);
     }
 

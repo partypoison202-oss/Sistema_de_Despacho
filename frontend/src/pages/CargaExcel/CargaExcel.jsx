@@ -199,7 +199,8 @@ export default function CargaExcel({ isPasteles = false }) {
     queryKey: ['despacho-datos', tabActiva],
     queryFn: fetchDatos,
     staleTime: 5000,
-    refetchInterval: hasChanges ? false : 15000,
+    refetchInterval: false, // Prevención de sobreescritura de tabla por Polling (15s)
+    refetchOnWindowFocus: false,
   });
 
 
@@ -319,8 +320,8 @@ export default function CargaExcel({ isPasteles = false }) {
     const valStr = String(value ?? '').trim();
 
     if (field === 'ESTATUS') {
-      if (valStr === 'mantenimiento' || valStr === 'reserva') {
-        if (isPasteles && (valStr === 'mantenimiento' || valStr === 'reserva')) {
+      if (valStr === 'mantenimiento') {
+        if (isPasteles) {
           const currentEco = updatedData[index]?.ECONOMICO;
           const hasService = Boolean(
             updatedData[index]['RUTA'] ||
@@ -340,6 +341,9 @@ export default function CargaExcel({ isPasteles = false }) {
             return;
           }
         }
+      }
+
+      if (valStr === 'mantenimiento' || valStr === 'reserva') {
 
         updatedData[index]['ESTATUS'] = valStr;
         updatedData[index]['RUTA'] = '';
