@@ -62,6 +62,7 @@ class Conductor extends Model
         'referencia_1',
         'referencia_2',
         'fecha_ingreso',
+        'fecha_reingreso',
         'amonestaciones_detalle',
         'reconocimientos_detalle',
         'permisos_detalle',

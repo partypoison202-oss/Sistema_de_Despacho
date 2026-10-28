@@ -10,6 +10,13 @@ export default function GeneracionGafete({ conductores }) {
   const [fechaVigencia, setFechaVigencia] = useState('2026-12-01');
   const [qrImageError, setQrImageError] = useState(false);
 
+  useEffect(() => {
+    if (selectedConductor && selectedConductor.estatus === 'baja') {
+      setSelectedConductor(null);
+      setSearchTerm('');
+    }
+  }, [selectedConductor]);
+
   const formatMonthYear = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString + 'T00:00:00');
@@ -18,7 +25,9 @@ export default function GeneracionGafete({ conductores }) {
     return `${meses[date.getMonth()]} ${date.getFullYear()}`;
   };
 
-  const filteredConductores = conductores.filter(c => {
+  const filteredConductores = (conductores || []).filter(c => {
+    // Solo permitir conductores activos (excluir conductores dados de baja)
+    if (c.estatus === 'baja') return false;
     const term = (searchTerm || '').toLowerCase();
     return (
       (c.nombre && c.nombre.toLowerCase().includes(term)) ||
