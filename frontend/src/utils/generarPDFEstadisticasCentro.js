@@ -1,5 +1,134 @@
 import jsPDF from 'jspdf';
 import API_BASE from '../config/api';
+import { estaDesincorporadaPorItinerario } from './itinerarioUtils';
+
+const DEFAULT_MODELS_CONFIG = [
+    { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanussfrenterealista.webp', color: 'maroon' },
+    { id: 'ZAFIRO', label: 'ZAFIRO', image: '/images/zafirofrenterealista.webp', color: 'gold' },
+    { id: 'VAGONETA', label: 'VAGONETA', image: '/images/vagoneta frente.webp', color: 'green' },
+    { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.webp', color: 'blue' },
+];
+
+function calcularMetricasDesdeDatos(apiData = [], inicioData = []) {
+    const normStr = (str) =>
+        (str || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .trim();
+
+    const computedModelData = DEFAULT_MODELS_CONFIG.map((mc) => {
+        const units = (Array.isArray(apiData) ? apiData : []).filter((d) => {
+            const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+            const est = normStr(d.ESTATUS || d.estatus);
+            const isNoProgramada = est === 'NO_PROGRAMADA' || est === 'NO PROGRAMADA';
+            return matchesModel && !isNoProgramada;
+        });
+        const getEstatus = (d) => normStr(d.ESTATUS || d.estatus);
+
+        const unidadesDesincItinerario = units.filter((d) => estaDesincorporadaPorItinerario(d));
+        const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d));
+        const unidadesCirculando = units.filter((d) => {
+            const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
+            const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+            return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
+        });
+        const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
+        const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
+        const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
+
+        const unidadesEncerradasProgramadas = units.filter((d) => {
+            if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+            const est = getEstatus(d);
+            if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
+            const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+            const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
+            const esFallaOPercance = motivo.includes('falla') ||
+                motivo.includes('averia') ||
+                motivo.includes('siniestro') ||
+                motivo.includes('taller') ||
+                motivo.includes('mantenimiento') ||
+                motivo.includes('percance');
+            if (esFallaOPercance) return false;
+            const esEncierroMotivo = motivo.includes('fin de turno') ||
+                motivo.includes('encierro programado') ||
+                motivo.includes('encierro regular') ||
+                motivo.includes('encierro') ||
+                motivo.includes('turno cumplido') ||
+                motivo.includes('cumplio turno') ||
+                motivo.includes('cumplió turno') ||
+                motivo.includes('cumplimiento') ||
+                motivo.includes('termino de turno') ||
+                motivo.includes('término de turno') ||
+                motivo.includes('servicio concluido') ||
+                motivo.includes('fin de servicio') ||
+                motivo.includes('concluyo servicio') ||
+                motivo.includes('concluyó servicio') ||
+                motivo.includes('fin de jornada');
+            return isEncerrada || esEncierroMotivo;
+        });
+
+        const total = units.length;
+        const operacion = unidadesOperacion.length;
+        const desincItinerario = unidadesDesincItinerario.length;
+        const circulando = unidadesCirculando.length;
+        const encerradasProgramadas = unidadesEncerradasProgramadas.length;
+        const mantenimiento = unidadesMantenimiento.length;
+        const reserva = unidadesReserva.length;
+        const percance = unidadesPercance.length;
+
+        const hasSnapshot = Array.isArray(inicioData) && inicioData.length > 0;
+        const programadasInicio = hasSnapshot
+            ? inicioData.filter(d => {
+                const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+                const estatusNorm = normStr(d.ESTATUS || d.estatus);
+                return matchesModel && estatusNorm.includes('OPERACI');
+            }).length
+            : 0;
+        const programadas = hasSnapshot ? programadasInicio : (total || unidadesOperacion.length);
+
+        return {
+            ...mc,
+            total,
+            programadas,
+            operacion,
+            desincItinerario,
+            circulando,
+            encerradasProgramadas,
+            reserva,
+            mantenimiento,
+            percance,
+            otros: 0,
+            units,
+        };
+    });
+
+    const computedTotales = computedModelData.reduce(
+        (acc, m) => ({
+            total: (acc.total || 0) + (m.total || 0),
+            programadas: acc.programadas + m.programadas,
+            operacion: acc.operacion + m.operacion,
+            desincItinerario: (acc.desincItinerario || 0) + (m.desincItinerario || 0),
+            encerradasProgramadas: (acc.encerradasProgramadas || 0) + (m.encerradasProgramadas || 0),
+            circulando: (acc.circulando || 0) + (m.circulando || 0),
+            reserva: acc.reserva + m.reserva,
+            mantenimiento: acc.mantenimiento + m.mantenimiento,
+            percance: (acc.percance || 0) + (m.percance || 0),
+        }),
+        { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, encerradasProgramadas: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
+    );
+
+    const computedEficiencia = computedTotales.programadas > 0
+        ? Math.min(100, Math.round(((computedTotales.circulando + (computedTotales.desincItinerario || 0) + (computedTotales.encerradasProgramadas || 0)) / computedTotales.programadas) * 100))
+        : 0;
+
+    return {
+        totales: computedTotales,
+        modelData: computedModelData,
+        eficienciaGlobal: computedEficiencia,
+    };
+}
 
 const COLOR_GUINDA      = [96, 26, 42]; 
 const COLOR_WHITE       = [255, 255, 255];
@@ -67,7 +196,7 @@ function toTitleCase(str) {
 
 
 
-function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho = '--:--') {
+function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho = '--:--', horaTerminoDespacho = '--:--') {
     // 1. Banner swoosh decorativo en la esquina superior izquierda
     if (bannerImg && (bannerImg.naturalWidth > 0 || bannerImg.width > 0)) {
         try {
@@ -118,24 +247,25 @@ function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespach
     // 4. Textos institucionales superiores a la derecha
     const rightLimit = pw - 26;
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(11);
+    pdf.setFontSize(10.5);
     pdf.setTextColor(31, 41, 55); // #1f2937
-    pdf.text('PLATAFORMA ACOTMA', rightLimit, 6.2, { align: 'right' });
+    pdf.text('PLATAFORMA ACOTMA', rightLimit, 5.2, { align: 'right' });
 
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(16);
+    pdf.setFontSize(15.5);
     pdf.setTextColor(...COLOR_GUINDA);
-    pdf.text('DESPACHO DEL SERVICIO', rightLimit, 12.2, { align: 'right' });
+    pdf.text('DESPACHO DEL SERVICIO', rightLimit, 10.6, { align: 'right' });
 
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9.5);
+    pdf.setFontSize(9);
     pdf.setTextColor(55, 65, 81); // #374151
-    pdf.text(fecha, rightLimit, 17.2, { align: 'right' });
+    pdf.text(fecha, rightLimit, 15.0, { align: 'right' });
 
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8.5);
+    pdf.setFontSize(8);
     pdf.setTextColor(...COLOR_GUINDA);
-    pdf.text(`INICIO DE DESPACHO: ${horaInicioDespacho}`, rightLimit, 21.6, { align: 'right' });
+    pdf.text(`INICIO DE DESPACHO: ${horaInicioDespacho}`, rightLimit, 18.8, { align: 'right' });
+    pdf.text(`TÉRMINO DE DESPACHO: ${horaTerminoDespacho}`, rightLimit, 22.3, { align: 'right' });
 }
 
 function drawFooter(pdf, pw, ph, pageNum, totalPages = 3) {
@@ -145,11 +275,7 @@ function drawFooter(pdf, pw, ph, pageNum, totalPages = 3) {
     pdf.text(`PÁG. ${pageNum} de ${totalPages}`, pw - 10, ph - 6, { align: 'right' });
 }
 
-export const generarPDFEstadisticasCentro = async (totales, modelData, eficienciaGlobal, apiDataParam = null) => {
-    if (!totales || !modelData) {
-        throw new Error("No hay datos para generar el reporte.");
-    }
-
+export const generarPDFEstadisticasCentro = async (totales = null, modelData = null, eficienciaGlobal = null, apiDataParam = null) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const authHeaders = {
         'Content-Type': 'application/json',
@@ -194,6 +320,17 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         try { listaInicio = await resInicioHoy.json(); } catch { listaInicio = []; }
     }
     if (!Array.isArray(listaInicio)) listaInicio = [];
+
+    // Si se invoca desde otro módulo (ej. Despacho de Unidades) sin pre-calcular totales y modelData,
+    // se calculan automáticamente con la misma fórmula que Centro de Control.
+    if (!totales || !modelData || eficienciaGlobal === null || eficienciaGlobal === undefined) {
+        const calculadas = calcularMetricasDesdeDatos(listaUnidades, listaInicio);
+        if (!totales) totales = calculadas.totales;
+        if (!modelData) modelData = calculadas.modelData;
+        if (eficienciaGlobal === null || eficienciaGlobal === undefined) {
+            eficienciaGlobal = calculadas.eficienciaGlobal;
+        }
+    }
 
     // Extraer tarjetones autorizados de reservas exclusivamente para HOY
     let listaReservasTarjeton = [];
@@ -573,18 +710,32 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         };
     };
 
-    // Mapa de apoyo con inicio-hoy (snapshot de apertura) por económico
+    // Minutos actuales en que se generó el reporte (hora exacta del clic)
+    const clickMinutes = nowLocal.getHours() * 60 + nowLocal.getMinutes();
+
+    const normEcoKey = (val) => {
+        const s = String(val ?? '').trim();
+        if (!s) return '';
+        const n = Number.parseInt(s, 10);
+        return (!Number.isNaN(n) && n > 0) ? String(n).padStart(3, '0') : s.toUpperCase();
+    };
+
+    // Mapa de apoyo con inicio-hoy (snapshot de apertura) por económico normalizado
     const mapaInicioPorEco = new Map();
     listaInicio.forEach(u => {
-        const eco = String(u.ECONOMICO || u.numero_eco || '').trim();
-        if (eco) mapaInicioPorEco.set(eco, u);
+        const ecoKey = normEcoKey(u.ECONOMICO || u.numero_eco);
+        if (ecoKey) mapaInicioPorEco.set(ecoKey, u);
     });
 
     // Combinar unidades operativas con inicio para no perder programaciones iniciales
     const universoUnidades = [...listaUnidades];
+    const ecosEnUniverso = new Set(
+        universoUnidades.map(u => normEcoKey(u.ECONOMICO || u.numero_eco)).filter(Boolean)
+    );
     listaInicio.forEach(uIni => {
-        const ecoIni = String(uIni.ECONOMICO || uIni.numero_eco || '').trim();
-        if (ecoIni && !universoUnidades.some(u => String(u.ECONOMICO || u.numero_eco || '').trim() === ecoIni)) {
+        const ecoKey = normEcoKey(uIni.ECONOMICO || uIni.numero_eco);
+        if (ecoKey && !ecosEnUniverso.has(ecoKey)) {
+            ecosEnUniverso.add(ecoKey);
             universoUnidades.push(uIni);
         }
     });
@@ -592,36 +743,61 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     const todasLasCorridas = [];
     universoUnidades.forEach(u => {
         const rawEco = String(u.ECONOMICO || u.numero_eco || '').trim();
-        const fallbackIni = mapaInicioPorEco.get(rawEco) || {};
-        const ecoDef = rawEco || String(fallbackIni.ECONOMICO || fallbackIni.numero_eco || '').trim();
-        const ecoNum = Number.parseInt(ecoDef, 10);
-        const eco = (!Number.isNaN(ecoNum) && ecoNum > 0) ? String(ecoNum).padStart(3, '0') : ecoDef;
+        const ecoKey = normEcoKey(rawEco);
+        const fallbackIni = mapaInicioPorEco.get(ecoKey) || {};
+        const eco = ecoKey || normEcoKey(fallbackIni.ECONOMICO || fallbackIni.numero_eco);
 
-        const rutaRaw = String(u.RUTA || u.ruta || fallbackIni.RUTA || fallbackIni.ruta || '').trim();
+        const rutaRaw = String(
+            u.RUTA || u.ruta || fallbackIni.RUTA || fallbackIni.ruta ||
+            u.MANTENIMIENTO_RUTA || u.mantenimiento_ruta || ''
+        ).trim();
         const corridaRaw = String(
             u.CORRIDAS ?? u.CORRIDA ?? u.corrida ?? u.corridas ??
-            fallbackIni.CORRIDAS ?? fallbackIni.CORRIDA ?? fallbackIni.corrida ?? fallbackIni.corridas ?? ''
+            fallbackIni.CORRIDAS ?? fallbackIni.CORRIDA ?? fallbackIni.corrida ?? fallbackIni.corridas ??
+            u.MANTENIMIENTO_CORRIDA ?? u.mantenimiento_corrida ?? ''
         ).trim();
 
         // Hora programada de salida de patio (no real)
         const rawSalidaProg = String(
             u.HORA_PROGRAMADA || u.hora_salida_patio || u.HORA_SALIDA_PATIO || u.hora_programada || u.HORA_DE_ACOPLE || u.hora_de_acople ||
-            fallbackIni.HORA_PROGRAMADA || fallbackIni.hora_salida_patio || fallbackIni.HORA_SALIDA_PATIO || fallbackIni.hora_programada || fallbackIni.HORA_DE_ACOPLE || fallbackIni.hora_de_acople ||
+            fallbackIni.HORA_PROGRAMADA || fallbackIni.hora_salida_patio || fallbackIni.hora_programada || fallbackIni.HORA_DE_ACOPLE || fallbackIni.hora_de_acople ||
             ''
         ).trim();
 
         // Hora de acople
         const rawAcople = String(u.ACOPLE || u.acople || fallbackIni.ACOPLE || fallbackIni.acople || '').trim();
 
+        // Hora de incorporación por itinerario (vespertino / segundo bloque)
+        const rawIncorp = String(
+            u.HORA_INCORPORACION || u.hora_incorporacion ||
+            fallbackIni.HORA_INCORPORACION || fallbackIni.hora_incorporacion || ''
+        ).trim();
+
         const objSalidaProg = extraerMinutosYHora(rawSalidaProg);
         const objAcople = extraerMinutosYHora(rawAcople);
+        const objIncorp = extraerMinutosYHora(rawIncorp);
 
-        // Hora de referencia: hora de salida programada de patio (si no existe, acople)
-        const timeRef = objSalidaProg || objAcople;
-        if (!timeRef) return;
+        // Evaluar si la salida programada o el acople son posteriores a la hora del reporte,
+        // o si tiene una incorporación por itinerario pendiente posterior a la hora del reporte.
+        let displayHora = null;
+        let refMinutes = null;
 
-        // Hora para desplegar en el reporte: acople si existe, o salida programada
-        const displayHora = objAcople ? objAcople.formatted : objSalidaProg.formatted;
+        const salidaPendiente = objSalidaProg && objSalidaProg.minutes > clickMinutes;
+        const acoplePendiente = objAcople && objAcople.minutes > clickMinutes;
+
+        if (salidaPendiente || acoplePendiente) {
+            const chosenObj = objAcople || objSalidaProg;
+            displayHora = chosenObj.formatted;
+            refMinutes = acoplePendiente
+                ? objAcople.minutes
+                : (salidaPendiente ? objSalidaProg.minutes : chosenObj.minutes);
+        } else if (objIncorp && objIncorp.minutes > clickMinutes) {
+            displayHora = objIncorp.formatted;
+            refMinutes = objIncorp.minutes;
+        }
+
+        if (!displayHora || refMinutes === null) return;
+
         const rutaFormateada = rutaRaw ? rutaRaw.toUpperCase().replace(/^T(\d{2})$/, 'T-$1') : '';
 
         const tieneRuta = rutaFormateada && rutaFormateada !== 'SIN RUTA';
@@ -644,30 +820,25 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
             corrida: corridaRaw,
             etiqueta: textoEtiqueta,
             acople: displayHora,
-            minutes: timeRef.minutes
+            minutes: refMinutes
         });
     });
 
-    // Minutos actuales en que se generó el reporte (hora exacta del clic)
-    const clickMinutes = nowLocal.getHours() * 60 + nowLocal.getMinutes();
-
-    // Filtrar aquellas cuya salida programada sea estrictamente posterior a la hora en que se generó el reporte
-    // (Ej. a las 6:30 una salida 7:10 aparece aunque esté despachada; a las 7:25 ya no se muestra)
-    const pendientes = todasLasCorridas.filter(c => c.minutes > clickMinutes);
-
-    // Deduplicar por ruta + corrida o por número de económico, y ordenar cronológicamente
+    // Deduplicar por unidad (económico) para no descartar unidades distintas que compartan ruta o número de corrida
     const corridasMap = new Map();
-    pendientes.forEach((item, idx) => {
-        const key = (item.corrida && item.ruta && item.ruta !== 'SIN RUTA')
-            ? `${item.ruta}_${item.corrida}`
-            : (item.eco ? `eco_${item.eco}` : `item_${idx}`);
+    todasLasCorridas.forEach((item, idx) => {
+        const key = item.eco ? `eco_${item.eco}` : `item_${idx}`;
         if (!corridasMap.has(key) || item.minutes < corridasMap.get(key).minutes) {
             corridasMap.set(key, item);
         }
     });
 
     const corridasPendientes = Array.from(corridasMap.values())
-        .sort((a, b) => a.minutes - b.minutes || (a.ruta || '').localeCompare(b.ruta || '', undefined, { numeric: true }));
+        .sort((a, b) =>
+            a.minutes - b.minutes ||
+            (a.ruta || '').localeCompare(b.ruta || '', undefined, { numeric: true }) ||
+            (a.eco || '').localeCompare(b.eco || '', undefined, { numeric: true })
+        );
 
     const fecha = new Date().toLocaleDateString('es-MX', {
         day: '2-digit', month: 'long', year: 'numeric'
@@ -696,6 +867,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     });
     salidasDespachadas.sort((a, b) => a.totalSeconds - b.totalSeconds);
     const horaInicioDespacho = salidasDespachadas.length > 0 ? salidasDespachadas[0].formatted : 'SIN INICIAR';
+    const horaTerminoDespacho = salidasDespachadas.length > 0 ? salidasDespachadas[salidasDespachadas.length - 1].formatted : 'SIN INICIAR';
 
     // Formato exacto 4:3 (254mm x 190.5mm = 720pt x 540pt)
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [254, 190.5] });
@@ -716,7 +888,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // ==========================================
     // PÁGINA 1: KPIs Y DESGLOSE POR TIPO
     // ==========================================
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho, horaTerminoDespacho);
     drawFooter(pdf, pw, ph, 1, 3);
 
     // 7 Cajas de KPIs
@@ -926,7 +1098,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // PÁGINA 2: PERSONAS CONDUCTORAS
     // ==========================================
     pdf.addPage([254, 190.5], 'landscape');
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho, horaTerminoDespacho);
     drawFooter(pdf, pw, ph, 2, 3);
 
     // Tarjeta beige contenedora principal
@@ -1107,7 +1279,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // PÁGINA 3: CORRIDAS FALTANTES Y OBSERVACIONES
     // ==========================================
     pdf.addPage([254, 190.5], 'landscape');
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho, horaTerminoDespacho);
     drawFooter(pdf, pw, ph, 3, 3);
 
     const p3X = 10;
@@ -1237,28 +1409,59 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         ? ciclosFinal.toLocaleString('es-MX')
         : formatCiclo(ciclosFinal);
 
+    const totalPendientes = corridasPendientes.length;
+    const isCompactObs = totalPendientes > 5;
+
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(18);
+    pdf.setFontSize(isCompactObs ? 16 : 18);
     pdf.setTextColor(...COLOR_GUINDA);
-    pdf.text(`${ciclosTexto} ciclos programados`, p3X + p3W / 2, p3CursorY + 22, { align: 'center' });
+    pdf.text(`${ciclosTexto} ciclos programados`, p3X + p3W / 2, p3CursorY + (isCompactObs ? 11.5 : 22), { align: 'center' });
 
     // Corridas pendientes por programación
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10.5);
+    pdf.setFontSize(isCompactObs ? 10 : 10.5);
     pdf.setTextColor(17, 24, 39);
-    pdf.text('Corridas pendientes por programación:', p3X + p3W / 2, p3CursorY + 38, { align: 'center' });
+    pdf.text('Corridas pendientes por programación:', p3X + p3W / 2, p3CursorY + (isCompactObs ? 19.5 : 38), { align: 'center' });
 
-    let pendY = p3CursorY + 46;
+    let pendY = p3CursorY + (isCompactObs ? 26 : 46);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9.5);
     pdf.setTextColor(31, 41, 55);
 
-    if (corridasPendientes.length > 0) {
-        corridasPendientes.slice(0, 5).forEach(cp => {
-            const linea = `${cp.etiqueta} acopla: ${cp.acople}`;
-            pdf.text(linea, p3X + p3W / 2, pendY, { align: 'center' });
-            pendY += 5.5;
-        });
+    if (totalPendientes > 0) {
+        if (totalPendientes <= 5) {
+            corridasPendientes.forEach(cp => {
+                const linea = `${cp.etiqueta} acopla: ${cp.acople}`;
+                pdf.text(linea, p3X + p3W / 2, pendY, { align: 'center' });
+                pendY += 5.5;
+            });
+        } else {
+            const availH = Math.max(20, (p3CursorY + obsHeight - 3.5) - pendY);
+            let numCols = 2;
+            if (totalPendientes > 48) numCols = 5;
+            else if (totalPendientes > 27) numCols = 4;
+            else if (totalPendientes > 12) numCols = 3;
+
+            const rowsPerCol = Math.ceil(totalPendientes / numCols);
+            const defaultRowH = numCols === 2 ? 5.0 : (numCols === 3 ? 4.5 : (numCols === 4 ? 3.8 : 3.4));
+            const rowH = Math.min(defaultRowH, availH / rowsPerCol);
+            const defaultFont = numCols === 2 ? 9.0 : (numCols === 3 ? 8.3 : (numCols === 4 ? 7.4 : 6.6));
+            const fontSize = Math.max(5.8, Math.min(defaultFont, rowH * 1.85));
+
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(fontSize);
+            pdf.setTextColor(31, 41, 55);
+
+            const colW = p3W / numCols;
+            corridasPendientes.forEach((cp, idx) => {
+                const colIdx = Math.floor(idx / rowsPerCol);
+                const rowIdx = idx % rowsPerCol;
+                const xCenter = p3X + colIdx * colW + colW / 2;
+                const yPos = pendY + rowIdx * rowH;
+                const linea = `${cp.etiqueta} acopla: ${cp.acople}`;
+                pdf.text(linea, xCenter, yPos, { align: 'center' });
+            });
+        }
     } else {
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(9);
