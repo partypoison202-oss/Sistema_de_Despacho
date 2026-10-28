@@ -1259,7 +1259,7 @@ class DespachoController extends Controller
             if (str_contains(strtolower($rutaVal), 'seleccione')) {
                 $rutaVal = '';
             }
-            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta) && !$esNoOperativo) {
+            if ($origen === 'RELEVOS' && !$esNoOperativo && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
                 $rutaVal = (string) $prevInfo->ruta;
             }
 
@@ -1306,6 +1306,8 @@ class DespachoController extends Controller
             if ($estatusReq === 'reserva' || $esNoOperativo) {
                 $data['estatus'] = $estatusReq;
             } elseif ($tieneServicioAsignado) {
+                // Solo se llega aquí si NO se solicitó reserva/mantenimiento/percance:
+                // un servicio asignado implica estatus 'operacion'.
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
@@ -1776,7 +1778,7 @@ class DespachoController extends Controller
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
             $rutaVal = trim((string) ($fila['RUTA'] ?? ''));
-            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta) && !$esNoOperativo) {
+            if ($origen === 'RELEVOS' && !$esNoOperativo && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
                 $rutaVal = (string) $prevInfo->ruta;
             }
             if (stripos($rutaVal, 'seleccione') !== false) {
@@ -1826,6 +1828,8 @@ class DespachoController extends Controller
             if ($estatusReq === 'reserva' || $esNoOperativo) {
                 $data['estatus'] = $estatusReq;
             } elseif ($tieneServicioAsignado) {
+                // Solo se llega aquí si NO se solicitó reserva/mantenimiento/percance:
+                // un servicio asignado implica estatus 'operacion'.
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
@@ -2175,7 +2179,7 @@ class DespachoController extends Controller
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
             $rutaVal = trim((string) ($fila['RUTA'] ?? ''));
-            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta) && !$esNoOperativo) {
+            if ($origen === 'RELEVOS' && !$esNoOperativo && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
                 $rutaVal = (string) $prevInfo->ruta;
             }
             if (stripos($rutaVal, 'seleccione') !== false) {
@@ -2225,6 +2229,8 @@ class DespachoController extends Controller
             if ($estatusReq === 'reserva' || $esNoOperativo) {
                 $data['estatus'] = $estatusReq;
             } elseif ($tieneServicioAsignado) {
+                // Solo se llega aquí si NO se solicitó reserva/mantenimiento/percance:
+                // un servicio asignado implica estatus 'operacion'.
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
