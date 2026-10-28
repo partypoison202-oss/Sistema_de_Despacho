@@ -297,6 +297,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores/{id}/marcar-retardo', [ConductorController::class, 'marcarRetardo']);
     Route::post('/conductores/{id}/agregar-falta', [ConductorController::class, 'agregarFalta']);
     Route::post('/conductores/{id}/eliminar-falta', [ConductorController::class, 'eliminarFalta']);
+    Route::post('/conductores/{id}/limpiar-duplicados', [ConductorController::class, 'limpiarFaltasDuplicadas']);
+    Route::post('/conductores/limpiar-faltas-duplicadas', [ConductorController::class, 'limpiarTodasFaltasDuplicadas']);
 
     // Itinerario de Asistencias
     Route::get('/operadores/itinerario', [\App\Http\Controllers\API\ItinerarioController::class, 'getItinerario']);
@@ -342,6 +344,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/combustible/{fecha}', [HistorialOperativoController::class, 'getHistorialCombustible']);
     Route::post('/historial-operativo/editar-carga', [HistorialOperativoController::class, 'editarCargaCombustible']);
     Route::get('/historial-operativo/conductores', [HistorialOperativoController::class, 'getHistorialConductores']);
+    Route::get('/historial-operativo/unidades', [HistorialOperativoController::class, 'getHistorialUnidades']);
+    Route::get('/historial/unidades', [HistorialOperativoController::class, 'getHistorialUnidades']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
     Route::get('/historial-operativo/alimentadoras-ayer', [HistorialOperativoController::class, 'getHistorialAlimentadorasAyer']);
     Route::get('/bitacoras-diarias', [\App\Http\Controllers\API\BitacorasCentroController::class, 'getBitacoras']);

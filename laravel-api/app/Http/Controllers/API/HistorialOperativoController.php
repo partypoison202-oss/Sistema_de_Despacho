@@ -1593,6 +1593,548 @@ class HistorialOperativoController extends Controller
             ]);
         }
     }
+
+    /**
+     * Reporte Historial Integral de Unidades (Analítica, Línea de Tiempo y Movimientos).
+     */
+    public function getHistorialUnidades(Request $request)
+    {
+        try {
+            $economico = trim((string)$request->input('economico', ''));
+            $tipoUnidad = trim((string)$request->input('tipo_unidad', 'TODOS'));
+            $estatusFiltro = strtolower(trim((string)$request->input('estatus', 'todos')));
+            $conductorFiltro = strtolower(trim((string)$request->input('conductor', '')));
+            $rutaFiltro = strtolower(trim((string)$request->input('ruta', '')));
+            $corridaFiltro = trim((string)$request->input('corrida', ''));
+            $motivoFallaFiltro = strtolower(trim((string)$request->input('motivo_falla', '')));
+            $incidenciaFiltro = strtolower(trim((string)$request->input('incidencia', 'todas')));
+            $soloIncidencias = filter_var($request->input('solo_incidencias', false), FILTER_VALIDATE_BOOLEAN);
+
+            $hoy = Carbon::today('America/Mexico_City')->toDateString();
+            $hasta = $request->input('hasta') ?: $hoy;
+            $desde = $request->input('desde') ?: Carbon::parse($hasta)->subDays(30)->toDateString();
+
+            // Asegurar orden desde <= hasta
+            if ($desde > $hasta) {
+                $temp = $desde;
+                $desde = $hasta;
+                $hasta = $temp;
+            }
+
+            // Catálogo completo de unidades para selector y filtros
+            $unidadesCatalogo = DB::table('unidades')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->select(
+                    'unidades.id',
+                    'unidades.numero_eco as economico',
+                    $this->tipoUnidadFromUnidadesRaw('tipo'),
+                    $this->tipoUnidadFromUnidadesRaw('tipo_unidad')
+                )
+                ->orderBy('unidades.numero_eco')
+                ->get();
+
+            // Mapa de unidades por id y por numero_eco
+            $unidadPorEco = [];
+            foreach ($unidadesCatalogo as $u) {
+                $ecoKey = ltrim(trim((string)$u->economico), '0') ?: '0';
+                $unidadPorEco[$ecoKey] = $u;
+                $unidadPorEco[trim((string)$u->economico)] = $u;
+            }
+
+            // Columnas condicionales en historial_operativo
+            $hasRelevoHist = Schema::hasColumn('historial_operativo', 'relevo_tarjeton');
+            $hasManiobristaHist = Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
+            $hasHoraEncierro = Schema::hasColumn('historial_operativo', 'hora_encierro');
+            $hasHoraRealSalida = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
+            $hasHoraAcople = Schema::hasColumn('historial_operativo', 'hora_de_acople');
+
+            // 1. Obtener registros de historial_operativo en el rango de fechas
+            $queryHist = DB::table('historial_operativo')
+                ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->whereBetween('historial_operativo.fecha_historial', [$desde, $hasta]);
+
+            if (!empty($economico) && strtoupper($economico) !== 'TODAS' && strtoupper($economico) !== 'TODOS') {
+                $ecoPad = str_pad(ltrim($economico, '0'), 3, '0', STR_PAD_LEFT);
+                $queryHist->where(function ($q) use ($economico, $ecoPad) {
+                    $q->where('unidades.numero_eco', $economico)
+                      ->orWhere('unidades.numero_eco', $ecoPad)
+                      ->orWhereRaw("LTRIM(CAST(unidades.numero_eco AS VARCHAR), '0') = ?", [ltrim($economico, '0')]);
+                });
+            }
+
+            if (!empty($tipoUnidad) && strtoupper($tipoUnidad) !== 'TODOS' && strtoupper($tipoUnidad) !== 'TODAS') {
+                $queryHist->where(function ($q) use ($tipoUnidad) {
+                    $q->whereRaw("UPPER(TRIM(CAST(historial_operativo.tipo AS VARCHAR))) = ?", [strtoupper($tipoUnidad)])
+                      ->orWhereRaw("UPPER(TRIM(CAST(unidades.tipo AS VARCHAR))) = ?", [strtoupper($tipoUnidad)])
+                      ->orWhereRaw("UPPER(TRIM(CAST(transportes.nombre AS VARCHAR))) = ?", [strtoupper($tipoUnidad)]);
+                });
+            }
+
+            $selectCols = [
+                'historial_operativo.id as id_historial',
+                'historial_operativo.fecha_historial',
+                'historial_operativo.momento',
+                'unidades.id as unidad_id',
+                'unidades.numero_eco as economico',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
+                'historial_operativo.ruta',
+                'historial_operativo.numero_tarjeton',
+                'historial_operativo.nombre_conductor',
+                'historial_operativo.estatus',
+                'historial_operativo.falla',
+                'historial_operativo.motivo',
+                'historial_operativo.motivo_estatus',
+                'historial_operativo.corridas',
+                'historial_operativo.ciclo',
+                'historial_operativo.hora_salida_patio',
+                'historial_operativo.observaciones',
+                $hasRelevoHist ? 'historial_operativo.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                $hasRelevoHist ? 'historial_operativo.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                $hasRelevoHist ? 'historial_operativo.relevo_hora' : DB::raw('NULL as relevo_hora'),
+                $hasManiobristaHist ? 'historial_operativo.tarjeton_maniobrista' : DB::raw('NULL as tarjeton_maniobrista'),
+                $hasManiobristaHist ? 'historial_operativo.nombre_maniobrista' : DB::raw('NULL as nombre_maniobrista'),
+                $hasHoraEncierro ? 'historial_operativo.hora_encierro' : DB::raw('NULL as hora_encierro'),
+                $hasHoraRealSalida ? 'historial_operativo.hora_real_salida_patio' : DB::raw('NULL as hora_real_salida_patio'),
+                $hasHoraAcople ? 'historial_operativo.hora_de_acople' : DB::raw('NULL as hora_de_acople'),
+            ];
+
+            $historialRaw = $queryHist->select($selectCols)
+                ->orderBy('historial_operativo.fecha_historial', 'desc')
+                ->orderBy('unidades.numero_eco', 'asc')
+                ->get();
+
+            $registrosPorDia = [];
+            foreach ($historialRaw as $row) {
+                $ecoKey = trim((string)$row->economico);
+                $fechaKey = substr((string)$row->fecha_historial, 0, 10);
+                $key = "{$fechaKey}_{$ecoKey}";
+
+                if (!isset($registrosPorDia[$key])) {
+                    $registrosPorDia[$key] = [
+                        'fecha' => $fechaKey,
+                        'unidad_id' => $row->unidad_id,
+                        'economico' => $row->economico,
+                        'tipo_unidad' => $row->tipo_unidad ?: ($row->tipo ?: 'URBANUSS'),
+                        'ruta' => $row->ruta,
+                        'numero_tarjeton' => $row->numero_tarjeton,
+                        'nombre_conductor' => $row->nombre_conductor,
+                        'relevo_tarjeton' => $row->relevo_tarjeton,
+                        'relevo_conductor' => $row->relevo_conductor,
+                        'relevo_hora' => $row->relevo_hora,
+                        'tarjeton_maniobrista' => $row->tarjeton_maniobrista,
+                        'nombre_maniobrista' => $row->nombre_maniobrista,
+                        'estatus' => strtolower(trim((string)$row->estatus)),
+                        'estatus_inicio' => $row->momento === 'INICIO' ? strtolower(trim((string)$row->estatus)) : null,
+                        'estatus_fin' => $row->momento === 'FIN' ? strtolower(trim((string)$row->estatus)) : null,
+                        'falla' => $row->falla,
+                        'motivo' => $row->motivo,
+                        'motivo_estatus' => $row->motivo_estatus,
+                        'corridas' => $row->corridas ? (int)$row->corridas : 0,
+                        'ciclo' => $row->ciclo,
+                        'hora_salida_patio' => $row->hora_salida_patio,
+                        'hora_real_salida_patio' => $row->hora_real_salida_patio,
+                        'hora_de_acople' => $row->hora_de_acople,
+                        'hora_encierro' => $row->hora_encierro,
+                        'observaciones' => $row->observaciones,
+                        'momento_fuente' => $row->momento,
+                        'movimientos' => []
+                    ];
+                } else {
+                    if ($row->momento === 'FIN') {
+                        $registrosPorDia[$key]['estatus_fin'] = strtolower(trim((string)$row->estatus));
+                        $registrosPorDia[$key]['estatus'] = strtolower(trim((string)$row->estatus));
+                        if (!empty($row->falla)) $registrosPorDia[$key]['falla'] = $row->falla;
+                        if (!empty($row->motivo_estatus)) $registrosPorDia[$key]['motivo_estatus'] = $row->motivo_estatus;
+                        if (!empty($row->hora_encierro)) $registrosPorDia[$key]['hora_encierro'] = $row->hora_encierro;
+                        if (!empty($row->corridas)) $registrosPorDia[$key]['corridas'] = (int)$row->corridas;
+                    } elseif ($row->momento === 'INICIO') {
+                        $registrosPorDia[$key]['estatus_inicio'] = strtolower(trim((string)$row->estatus));
+                    }
+                }
+            }
+
+            // 2. Si el rango incluye HOY y no tiene registros en historial_operativo, incorporar informacion_operativa
+            if ($hoy >= $desde && $hoy <= $hasta && Schema::hasTable('informacion_operativa')) {
+                $queryHoy = DB::table('informacion_operativa')
+                    ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id');
+
+                if (!empty($economico) && strtoupper($economico) !== 'TODAS' && strtoupper($economico) !== 'TODOS') {
+                    $ecoPad = str_pad(ltrim($economico, '0'), 3, '0', STR_PAD_LEFT);
+                    $queryHoy->where(function ($q) use ($economico, $ecoPad) {
+                        $q->where('unidades.numero_eco', $economico)
+                          ->orWhere('unidades.numero_eco', $ecoPad)
+                          ->orWhereRaw("LTRIM(CAST(unidades.numero_eco AS VARCHAR), '0') = ?", [ltrim($economico, '0')]);
+                    });
+                }
+
+                if (!empty($tipoUnidad) && strtoupper($tipoUnidad) !== 'TODOS' && strtoupper($tipoUnidad) !== 'TODAS') {
+                    $queryHoy->where(function ($q) use ($tipoUnidad) {
+                        $q->whereRaw("UPPER(TRIM(CAST(unidades.tipo AS VARCHAR))) = ?", [strtoupper($tipoUnidad)])
+                          ->orWhereRaw("UPPER(TRIM(CAST(transportes.nombre AS VARCHAR))) = ?", [strtoupper($tipoUnidad)]);
+                    });
+                }
+
+                $hasRelevoInfo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
+                $hasManiobristaInfo = Schema::hasColumn('informacion_operativa', 'tarjeton_maniobrista');
+                $hasHoraEncierroInfo = Schema::hasColumn('informacion_operativa', 'hora_encierro');
+                $hasHoraRealSalidaInfo = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
+                $hasHoraAcopleInfo = Schema::hasColumn('informacion_operativa', 'hora_de_acople');
+
+                $filasHoy = $queryHoy->select([
+                    'informacion_operativa.id',
+                    'unidades.id as unidad_id',
+                    'unidades.numero_eco as economico',
+                    $this->tipoUnidadFromUnidadesRaw('tipo'),
+                    $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
+                    'informacion_operativa.ruta',
+                    'informacion_operativa.numero_tarjeton',
+                    'informacion_operativa.nombre_conductor',
+                    'informacion_operativa.estatus',
+                    'informacion_operativa.falla',
+                    'informacion_operativa.motivo',
+                    'informacion_operativa.motivo_estatus',
+                    'informacion_operativa.corridas',
+                    'informacion_operativa.ciclo',
+                    'informacion_operativa.hora_salida_patio',
+                    'informacion_operativa.observaciones',
+                    $hasRelevoInfo ? 'informacion_operativa.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                    $hasRelevoInfo ? 'informacion_operativa.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                    $hasRelevoInfo ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora'),
+                    $hasManiobristaInfo ? 'informacion_operativa.tarjeton_maniobrista' : DB::raw('NULL as tarjeton_maniobrista'),
+                    $hasManiobristaInfo ? 'informacion_operativa.nombre_maniobrista' : DB::raw('NULL as nombre_maniobrista'),
+                    $hasHoraEncierroInfo ? 'informacion_operativa.hora_encierro' : DB::raw('NULL as hora_encierro'),
+                    $hasHoraRealSalidaInfo ? 'informacion_operativa.hora_real_salida_patio' : DB::raw('NULL as hora_real_salida_patio'),
+                    $hasHoraAcopleInfo ? 'informacion_operativa.hora_de_acople' : DB::raw('NULL as hora_de_acople'),
+                ])->get();
+
+                foreach ($filasHoy as $hRow) {
+                    $ecoKey = trim((string)$hRow->economico);
+                    $key = "{$hoy}_{$ecoKey}";
+                    if (!isset($registrosPorDia[$key])) {
+                        $registrosPorDia[$key] = [
+                            'fecha' => $hoy,
+                            'unidad_id' => $hRow->unidad_id,
+                            'economico' => $hRow->economico,
+                            'tipo_unidad' => $hRow->tipo_unidad ?: ($hRow->tipo ?: 'URBANUSS'),
+                            'ruta' => $hRow->ruta,
+                            'numero_tarjeton' => $hRow->numero_tarjeton,
+                            'nombre_conductor' => $hRow->nombre_conductor,
+                            'relevo_tarjeton' => $hRow->relevo_tarjeton,
+                            'relevo_conductor' => $hRow->relevo_conductor,
+                            'relevo_hora' => $hRow->relevo_hora,
+                            'tarjeton_maniobrista' => $hRow->tarjeton_maniobrista,
+                            'nombre_maniobrista' => $hRow->nombre_maniobrista,
+                            'estatus' => strtolower(trim((string)$hRow->estatus)) ?: 'disponible',
+                            'estatus_inicio' => strtolower(trim((string)$hRow->estatus)) ?: 'disponible',
+                            'estatus_fin' => strtolower(trim((string)$hRow->estatus)) ?: 'disponible',
+                            'falla' => $hRow->falla,
+                            'motivo' => $hRow->motivo,
+                            'motivo_estatus' => $hRow->motivo_estatus,
+                            'corridas' => $hRow->corridas ? (int)$hRow->corridas : 0,
+                            'ciclo' => $hRow->ciclo,
+                            'hora_salida_patio' => $hRow->hora_salida_patio,
+                            'hora_real_salida_patio' => $hRow->hora_real_salida_patio,
+                            'hora_de_acople' => $hRow->hora_de_acople,
+                            'hora_encierro' => $hRow->hora_encierro,
+                            'observaciones' => $hRow->observaciones,
+                            'momento_fuente' => 'EN_VIVO',
+                            'movimientos' => []
+                        ];
+                    }
+                }
+            }
+
+            // 3. Cargar movimientos de bitacora_cambios_unidades entre $desde y $hasta
+            if (Schema::hasTable('bitacora_cambios_unidades')) {
+                $queryCambios = DB::table('bitacora_cambios_unidades')
+                    ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+                    ->whereBetween('bitacora_cambios_unidades.fecha', [$desde, $hasta]);
+
+                if (!empty($economico) && strtoupper($economico) !== 'TODAS' && strtoupper($economico) !== 'TODOS') {
+                    $ecoPad = str_pad(ltrim($economico, '0'), 3, '0', STR_PAD_LEFT);
+                    $queryCambios->where(function ($q) use ($economico, $ecoPad) {
+                        $q->where('unidades.numero_eco', $economico)
+                          ->orWhere('unidades.numero_eco', $ecoPad)
+                          ->orWhereRaw("LTRIM(CAST(unidades.numero_eco AS VARCHAR), '0') = ?", [ltrim($economico, '0')]);
+                    });
+                }
+
+                $cambiosRaw = $queryCambios->select([
+                    'bitacora_cambios_unidades.id',
+                    'bitacora_cambios_unidades.fecha',
+                    'unidades.numero_eco as economico',
+                    'bitacora_cambios_unidades.tipo_accion',
+                    'bitacora_cambios_unidades.estatus_anterior',
+                    'bitacora_cambios_unidades.estatus_nuevo',
+                    'bitacora_cambios_unidades.detalles',
+                    'bitacora_cambios_unidades.created_at',
+                    'usuarios.nombre_completo as usuario_nombre'
+                ])->orderBy('bitacora_cambios_unidades.created_at', 'asc')->get();
+
+                foreach ($cambiosRaw as $cRow) {
+                    $fKey = substr((string)$cRow->fecha, 0, 10);
+                    $eKey = trim((string)$cRow->economico);
+                    $k = "{$fKey}_{$eKey}";
+
+                    $movimientoObj = [
+                        'id' => $cRow->id,
+                        'tipo_accion' => $cRow->tipo_accion,
+                        'estatus_anterior' => $cRow->estatus_anterior,
+                        'estatus_nuevo' => $cRow->estatus_nuevo,
+                        'detalles' => $cRow->detalles,
+                        'hora' => $cRow->created_at ? Carbon::parse($cRow->created_at)->format('H:i') : null,
+                        'usuario_nombre' => $cRow->usuario_nombre ?: 'Sistema'
+                    ];
+
+                    if (isset($registrosPorDia[$k])) {
+                        $registrosPorDia[$k]['movimientos'][] = $movimientoObj;
+                    } else {
+                        $uObj = $unidadPorEco[$eKey] ?? null;
+                        $registrosPorDia[$k] = [
+                            'fecha' => $fKey,
+                            'unidad_id' => $uObj ? $uObj->id : null,
+                            'economico' => $cRow->economico,
+                            'tipo_unidad' => $uObj ? ($uObj->tipo_unidad ?: $uObj->tipo) : 'URBANUSS',
+                            'ruta' => 'Sin ruta',
+                            'numero_tarjeton' => null,
+                            'nombre_conductor' => null,
+                            'relevo_tarjeton' => null,
+                            'relevo_conductor' => null,
+                            'relevo_hora' => null,
+                            'tarjeton_maniobrista' => null,
+                            'nombre_maniobrista' => null,
+                            'estatus' => strtolower(trim((string)$cRow->estatus_nuevo)) ?: 'reserva',
+                            'estatus_inicio' => strtolower(trim((string)$cRow->estatus_anterior)),
+                            'estatus_fin' => strtolower(trim((string)$cRow->estatus_nuevo)),
+                            'falla' => null,
+                            'motivo' => $cRow->detalles,
+                            'motivo_estatus' => $cRow->detalles,
+                            'corridas' => 0,
+                            'ciclo' => null,
+                            'hora_salida_patio' => null,
+                            'hora_real_salida_patio' => null,
+                            'hora_de_acople' => null,
+                            'hora_encierro' => null,
+                            'observaciones' => null,
+                            'momento_fuente' => 'BITACORA',
+                            'movimientos' => [$movimientoObj]
+                        ];
+                    }
+                }
+            }
+
+            // 4. Filtrar y ordenar los registros resultantes
+            $registrosFiltrados = [];
+            foreach ($registrosPorDia as $item) {
+                // Filtro por estatus
+                if (!empty($estatusFiltro) && $estatusFiltro !== 'todos') {
+                    $st = strtolower($item['estatus'] ?? '');
+                    if ($estatusFiltro === 'operacion' && $st !== 'operacion') continue;
+                    if ($estatusFiltro === 'mantenimiento' && $st !== 'mantenimiento') continue;
+                    if ($estatusFiltro === 'reserva' && $st !== 'reserva') continue;
+                }
+
+                // Filtro por conductor
+                if (!empty($conductorFiltro)) {
+                    $matchTitular = str_contains(strtolower($item['nombre_conductor'] ?? ''), $conductorFiltro) ||
+                                    str_contains(strtolower($item['numero_tarjeton'] ?? ''), $conductorFiltro);
+                    $matchRelevo = str_contains(strtolower($item['relevo_conductor'] ?? ''), $conductorFiltro) ||
+                                   str_contains(strtolower($item['relevo_tarjeton'] ?? ''), $conductorFiltro);
+                    if (!$matchTitular && !$matchRelevo) continue;
+                }
+
+                // Filtro por ruta
+                if (!empty($rutaFiltro)) {
+                    if (!str_contains(strtolower($item['ruta'] ?? ''), $rutaFiltro)) continue;
+                }
+
+                // Filtro por corrida
+                if (!empty($corridaFiltro)) {
+                    $cVal = (string)($item['corridas'] ?? '');
+                    if ($cVal !== $corridaFiltro) continue;
+                }
+
+                // Filtro por motivo de falla
+                if (!empty($motivoFallaFiltro)) {
+                    $fallaTxt = strtolower(($item['falla'] ?? '') . ' ' . ($item['motivo_estatus'] ?? '') . ' ' . ($item['motivo'] ?? ''));
+                    if (!str_contains($fallaTxt, $motivoFallaFiltro)) continue;
+                }
+
+                // Filtro por tipo de incidencia específica
+                if ($incidenciaFiltro === 'fallas') {
+                    $esMantenimiento = ($item['estatus'] === 'mantenimiento') || !empty($item['falla']);
+                    if (!$esMantenimiento) continue;
+                } elseif ($incidenciaFiltro === 'movimientos') {
+                    $tieneMovimientos = !empty($item['movimientos']) && count($item['movimientos']) > 0;
+                    if (!$tieneMovimientos) continue;
+                } elseif ($incidenciaFiltro === 'relevos') {
+                    $tieneRelevo = !empty($item['relevo_conductor']) || !empty($item['relevo_tarjeton']);
+                    if (!$tieneRelevo) continue;
+                } elseif ($soloIncidencias) {
+                    $esMantenimiento = ($item['estatus'] === 'mantenimiento') || !empty($item['falla']);
+                    $tieneMovimientos = !empty($item['movimientos']) && count($item['movimientos']) > 0;
+                    $esReserva = ($item['estatus'] === 'reserva');
+                    if (!$esMantenimiento && !$tieneMovimientos && !$esReserva) continue;
+                }
+
+                $registrosFiltrados[] = $item;
+            }
+
+            // Ordenar por fecha DESC, economico ASC
+            usort($registrosFiltrados, function ($a, $b) {
+                $cmp = strcmp($b['fecha'], $a['fecha']);
+                if ($cmp !== 0) return $cmp;
+                return (int)$a['economico'] <=> (int)$b['economico'];
+            });
+
+            // 5. Estadísticas y Agregaciones Gráficas
+            $totalDias = count($registrosFiltrados);
+            $diasOperacion = 0;
+            $diasMantenimiento = 0;
+            $diasReserva = 0;
+            $totalCorridas = 0;
+            $totalMovimientos = 0;
+            $conductoresUnicos = [];
+            $conductoresConteo = [];
+            $rutasConteo = [];
+            $motivosFallaConteo = [];
+            $actividadPorFecha = [];
+
+            foreach ($registrosFiltrados as $reg) {
+                $st = $reg['estatus'] ?? 'operacion';
+                if ($st === 'operacion') {
+                    $diasOperacion++;
+                } elseif ($st === 'mantenimiento') {
+                    $diasMantenimiento++;
+                } else {
+                    $diasReserva++;
+                }
+
+                $totalCorridas += (int)($reg['corridas'] ?? 0);
+                $totalMovimientos += count($reg['movimientos'] ?? []);
+
+                // Conductores
+                if (!empty($reg['nombre_conductor'])) {
+                    $cNombre = trim($reg['nombre_conductor']);
+                    $conductoresUnicos[$cNombre] = true;
+                    $conductoresConteo[$cNombre] = ($conductoresConteo[$cNombre] ?? 0) + 1;
+                }
+                if (!empty($reg['relevo_conductor'])) {
+                    $rNombre = trim($reg['relevo_conductor']);
+                    $conductoresUnicos[$rNombre] = true;
+                }
+
+                // Rutas
+                if (!empty($reg['ruta']) && $reg['ruta'] !== 'Sin ruta') {
+                    $rutasConteo[$reg['ruta']] = ($rutasConteo[$reg['ruta']] ?? 0) + 1;
+                }
+
+                // Motivos de mantenimiento / fallas
+                $motivoTexto = !empty($reg['falla']) ? $reg['falla'] : (!empty($reg['motivo_estatus']) ? $reg['motivo_estatus'] : null);
+                if ($motivoTexto && ($st === 'mantenimiento' || str_contains(strtolower($motivoTexto), 'falla'))) {
+                    $motivoLimpio = mb_strtoupper(trim(substr($motivoTexto, 0, 45)));
+                    $motivosFallaConteo[$motivoLimpio] = ($motivosFallaConteo[$motivoLimpio] ?? 0) + 1;
+                }
+
+                // Actividad por fecha
+                $f = $reg['fecha'];
+                if (!isset($actividadPorFecha[$f])) {
+                    $actividadPorFecha[$f] = [
+                        'fecha' => $f,
+                        'operacion' => 0,
+                        'mantenimiento' => 0,
+                        'reserva' => 0,
+                        'corridas' => 0,
+                    ];
+                }
+                if ($st === 'operacion') $actividadPorFecha[$f]['operacion']++;
+                elseif ($st === 'mantenimiento') $actividadPorFecha[$f]['mantenimiento']++;
+                else $actividadPorFecha[$f]['reserva']++;
+                $actividadPorFecha[$f]['corridas'] += (int)($reg['corridas'] ?? 0);
+            }
+
+            // Top Conductores
+            arsort($conductoresConteo);
+            $topConductores = [];
+            foreach (array_slice($conductoresConteo, 0, 6, true) as $nombre => $dias) {
+                $topConductores[] = [
+                    'nombre' => $nombre,
+                    'dias' => $dias,
+                ];
+            }
+
+            // Top Rutas
+            arsort($rutasConteo);
+            $topRutas = [];
+            foreach (array_slice($rutasConteo, 0, 6, true) as $ruta => $cant) {
+                $topRutas[] = [
+                    'ruta' => $ruta,
+                    'dias' => $cant,
+                ];
+            }
+
+            // Top Motivos Falla
+            arsort($motivosFallaConteo);
+            $topMotivosFalla = [];
+            foreach (array_slice($motivosFallaConteo, 0, 5, true) as $motivo => $cant) {
+                $topMotivosFalla[] = [
+                    'motivo' => $motivo,
+                    'total' => $cant,
+                ];
+            }
+
+            // Tendencia diaria ordenada cronológicamente ASC para gráficas
+            ksort($actividadPorFecha);
+            $tendenciaDiaria = array_values($actividadPorFecha);
+
+            $tasaDisponibilidad = $totalDias > 0 ? round(($diasOperacion / $totalDias) * 100, 1) : 0;
+
+            return response()->json([
+                'rango' => [
+                    'desde' => $desde,
+                    'hasta' => $hasta,
+                    'unidad_filtrada' => $economico ?: 'TODAS',
+                    'tipo_unidad_filtrado' => $tipoUnidad ?: 'TODOS',
+                ],
+                'resumen' => [
+                    'total_dias_registros' => $totalDias,
+                    'dias_operacion' => $diasOperacion,
+                    'dias_mantenimiento' => $diasMantenimiento,
+                    'dias_reserva' => $diasReserva,
+                    'tasa_disponibilidad_pct' => $tasaDisponibilidad,
+                    'total_corridas' => $totalCorridas,
+                    'total_movimientos' => $totalMovimientos,
+                    'total_conductores_unicos' => count($conductoresUnicos),
+                ],
+                'graficas' => [
+                    'distribucion_estatus' => [
+                        ['name' => 'Operación', 'valor' => $diasOperacion, 'color' => '#10b981'],
+                        ['name' => 'Mantenimiento', 'valor' => $diasMantenimiento, 'color' => '#ef4444'],
+                        ['name' => 'Reserva', 'valor' => $diasReserva, 'color' => '#3b82f6'],
+                    ],
+                    'tendencia_diaria' => $tendenciaDiaria,
+                    'top_conductores' => $topConductores,
+                    'top_rutas' => $topRutas,
+                    'motivos_falla' => $topMotivosFalla,
+                ],
+                'unidades_catalogo' => $unidadesCatalogo,
+                'registros' => $registrosFiltrados,
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('Error en getHistorialUnidades: ' . $e->getMessage() . ' ' . $e->getTraceAsString());
+            return response()->json([
+                'error' => 'Error al consultar el historial de unidades: ' . $e->getMessage(),
+                'registros' => [],
+                'resumen' => [],
+                'graficas' => []
+            ], 500);
+        }
+    }
 }
 
 

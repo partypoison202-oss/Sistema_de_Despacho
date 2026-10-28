@@ -238,6 +238,8 @@ export default function CargaExcel({ isPasteles = false }) {
   const registrosVisibles = previewData.map((fila, originalIndex) => ({ fila, originalIndex }));
 
 
+  const faltaEnProcesoRef = useRef(new Set());
+
   const solicitarFaltaSiAplica = async (originalTarjeton, originalName, ecoUnidad, rol = 'conductor') => {
     // Si no estamos en la pestaña del día operativo (HOY), ej. DÍA SIGUIENTE (MANANA),
     // no se debe registrar falta al operador reemplazado porque es planificación futura.
@@ -247,69 +249,99 @@ export default function CargaExcel({ isPasteles = false }) {
       c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(originalTarjeton)
     );
 
+    if (!origConductorObj) return;
+
+    const fechaHoy = getFechaActualLocal();
+    const lockKey = `${origConductorObj.id || originalTarjeton}_${fechaHoy}`;
+
+    // Si ya se está procesando una falta para este conductor o ya está en estatus de falta hoy, evitar duplicados
+    if (faltaEnProcesoRef.current.has(lockKey)) {
+      console.warn('Ya se está procesando la solicitud de falta para este conductor:', lockKey);
+      return;
+    }
+
+    if (origConductorObj.estado_servicio === 'falta') {
+      console.log('El operador ya se encuentra en estatus de falta, no se registrará duplicado.');
+      return;
+    }
+
+    faltaEnProcesoRef.current.add(lockKey);
     const labelRol = rol === 'relevo' ? 'relevo' : 'conductor';
-    const confirmFalta = await Swal.fire({
-      title: `¿Registrar falta al ${labelRol} anterior?`,
-      html: `
-        <div style="text-align: left; font-size: 0.9rem; color: #334155; line-height: 1.5;">
-          <p style="margin-bottom: 0.5rem;">Se ha retirado/reemplazado al ${labelRol} <strong>${originalName || originalTarjeton}</strong> (Tarjetón: <strong>${originalTarjeton}</strong>) de la unidad <strong>Eco #${ecoUnidad || 'N/A'}</strong>.</p>
-          <p style="color: #64748b;">¿Deseas registrar una <strong>falta no justificada</strong> a su expediente en el sistema?</p>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#475569',
-      confirmButtonText: 'Sí, registrar falta',
-      cancelButtonText: 'No, solo reemplazar',
-      reverseButtons: true
-    });
 
-    if (confirmFalta.isConfirmed && origConductorObj) {
-      try {
-        const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
-        const response = await fetch(`${API_BASE}/api/conductores/${origConductorObj.id}/agregar-falta`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            fecha: getFechaActualLocal(),
-            motivo: `Inasistencia por reemplazo de tarjetón en Programación (Eco: ${ecoUnidad || 'N/A'})`
-          })
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-          origConductorObj.estado_servicio = 'falta';
-          origConductorObj.faltas = (origConductorObj.faltas || 0) + 1;
-
-          if (data.inhabilitado) {
-            origConductorObj.estatus = 'inhabilitado';
-            Swal.fire({
-              icon: 'warning',
-              title: 'Operador No Asignado',
-              html: `El operador <b>${origConductorObj.nombre}</b> ha quedado <b>NO ASIGNADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
-              confirmButtonColor: '#ef4444'
+    try {
+      const confirmFalta = await Swal.fire({
+        title: `¿Registrar falta al ${labelRol} anterior?`,
+        html: `
+          <div style="text-align: left; font-size: 0.9rem; color: #334155; line-height: 1.5;">
+            <p style="margin-bottom: 0.5rem;">Se ha retirado/reemplazado al ${labelRol} <strong>${originalName || originalTarjeton}</strong> (Tarjetón: <strong>${originalTarjeton}</strong>) de la unidad <strong>Eco #${ecoUnidad || 'N/A'}</strong>.</p>
+            <p style="color: #64748b;">¿Deseas registrar una <strong>falta no justificada</strong> a su expediente en el sistema?</p>
+          </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#475569',
+        confirmButtonText: 'Sí, registrar falta',
+        cancelButtonText: 'No, solo reemplazar',
+        reverseButtons: true,
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !Swal.isLoading(),
+        preConfirm: async () => {
+          try {
+            const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+            const response = await fetch(`${API_BASE}/api/conductores/${origConductorObj.id}/agregar-falta`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                fecha: fechaHoy,
+                motivo: `Inasistencia por reemplazo de tarjetón en Programación (Eco: ${ecoUnidad || 'N/A'})`
+              })
             });
-          } else {
-            Swal.fire({
-              icon: 'success',
-              title: 'Falta Registrada',
-              text: `Se ha registrado la falta en el expediente de ${origConductorObj.nombre}.`,
-              confirmButtonColor: '#10b981',
-              timer: 1800
-            });
+
+            const data = await response.json();
+            if (!response.ok) {
+              throw new Error(data.message || 'No se pudo registrar la falta.');
+            }
+            return data;
+          } catch (err) {
+            Swal.showValidationMessage(err.message || 'Error de conexión con el servidor');
+            return false;
           }
+        }
+      });
+
+      if (confirmFalta.isConfirmed && confirmFalta.value) {
+        const data = confirmFalta.value;
+        origConductorObj.estado_servicio = 'falta';
+
+        if (!data.duplicada_evitada && !data.ya_existia) {
+          origConductorObj.faltas = (origConductorObj.faltas || 0) + 1;
+        }
+
+        if (data.inhabilitado) {
+          origConductorObj.estatus = 'inhabilitado';
+          Swal.fire({
+            icon: 'warning',
+            title: 'Operador No Asignado',
+            html: `El operador <b>${origConductorObj.nombre}</b> ha quedado <b>NO ASIGNADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
+            confirmButtonColor: '#ef4444'
+          });
         } else {
           Swal.fire({
-            icon: 'error',
-            title: 'Error al registrar falta',
-            text: data.message || 'No se pudo registrar la falta.',
-            confirmButtonColor: '#6b1d33'
+            icon: 'success',
+            title: data.ya_existia || data.duplicada_evitada ? 'Falta Ya Registrada' : 'Falta Registrada',
+            text: data.message || `Se ha registrado la falta en el expediente de ${origConductorObj.nombre}.`,
+            confirmButtonColor: '#10b981',
+            timer: 1800
           });
         }
-      } catch (err) {
-        console.error('Error al solicitar falta:', err);
       }
+    } catch (err) {
+      console.error('Error al solicitar falta:', err);
+    } finally {
+      setTimeout(() => {
+        faltaEnProcesoRef.current.delete(lockKey);
+      }, 1000);
     }
   };
 

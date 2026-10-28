@@ -67,7 +67,7 @@ function toTitleCase(str) {
 
 
 
-function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg) {
+function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho = '--:--') {
     // 1. Banner swoosh decorativo en la esquina superior izquierda
     if (bannerImg && (bannerImg.naturalWidth > 0 || bannerImg.width > 0)) {
         try {
@@ -120,17 +120,22 @@ function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(11);
     pdf.setTextColor(31, 41, 55); // #1f2937
-    pdf.text('PLATAFORMA ACOTMA', rightLimit, 7.5, { align: 'right' });
+    pdf.text('PLATAFORMA ACOTMA', rightLimit, 6.2, { align: 'right' });
 
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(...COLOR_GUINDA);
-    pdf.text('DESPACHO DEL SERVICIO', rightLimit, 14.5, { align: 'right' });
+    pdf.text('DESPACHO DEL SERVICIO', rightLimit, 12.2, { align: 'right' });
 
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9.5);
     pdf.setTextColor(55, 65, 81); // #374151
-    pdf.text(fecha, rightLimit, 20.5, { align: 'right' });
+    pdf.text(fecha, rightLimit, 17.2, { align: 'right' });
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(...COLOR_GUINDA);
+    pdf.text(`INICIO DE DESPACHO: ${horaInicioDespacho}`, rightLimit, 21.6, { align: 'right' });
 }
 
 function drawFooter(pdf, pw, ph, pageNum, totalPages = 3) {
@@ -668,6 +673,30 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         day: '2-digit', month: 'long', year: 'numeric'
     }).toUpperCase();
 
+    // Calcular la hora en que inició el despacho (hora real de salida de la primera unidad despachada)
+    const salidasDespachadas = [];
+    universoUnidades.forEach(u => {
+        const rawReal = String(
+            u.HORA_REAL_SALIDA_PATIO || u.hora_real_salida_patio || u.HORA_SALIDA || u.hora_salida || ''
+        ).trim();
+        if (!rawReal || rawReal === '--:--' || rawReal === '-' || rawReal.toLowerCase() === 'null') return;
+        const m = /(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(rawReal);
+        if (!m) return;
+        const hh = Number.parseInt(m[1], 10);
+        const mm = Number.parseInt(m[2], 10);
+        const ss = m[3] !== undefined ? Number.parseInt(m[3], 10) : 0;
+        if (Number.isNaN(hh) || Number.isNaN(mm) || Number.isNaN(ss)) return;
+        if (hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59) return;
+        const totalSeconds = hh * 3600 + mm * 60 + ss;
+        if (totalSeconds <= 0) return; // Ignorar 00:00 o 00:00:00
+        salidasDespachadas.push({
+            totalSeconds,
+            formatted: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} HRS`
+        });
+    });
+    salidasDespachadas.sort((a, b) => a.totalSeconds - b.totalSeconds);
+    const horaInicioDespacho = salidasDespachadas.length > 0 ? salidasDespachadas[0].formatted : 'SIN INICIAR';
+
     // Formato exacto 4:3 (254mm x 190.5mm = 720pt x 540pt)
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [254, 190.5] });
     const pw = pdf.internal.pageSize.getWidth();
@@ -687,7 +716,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // ==========================================
     // PÁGINA 1: KPIs Y DESGLOSE POR TIPO
     // ==========================================
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho);
     drawFooter(pdf, pw, ph, 1, 3);
 
     // 7 Cajas de KPIs
@@ -897,7 +926,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // PÁGINA 2: PERSONAS CONDUCTORAS
     // ==========================================
     pdf.addPage([254, 190.5], 'landscape');
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho);
     drawFooter(pdf, pw, ph, 2, 3);
 
     // Tarjeta beige contenedora principal
@@ -1078,7 +1107,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // PÁGINA 3: CORRIDAS FALTANTES Y OBSERVACIONES
     // ==========================================
     pdf.addPage([254, 190.5], 'landscape');
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho);
     drawFooter(pdf, pw, ph, 3, 3);
 
     const p3X = 10;

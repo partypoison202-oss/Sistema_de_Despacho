@@ -421,6 +421,59 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
     }
   };
 
+  const [limpiandoDuplicados, setLimpiandoDuplicados] = useState(false);
+
+  const handleLimpiarDuplicados = async () => {
+    if (!conductorActualData) return;
+    try {
+      setLimpiandoDuplicados(true);
+      const headers = getAuthHeaders ? getAuthHeaders() : { 'Content-Type': 'application/json' };
+      headers['Content-Type'] = 'application/json';
+
+      const res = await fetch(`${API_BASE}/api/conductores/${conductorActualData.id}/limpiar-duplicados`, {
+        method: 'POST',
+        headers
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al depurar duplicados');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Expediente Depurado',
+        text: data.message || 'Se eliminaron las faltas duplicadas del operador.',
+        confirmButtonColor: '#10b981',
+        timer: 2000
+      });
+
+      if (typeof onRefresh === 'function') {
+        onRefresh();
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message,
+        confirmButtonColor: '#6b1d33'
+      });
+    } finally {
+      setLimpiandoDuplicados(false);
+    }
+  };
+
+  const tieneDuplicadas = useMemo(() => {
+    if (!conductorActualData?.listaFaltas) return false;
+    const fechas = {};
+    for (const f of conductorActualData.listaFaltas) {
+      if (f && f.fecha && f.estado !== 'justificada' && !f.justificada) {
+        const k = f.fecha.substring(0, 10);
+        fechas[k] = (fechas[k] || 0) + 1;
+        if (fechas[k] > 1) return true;
+      }
+    }
+    return false;
+  }, [conductorActualData]);
+
   return (
     <div className="gestion-faltas-container space-y-6">
 
@@ -466,8 +519,8 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
             type="button"
             onClick={() => setFiltroEstatus('TODOS')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filtroEstatus === 'TODOS'
-                ? 'bg-[#6b1d33] text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              ? 'bg-[#6b1d33] text-white shadow-sm'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
           >
             Todos ({kpis.totalConductoresConFaltas})
@@ -477,8 +530,8 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
             type="button"
             onClick={() => setFiltroEstatus('PENDIENTES')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filtroEstatus === 'PENDIENTES'
-                ? 'bg-red-600 text-white shadow-sm'
-                : 'bg-red-50 text-red-600 hover:bg-red-100'
+              ? 'bg-red-600 text-white shadow-sm'
+              : 'bg-red-50 text-red-600 hover:bg-red-100'
               }`}
           >
             Faltas Pendientes ({kpis.totalFaltasPendientes})
@@ -488,8 +541,8 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
             type="button"
             onClick={() => setFiltroEstatus('JUSTIFICADAS')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filtroEstatus === 'JUSTIFICADAS'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
               }`}
           >
             Justificadas ({kpis.totalFaltasJustificadas})
@@ -499,8 +552,8 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
             type="button"
             onClick={() => setFiltroEstatus('INHABILITADOS')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filtroEstatus === 'INHABILITADOS'
-                ? 'bg-[#dc2626] text-white shadow-sm ring-2 ring-red-400'
-                : 'bg-red-100 text-red-800 hover:bg-red-200'
+              ? 'bg-[#dc2626] text-white shadow-sm ring-2 ring-red-400'
+              : 'bg-red-100 text-red-800 hover:bg-red-200'
               }`}
           >
             No Asignados ({kpis.totalInhabilitados})
@@ -603,8 +656,8 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                         </span>
                       ) : (
                         <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${c.estado_servicio === 'falta' ? 'bg-red-100 text-red-800' :
-                            c.estado_servicio === 'en_servicio' ? 'bg-emerald-100 text-emerald-800' :
-                              'bg-slate-100 text-slate-700'
+                          c.estado_servicio === 'en_servicio' ? 'bg-emerald-100 text-emerald-800' :
+                            'bg-slate-100 text-slate-700'
                           }`}>
                           {(c.estado_servicio || 'disponible').toUpperCase().replace('_', ' ')}
                         </span>
@@ -705,8 +758,8 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
                 return (
                   <div className={`p-4 rounded-xl border ${esInhab ? 'bg-red-50 border-red-300 ring-2 ring-red-400' :
-                      faltasV >= 3 ? 'bg-amber-50 border-amber-300' :
-                        'bg-slate-50 border-slate-200'
+                    faltasV >= 3 ? 'bg-amber-50 border-amber-300' :
+                      'bg-slate-50 border-slate-200'
                     }`}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -751,6 +804,26 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                   </div>
                 );
               })()}
+
+              {tieneDuplicadas && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-900 shadow-sm animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">⚠️</span>
+                    <span>
+                      <strong>Faltas duplicadas detectadas:</strong> Este operador tiene registros duplicados para la misma fecha laboral.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLimpiarDuplicados}
+                    disabled={limpiandoDuplicados}
+                    className="px-3 py-1.5 bg-[#6b1d33] hover:bg-[#831843] text-white font-bold rounded-lg transition-colors whitespace-nowrap shadow-sm text-xs"
+                  >
+                    {limpiandoDuplicados ? 'Depurando...' : 'Depurar Duplicadas'}
+                  </button>
+                </div>
+              )}
+
               {conductorActualData.listaFaltas.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 italic">
                   Este conductor no tiene faltas registradas en su historial.
@@ -764,10 +837,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                     <div
                       key={falta.id || idx}
                       className={`p-4 rounded-xl border transition-all ${esJustificada
-                          ? 'bg-emerald-50/40 border-emerald-200'
-                          : estadoPlazo?.vencida
-                            ? 'bg-slate-50 border-slate-300 shadow-sm opacity-90'
-                            : 'bg-red-50/40 border-red-200 shadow-sm'
+                        ? 'bg-emerald-50/40 border-emerald-200'
+                        : estadoPlazo?.vencida
+                          ? 'bg-slate-50 border-slate-300 shadow-sm opacity-90'
+                          : 'bg-red-50/40 border-red-200 shadow-sm'
                         }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

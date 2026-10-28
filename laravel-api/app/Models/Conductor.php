@@ -159,6 +159,19 @@ class Conductor extends Model
                 }
             }
 
+            // Deduplicar faltas no justificadas por fecha única (un operador solo puede tener una falta por día calendario)
+            $fechasVistas = [];
+            $faltasNoJustificadasUnicas = [];
+            foreach ($faltasNoJustificadas as $f) {
+                $fFecha = $f['fecha'];
+                if (isset($fechasVistas[$fFecha])) {
+                    continue;
+                }
+                $fechasVistas[$fFecha] = true;
+                $faltasNoJustificadasUnicas[] = $f;
+            }
+            $faltasNoJustificadas = $faltasNoJustificadasUnicas;
+
             usort($faltasNoJustificadas, function ($a, $b) {
                 return $a['timestamp'] <=> $b['timestamp'];
             });

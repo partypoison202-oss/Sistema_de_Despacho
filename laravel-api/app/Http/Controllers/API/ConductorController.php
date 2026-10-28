@@ -265,6 +265,9 @@ class ConductorController extends Controller
         $conductor = Conductor::findOrFail($id);
 
         try {
+            $this->limpiarDuplicadosConductor($conductor);
+            $conductor = $conductor->fresh();
+
             $eval = $conductor->evaluarInhabilitacionFaltas();
             if (!empty($eval['inhabilitado']) && $conductor->estatus !== 'inhabilitado') {
                 $conductor->estatus = 'inhabilitado';
@@ -1059,10 +1062,44 @@ class ConductorController extends Controller
             if (is_array($parsed)) $detalle = $parsed;
         }
 
+        // Sanitizar duplicados existentes si los hubiera
+        $this->limpiarDuplicadosConductor($conductor);
+        $rawDetalle = $conductor->fresh()->faltas_detalle;
+        $detalle = is_array($rawDetalle) ? $rawDetalle : (json_decode($rawDetalle, true) ?: []);
+
+        $fechaLimpia = substr((string)$request->input('fecha'), 0, 10);
+        $motivoInput = trim((string)($request->input('motivo') ?: 'Inasistencia no justificada'));
+
+        // Verificar si ya existe una falta para la misma fecha
+        $faltaDuplicada = null;
+        foreach ($detalle as $item) {
+            if (!is_array($item)) continue;
+            $fFecha = isset($item['fecha']) ? substr((string)$item['fecha'], 0, 10) : '';
+            if ($fFecha === $fechaLimpia) {
+                $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+                $esRetardo = isset($item['estado']) && $item['estado'] === 'retardo';
+                if (!$esJust && !$esRetardo) {
+                    $faltaDuplicada = $item;
+                    break;
+                }
+            }
+        }
+
+        if ($faltaDuplicada !== null) {
+            // Ya cuenta con una falta no justificada para este día: no duplicar en el expediente
+            return response()->json([
+                'message' => 'El operador ya cuenta con una falta registrada para la fecha ' . $fechaLimpia . '.',
+                'falta' => $faltaDuplicada,
+                'faltas' => $conductor->faltas,
+                'inhabilitado' => $conductor->estatus === 'inhabilitado',
+                'duplicada_evitada' => true
+            ], 200);
+        }
+
         $nuevaFalta = [
             'id' => 'falta_' . time() . '_' . random_int(1000, 9999),
             'fecha' => $request->input('fecha'),
-            'motivo' => $request->input('motivo') ?: 'Inasistencia no justificada',
+            'motivo' => $motivoInput,
             'estado' => 'pendiente',
             'justificada' => false,
         ];
@@ -2406,5 +2443,113 @@ class ConductorController extends Controller
                 'error' => 'Error al obtener el historial completo del conductor: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Limpia faltas duplicadas de un conductor (misma fecha no justificada).
+     */
+    public function limpiarDuplicadosConductor($conductor)
+    {
+        if (!$conductor) return false;
+
+        $rawDetalle = $conductor->faltas_detalle;
+        $detalle = [];
+        if (is_array($rawDetalle)) {
+            $detalle = $rawDetalle;
+        } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+            $parsed = json_decode($rawDetalle, true);
+            if (is_array($parsed)) $detalle = $parsed;
+        }
+
+        if (empty($detalle)) return false;
+
+        $fechasNoJustificadasVistas = [];
+        $nuevoDetalle = [];
+        $huboCambios = false;
+
+        foreach ($detalle as $item) {
+            if (!is_array($item)) continue;
+            $fecha = isset($item['fecha']) ? substr((string)$item['fecha'], 0, 10) : '';
+            $estado = $item['estado'] ?? 'pendiente';
+            $esJust = (!empty($item['justificada'])) || $estado === 'justificada';
+            $esRetardo = $estado === 'retardo';
+
+            if (!$esJust && !$esRetardo && !empty($fecha)) {
+                if (isset($fechasNoJustificadasVistas[$fecha])) {
+                    // Es un duplicado de falta no justificada para la misma fecha laboral
+                    $huboCambios = true;
+                    continue;
+                }
+                $fechasNoJustificadasVistas[$fecha] = true;
+            }
+
+            $nuevoDetalle[] = $item;
+        }
+
+        if ($huboCambios) {
+            $conductor->faltas_detalle = $nuevoDetalle;
+
+            $pendientesCount = 0;
+            foreach ($nuevoDetalle as $item) {
+                if (is_array($item)) {
+                    $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+                    if (!$esJust && (!isset($item['estado']) || $item['estado'] !== 'retardo')) {
+                        $pendientesCount++;
+                    }
+                }
+            }
+            $conductor->faltas = $pendientesCount;
+
+            $eval = $conductor->evaluarInhabilitacionFaltas();
+            if (!$eval['inhabilitado'] && $conductor->estatus === 'inhabilitado') {
+                $conductor->estatus = 'activo';
+            }
+            $conductor->save();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Endpoint API para limpiar faltas duplicadas de un conductor específico.
+     */
+    public function limpiarFaltasDuplicadas(Request $request, $id)
+    {
+        $conductor = is_numeric($id) ? Conductor::find($id) : null;
+        if (!$conductor) {
+            $conductor = Conductor::where('tarjeton', $id)
+                ->orWhere('tarjeton', str_pad((string)$id, 4, '0', STR_PAD_LEFT))
+                ->orWhere('tarjeton', ltrim((string)$id, '0'))
+                ->firstOrFail();
+        }
+
+        $limpiado = $this->limpiarDuplicadosConductor($conductor);
+
+        return response()->json([
+            'message' => $limpiado ? 'Faltas duplicadas eliminadas exitosamente.' : 'El expediente no contenía faltas duplicadas.',
+            'faltas_actuales' => $conductor->fresh()->faltas,
+            'conductor' => $conductor->fresh()
+        ]);
+    }
+
+    /**
+     * Endpoint API para limpiar faltas duplicadas de todos los conductores del sistema.
+     */
+    public function limpiarTodasFaltasDuplicadas(Request $request)
+    {
+        $conductores = Conductor::whereNotNull('faltas_detalle')->get();
+        $totalLimpiados = 0;
+
+        foreach ($conductores as $c) {
+            if ($this->limpiarDuplicadosConductor($c)) {
+                $totalLimpiados++;
+            }
+        }
+
+        return response()->json([
+            'message' => "Proceso completado. Se limpiaron faltas duplicadas en {$totalLimpiados} conductor(es).",
+            'total_limpiados' => $totalLimpiados
+        ]);
     }
 }

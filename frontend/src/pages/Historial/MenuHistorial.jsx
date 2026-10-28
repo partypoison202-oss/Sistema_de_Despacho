@@ -7,6 +7,22 @@ import '../Menu/Menu.css';
 
 const historialItems = [
   {
+    id: 'historial-unidades',
+    redirectTo: '/historial/unidades',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="4" width="20" height="13" rx="2" />
+        <path d="M4 11h16" />
+        <circle cx="7" cy="18" r="2" />
+        <circle cx="17" cy="18" r="2" />
+        <path d="M9 17h6" />
+      </svg>
+    ),
+    label: 'HISTORIAL DE UNIDADES (EXPEDIENTE Y MOVIMIENTOS)',
+    color: 'emerald',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'MANTENIMIENTO', 'PROGRAMACION', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES'],
+  },
+  {
     id: 'historial-general',
     redirectTo: '/historial/general',
     icon: (
