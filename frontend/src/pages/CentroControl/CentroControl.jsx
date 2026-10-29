@@ -250,7 +250,12 @@ export default function CentroControl() {
 
       // Si el snapshot está disponible, se respeta el congelado de inicio de día para cada modelo.
       // Si aún no hay snapshot, programadas contempla la flota total asignada al servicio.
-      const programadas = hasSnapshot ? programadasInicio : (total || unidadesOperacion.length);
+      const programadasFallback = units.filter(d => {
+        const est = normStr(d.ESTATUS || d.estatus);
+        const hasService = Boolean(d.RUTA || d.ruta || d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta);
+        return est.includes('OPERACI') || hasService;
+      }).length;
+      const programadas = hasSnapshot ? programadasInicio : (programadasFallback || total || unidadesOperacion.length);
 
       return {
         ...mc,

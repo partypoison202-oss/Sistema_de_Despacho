@@ -77,7 +77,7 @@ export default function ResumenDespacho() {
             }).length
             : 0;
 
-          const progActual = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI')).length;
+          const progActual = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI') || Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta)).length;
           const prog = hasSnapshot ? progInicio : (progActual || units.length);
 
           const isEncierroCumplido = (d) => {

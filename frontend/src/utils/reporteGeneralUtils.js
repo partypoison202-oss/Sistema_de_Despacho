@@ -47,6 +47,16 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null, catal
         return match && est.includes('OPERACI');
       }).length;
       programadasCalculadas = progInicio;
+    } else {
+      const progFallback = list.filter((u) => {
+        const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));
+        const est = normStr(u.ESTATUS || u.estatus);
+        const hasService = Boolean(u.RUTA || u.ruta || u.MANTENIMIENTO_RUTA || u.mantenimiento_ruta);
+        return match && (est.includes('OPERACI') || hasService);
+      }).length;
+      if (progFallback > 0) {
+        programadasCalculadas = progFallback;
+      }
     }
 
     const enServicio = unidades.filter((u) => {

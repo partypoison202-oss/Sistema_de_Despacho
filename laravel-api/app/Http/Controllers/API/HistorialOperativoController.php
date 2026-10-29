@@ -815,61 +815,52 @@ class HistorialOperativoController extends Controller
         $hasAcopleHist = Schema::hasColumn('historial_operativo', 'acople');
         $hasAcopleInfo = Schema::hasColumn('informacion_operativa', 'acople');
 
-        $programacion = DB::table('historial_operativo')
-            ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
-            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
-            ->where('fecha_historial', $fecha)
-            ->where('momento', 'INICIO')
+        $hasProgInicial = Schema::hasTable('programacion_inicial');
+        $hasInfoOperativa = Schema::hasTable('informacion_operativa');
+        $esHoy = ($fecha === Carbon::today('America/Mexico_City')->toDateString());
+
+        $queryProg = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id');
+
+        if ($hasProgInicial) {
+            $queryProg->leftJoin('programacion_inicial', function ($join) use ($fecha) {
+                $join->on('unidades.id', '=', 'programacion_inicial.unidad_id')
+                    ->where('programacion_inicial.fecha', $fecha);
+            });
+        }
+
+        if ($hasInfoOperativa && $esHoy) {
+            $queryProg->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id');
+        }
+
+        $queryProg->leftJoin('historial_operativo', function ($join) use ($fecha) {
+            $join->on('unidades.id', '=', 'historial_operativo.unidad_id')
+                ->where('historial_operativo.fecha_historial', $fecha)
+                ->where('historial_operativo.momento', 'INICIO');
+        });
+
+        $programacion = $queryProg
             ->select(
                 'unidades.numero_eco as economico',
-                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
-                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
-                'historial_operativo.ruta',
-                'historial_operativo.numero_tarjeton',
-                'historial_operativo.nombre_conductor',
-                'historial_operativo.estatus',
-                $hasSalidaPatioHist ? 'historial_operativo.hora_salida_patio as hora_salida' : DB::raw('NULL as hora_salida'),
-                $hasAcopleHist ? 'historial_operativo.acople' : DB::raw('NULL as acople'),
-                'historial_operativo.corridas',
-                'historial_operativo.ciclo',
-                'historial_operativo.motivo',
-                'historial_operativo.falla',
-                'historial_operativo.motivo_estatus',
+                $this->tipoUnidadRaw(DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre)'), 'tipo'),
+                $this->tipoUnidadRaw(DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre)'), 'tipo_unidad'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . ($hasInfoOperativa && $esHoy ? 'informacion_operativa.mantenimiento_ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . ($hasInfoOperativa && $esHoy ? 'informacion_operativa.mantenimiento_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as numero_tarjeton'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . ($hasInfoOperativa && $esHoy ? 'informacion_operativa.mantenimiento_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
+                DB::raw("COALESCE(" . ($hasProgInicial ? "programacion_inicial.estatus, " : "") . ($hasInfoOperativa && $esHoy ? "CASE WHEN informacion_operativa.mantenimiento_ruta IS NOT NULL AND TRIM(CAST(informacion_operativa.mantenimiento_ruta AS VARCHAR)) != '' THEN 'operacion' ELSE NULL END, " : "") . "historial_operativo.estatus, 'reserva') as estatus"),
+                $hasSalidaPatioHist ? DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_salida_patio, ' : '') . 'historial_operativo.hora_salida_patio) as hora_salida') : DB::raw('NULL as hora_salida'),
+                $hasAcopleHist ? DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.acople, ' : '') . 'historial_operativo.acople) as acople') : DB::raw('NULL as acople'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . ($hasInfoOperativa && $esHoy ? 'informacion_operativa.mantenimiento_corrida, ' : '') . 'historial_operativo.corridas) as corridas'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ciclo, ' : '') . 'historial_operativo.ciclo) as ciclo'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo, ' : '') . 'historial_operativo.motivo) as motivo'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.falla, ' : '') . 'historial_operativo.falla) as falla'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo_estatus, ' : '') . 'historial_operativo.motivo_estatus) as motivo_estatus'),
                 $hasRelevoHist ? 'historial_operativo.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevoHist ? 'historial_operativo.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
                 $hasRelevoHist ? 'historial_operativo.relevo_hora' : DB::raw('NULL as relevo_hora')
             )
-            ->orderBy('unidades.tipo')
             ->orderBy('unidades.numero_eco')
             ->get();
-
-        if ($programacion->isEmpty() && $fecha === Carbon::today()->toDateString()) {
-            $programacion = DB::table('informacion_operativa')
-                ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
-                ->select(
-                    'unidades.numero_eco as economico',
-                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
-                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
-                    'informacion_operativa.ruta',
-                    'informacion_operativa.numero_tarjeton',
-                    'informacion_operativa.nombre_conductor',
-                    'informacion_operativa.estatus',
-                    $hasSalidaPatioInfo ? 'informacion_operativa.hora_salida_patio as hora_salida' : DB::raw('NULL as hora_salida'),
-                    $hasAcopleInfo ? 'informacion_operativa.acople' : DB::raw('NULL as acople'),
-                    'informacion_operativa.corridas',
-                    'informacion_operativa.ciclo',
-                    'informacion_operativa.motivo',
-                    'informacion_operativa.falla',
-                    'informacion_operativa.motivo_estatus',
-                    $hasRelevoInfo ? 'informacion_operativa.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
-                    $hasRelevoInfo ? 'informacion_operativa.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
-                    $hasRelevoInfo ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora')
-                )
-                ->orderBy('unidades.tipo')
-                ->orderBy('unidades.numero_eco')
-                ->get();
-        }
 
         // Calcular resumen logístico
         $totalProgramadas = 0;
