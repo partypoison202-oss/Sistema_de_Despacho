@@ -2,245 +2,117 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Header from '../../components/Header/Header';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import ReporteCombustiblePDF from '../Mantenimiento/components/ReporteCombustiblePDF';
 import API_BASE from '../../config/api';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import Swal from 'sweetalert2';
 import './ControlCombustible.css';
 
-// Mock de unidades basado en los económicos reales de ACOTMA
-const UNIDADES_DATA = {
-  urbanuss: [
-    { eco: '001', combustible: 124.695, adblue: '', km: 32479 },
-    { eco: '002', combustible: '', adblue: '', km: '' },
-    { eco: '003', combustible: 8.242, adblue: '', km: 35238 },
-    { eco: '004', combustible: 28.204, adblue: '', km: 34599 },
-    { eco: '005', combustible: 159.252, adblue: '', km: 32464 },
-    { eco: '006', combustible: 120.532, adblue: '', km: 32653 },
-    { eco: '007', combustible: 109.080, adblue: 17.062, km: 35345 },
-    { eco: '008', combustible: '', adblue: '', km: '' },
-    { eco: '009', combustible: 123.778, adblue: '', km: 32608 },
-    { eco: '010', combustible: 164.873, adblue: '', km: 29263 },
-    { eco: '011', combustible: 117.247, adblue: '', km: 31554 },
-    { eco: '012', combustible: 101.141, adblue: '', km: 32141 },
-    { eco: '013', combustible: 64.310, adblue: '', km: 25975 },
-    { eco: '014', combustible: 18.443, adblue: '', km: 34049 },
-    { eco: '015', combustible: 36.646, adblue: '', km: 31331 },
-    { eco: '016', combustible: 142.961, adblue: 22.875, km: 30828 },
-    { eco: '017', combustible: 108.304, adblue: 16.880, km: 33833 },
-    { eco: '018', combustible: 127.016, adblue: 19.775, km: 34570 },
-    { eco: '019', combustible: 83.724, adblue: '', km: 34917 },
-    { eco: '020', combustible: 96.808, adblue: '', km: 34600 },
-    { eco: '021', combustible: 125.528, adblue: '', km: 32664 },
-    { eco: '022', combustible: 101.457, adblue: 18.498, km: 28135 },
-    { eco: '023', combustible: 25.667, adblue: '', km: 25759 },
-    { eco: '024', combustible: '', adblue: '', km: '' },
-    { eco: '025', combustible: 88.404, adblue: '', km: 27598 },
-    { eco: '026', combustible: 114.456, adblue: '', km: 33125 },
-    { eco: '027', combustible: 68.473, adblue: '', km: 30174 },
-    { eco: '028', combustible: 34.179, adblue: '', km: 32361 },
-    { eco: '029', combustible: 165.019, adblue: 19.080, km: 27824 },
-    { eco: '030', combustible: 107.579, adblue: 17.913, km: 32932 },
-    { eco: '031', combustible: '', adblue: '', km: '' },
-    { eco: '032', combustible: 125.112, adblue: '', km: 34177 },
-    { eco: '033', combustible: 18.674, adblue: '', km: 36816 },
-    { eco: '034', combustible: '', adblue: '', km: '' },
-    { eco: '035', combustible: 40.409, adblue: '', km: 28379 },
-    { eco: '036', combustible: 35.150, adblue: '', km: 33633 },
-    { eco: '037', combustible: 98.126, adblue: '', km: 29487 },
-    { eco: '038', combustible: 144.472, adblue: '', km: 30271 },
-    { eco: '039', combustible: '', adblue: '', km: '' },
-    { eco: '040', combustible: 108.381, adblue: 16.116, km: 30932 },
-    { eco: '041', combustible: 96.338, adblue: 17.564, km: 33185 },
-    { eco: '042', combustible: 121.041, adblue: '', km: 32153 },
-  ],
-  zafiro: [
-    { eco: '100', combustible: 44.865, adblue: '', km: 32253 },
-    { eco: '101', combustible: 51.766, adblue: '', km: 30771 },
-    { eco: '102', combustible: 79.753, adblue: '', km: 32161 },
-    { eco: '103', combustible: 71.257, adblue: '', km: 31457 },
-    { eco: '104', combustible: 24.869, adblue: '', km: 23891 },
-    { eco: '105', combustible: 47.517, adblue: '', km: 28479 },
-    { eco: '106', combustible: '', adblue: '', km: '' },
-    { eco: '107', combustible: '', adblue: '', km: '' },
-    { eco: '108', combustible: 92.259, adblue: 15.900, km: 28285 },
-    { eco: '109', combustible: '', adblue: '', km: '' },
-    { eco: '110', combustible: 80.917, adblue: '', km: 24906 },
-    { eco: '111', combustible: 82.668, adblue: '', km: 27731 },
-    { eco: '112', combustible: '', adblue: '', km: '' },
-    { eco: '113', combustible: 52.515, adblue: 15.717, km: 32059 },
-    { eco: '114', combustible: 63.030, adblue: '', km: 23609 },
-    { eco: '115', combustible: 61.850, adblue: 16.686, km: 27778 },
-    { eco: '116', combustible: 73.747, adblue: '', km: 28610 },
-    { eco: '117', combustible: 72.290, adblue: '', km: 23978 },
-    { eco: '118', combustible: 59.453, adblue: '', km: 28384 },
-    { eco: '119', combustible: 48.765, adblue: '', km: 26370 },
-    { eco: '120', combustible: 48.173, adblue: '', km: 27381 },
-    { eco: '121', combustible: 69.815, adblue: '', km: 26960 },
-    { eco: '122', combustible: 76.916, adblue: '', km: 27592 },
-    { eco: '123', combustible: 50.139, adblue: '', km: 28260 },
-    { eco: '124', combustible: 85.991, adblue: '', km: 24345 },
-    { eco: '125', combustible: 101.254, adblue: '', km: 27542 },
-    { eco: '126', combustible: 64.245, adblue: '', km: 26316 },
-    { eco: '127', combustible: '', adblue: '', km: '' },
-    { eco: '128', combustible: 58.157, adblue: '', km: 27222 },
-    { eco: '129', combustible: 60.517, adblue: '', km: 26698 },
-    { eco: '130', combustible: '', adblue: '', km: '' },
-    { eco: '131', combustible: 78.381, adblue: '', km: 28000 },
-    { eco: '132', combustible: 54.259, adblue: '', km: 27744 },
-    { eco: '133', combustible: 71.365, adblue: 15.307, km: 27424 },
-    { eco: '134', combustible: 99.036, adblue: '', km: 29948 },
-    { eco: '135', combustible: '', adblue: '', km: '' },
-    { eco: '136', combustible: '', adblue: '', km: '' },
-    { eco: '137', combustible: 71.434, adblue: '', km: 26371 },
-  ],
-  orion: [
-    { eco: '401', combustible: '', adblue: '', km: '' },
-    { eco: '402', combustible: 30.347, adblue: '', km: 101856 },
-    { eco: '403', combustible: 18.111, adblue: '', km: 91128 },
-    { eco: '404', combustible: '', adblue: '', km: '' },
-    { eco: '405', combustible: 34.456, adblue: '', km: 57968 },
-    { eco: '406', combustible: '', adblue: '', km: '' },
-    { eco: '407', combustible: 34.456, adblue: '', km: 64578 },
-    { eco: '408', combustible: '', adblue: '', km: '' },
-  ],
-  vagoneta: [
-    { eco: '200', combustible: 13.477, km: 15271 },
-    { eco: '201', combustible: 29.480, km: 14078 },
-    { eco: '202', combustible: 26.080, km: 17480 },
-    { eco: '203', combustible: 24.100, km: 11778 },
-    { eco: '204', combustible: 33.502, km: 13531 },
-    { eco: '205', combustible: 33.270, km: 9876 },
-    { eco: '206', combustible: 49.952, km: 16909 },
-    { eco: '207', combustible: 45.575, km: 10442 },
-    { eco: '208', combustible: 50.130, km: 11114 },
-    { eco: '209', combustible: 51.887, km: 10882 },
-    { eco: '210', combustible: 28.012, km: 10540 },
-    { eco: '211', combustible: 38.187, km: 10242 },
-    { eco: '212', combustible: 22.592, km: 11808 },
-    { eco: '213', combustible: 38.437, km: 10041 },
-    { eco: '214', combustible: 29.752, km: 10084 },
-    { eco: '215', combustible: 3.757, km: 14244 },
-    { eco: '216', combustible: '', km: '' },
-    { eco: '217', combustible: 37.747, km: 17454 },
-    { eco: '218', combustible: 33.975, km: 8056 },
-    { eco: '219', combustible: 40.850, km: 9532 },
-    { eco: '220', combustible: 41.822, km: 15054 },
-    { eco: '221', combustible: 40.537, km: 15967 },
-    { eco: '222', combustible: 46.387, km: 15685 },
-    { eco: '223', combustible: 18.645, km: 10126 },
-    { eco: '224', combustible: 42.027, km: 16144 },
-    { eco: '225', combustible: 45.605, km: 10490 },
-    { eco: '226', combustible: 43.997, km: 18784 },
-    { eco: '227', combustible: 36.560, km: 9581 },
-    { eco: '228', combustible: 34.225, km: 20011 },
-    { eco: '229', combustible: 3.902, km: 10467 },
-    { eco: '230', combustible: 43.980, km: 11578 },
-    { eco: '231', combustible: 4.795, km: 10463 },
-    { eco: '232', combustible: 8.127, km: 19283 },
-    { eco: '233', combustible: '', km: '' },
-    { eco: '234', combustible: '', km: '' },
-    { eco: '235', combustible: 52.665, km: 13796 },
-    { eco: '236', combustible: '', km: '' },
-    { eco: '237', combustible: '', km: '' },
-    { eco: '238', combustible: '', km: '' },
-    { eco: '239', combustible: 35.760, km: 13293 },
-    { eco: '240', combustible: 40.300, km: 10286 },
-    { eco: '241', combustible: 39.652, km: 14237 },
-    { eco: '242', combustible: '', km: '' },
-    { eco: '243', combustible: 5.537, km: 9986 },
-    { eco: '244', combustible: 46.307, km: 13947 },
-    { eco: '245', combustible: 3.917, km: 10568 },
-    { eco: '246', combustible: 55.650, km: 13775 },
-    { eco: '247', combustible: 6.512, km: 11322 },
-    { eco: '248', combustible: 4.682, km: 11034 },
-    { eco: '249', combustible: '', km: '' },
-    { eco: '250', combustible: 47.845, km: 14571 },
-    { eco: '251', combustible: '', km: '' },
-    { eco: '252', combustible: 45.677, km: 13018 },
-    { eco: '253', combustible: 48.060, km: 13994 },
-    { eco: '254', combustible: '', km: '' },
-    { eco: '255', combustible: '', km: '' },
-    { eco: '256', combustible: 46.205, km: 16102 },
-    { eco: '257', combustible: 47.580, km: 14965 },
-    { eco: '258', combustible: '', km: '' },
-    { eco: '259', combustible: '', km: '' },
-  ]
-};
+// Catálogo base de unidades de ACOTMA (inicializado limpio hasta recibir datos del backend)
+const crearCatalogoUnidadesVacio = () => ({
+  urbanuss: Array.from({ length: 42 }, (_, i) => ({
+    eco: String(i + 1).padStart(3, '0'),
+    combustible: '',
+    adblue: '',
+    km: ''
+  })),
+  zafiro: Array.from({ length: 38 }, (_, i) => ({
+    eco: String(100 + i),
+    combustible: '',
+    adblue: '',
+    km: ''
+  })),
+  orion: Array.from({ length: 8 }, (_, i) => ({
+    eco: String(401 + i),
+    combustible: '',
+    adblue: '',
+    km: ''
+  })),
+  vagoneta: Array.from({ length: 60 }, (_, i) => ({
+    eco: String(200 + i),
+    combustible: '',
+    adblue: '',
+    km: ''
+  }))
+});
+
+const UNIDADES_DATA = crearCatalogoUnidadesVacio();
 
 const RESUMEN_SEMANAL_DATA = {
-  dias: ['04-oct', '05-oct', '06-oct', '07-oct', '08-oct', '09-oct', '10-oct'],
+  dias: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
   diesel: [
-    { tecnologia: 'Urbanuss', valores: [3225.92, 4480.14, 4586.21, 4614.02, 4710.92, 4815.87, 3353.72] },
-    { tecnologia: 'Zafiro', valores: [1501.93, 2546.15, 2433.55, 2656.96, 2475.15, 2730.01, 1997.20] },
-    { tecnologia: 'Orión', valores: [342.56, 557.77, 584.36, 391.52, 427.96, 372.11, 117.37] },
+    { tecnologia: 'Urbanuss', valores: [0, 0, 0, 0, 0, 0, 0] },
+    { tecnologia: 'Zafiro', valores: [0, 0, 0, 0, 0, 0, 0] },
+    { tecnologia: 'Orión', valores: [0, 0, 0, 0, 0, 0, 0] },
   ],
   gasolina: [
-    { tecnologia: 'Vagoneta', valores: [1376.29, 2181.25, 2203.735, 2076.469, 2351.625, 2268.498, 1567.72] },
-    { tecnologia: 'Utilitaria', valores: [45.44, 59.95, 166.00, 93.82, 562.91, 11.48, 36.81] },
+    { tecnologia: 'Vagoneta', valores: [0, 0, 0, 0, 0, 0, 0] },
   ]
 };
 
-// Datos muestra del Reporte Diario y Estadísticas (idéntico a la imagen provista)
+// Estructura base del Reporte Diario y Estadísticas
 const REPORTE_DIARIO_DATA = {
-  fecha: '12/10/2026',
+  fecha: '',
   folio: '001',
-  litrosTotales: 9906.59,
-  unidadesCargaron: 135,
-  unidadesSinCargar: 13,
-  porcentajeAbastecimiento: '91%',
+  litrosTotales: 0,
+  unidadesCargaron: 0,
+  unidadesSinCargar: 148,
+  porcentajeAbastecimiento: '0%',
   parqueTotal: 148,
   filas: [
     {
       tipo: 'Urbanuss',
       combustible: 'Diésel',
       parque: 42,
-      litros: 4641.66,
-      cargaron: 38,
-      sinCargar: 4,
-      rendimiento: '2.19',
-      abastecimiento: '90%',
-      nivelAbastecimiento: 'medio',
-      motivoNoCarga: 'Unidad en taller',
-      observaciones: 'MANTENIMIENTO'
+      litros: 0,
+      cargaron: 0,
+      sinCargar: 42,
+      rendimiento: '0.00',
+      abastecimiento: '0%',
+      nivelAbastecimiento: 'bajo',
+      motivoNoCarga: 'N/A',
+      observaciones: ''
     },
     {
       tipo: 'Zafiro',
       combustible: 'Diésel',
       parque: 38,
-      litros: 2683.34,
-      cargaron: 37,
-      sinCargar: 1,
-      rendimiento: '3.06',
-      abastecimiento: '97%',
-      nivelAbastecimiento: 'alto',
-      motivoNoCarga: 'Unidad en taller',
-      observaciones: 'MANTENIMIENTO'
+      litros: 0,
+      cargaron: 0,
+      sinCargar: 38,
+      rendimiento: '0.00',
+      abastecimiento: '0%',
+      nivelAbastecimiento: 'bajo',
+      motivoNoCarga: 'N/A',
+      observaciones: ''
     },
     {
       tipo: 'Vagoneta',
       combustible: 'Gasolina',
       parque: 60,
-      litros: 277.21,
-      cargaron: 56,
-      sinCargar: 4,
-      rendimiento: '3.59',
-      abastecimiento: '93%',
-      nivelAbastecimiento: 'alto',
-      motivoNoCarga: 'Combustible suficiente',
-      observaciones: 'RESERVA'
+      litros: 0,
+      cargaron: 0,
+      sinCargar: 60,
+      rendimiento: '0.00',
+      abastecimiento: '0%',
+      nivelAbastecimiento: 'bajo',
+      motivoNoCarga: 'N/A',
+      observaciones: ''
     },
     {
       tipo: 'Orión',
       combustible: 'Diésel',
       parque: 8,
-      litros: 2304.38,
-      cargaron: 4,
-      sinCargar: 4,
-      rendimiento: '5.32',
-      abastecimiento: '50%',
+      litros: 0,
+      cargaron: 0,
+      sinCargar: 8,
+      rendimiento: '0.00',
+      abastecimiento: '0%',
       nivelAbastecimiento: 'bajo',
-      motivoNoCarga: 'Unidad en taller',
-      observaciones: 'MANTENIMIENTO'
+      motivoNoCarga: 'N/A',
+      observaciones: ''
     },
   ]
 };
@@ -261,7 +133,7 @@ export default function ControlCombustible() {
   const [activeTab, setActiveTab] = useState('captura'); // 'captura' | 'semanal' | 'estadisticas'
   const [selectedTecnologia, setSelectedTecnologia] = useState('urbanuss');
   const [busquedaEco, setBusquedaEco] = useState('');
-  const [fechaCaptura, setFechaCaptura] = useState(() => new Date().toISOString().split('T')[0]);
+  const [fechaCaptura, setFechaCaptura] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [tablaData, setTablaData] = useState(UNIDADES_DATA);
   const [filasReporte, setFilasReporte] = useState(REPORTE_DIARIO_DATA.filas);
   const [modificados, setModificados] = useState({});
@@ -286,6 +158,10 @@ export default function ControlCombustible() {
   const [resumenSemanal, setResumenSemanal] = useState(RESUMEN_SEMANAL_DATA);
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [pdfData, setPdfData] = useState(null);
+  const [pdfTotales, setPdfTotales] = useState(null);
+  const pdfRef = useRef(null);
 
   // Helper para headers con token de autenticación
   const getAuthHeaders = () => {
@@ -296,6 +172,65 @@ export default function ControlCombustible() {
       ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
   };
+
+  // Mapear respuesta del endpoint de reporte diario al formato de filasReporte
+  const mapearFilasReporte = (dataArray) => {
+    if (!Array.isArray(dataArray)) return [];
+    return dataArray.map(item => {
+      const pct = Number(item.porcentaje_abastecimiento ?? item.porcentaje ?? 0);
+      return {
+        tipo: item.tipo_unidad || item.tipo,
+        combustible: item.combustible || 'Diésel',
+        parque: Number(item.parque ?? 0),
+        litros: parseFloat(item.litros_cargados ?? item.litros_combustible ?? item.litros ?? 0),
+        cargaron: Number(item.unidades_cargaron ?? item.cargaron ?? 0),
+        sinCargar: Number(item.unidades_sin_cargar ?? item.sinCargar ?? 0),
+        rendimiento: item.rendimiento != null ? String(item.rendimiento) : '0.00',
+        abastecimiento: `${pct}%`,
+        nivelAbastecimiento: pct >= 80 ? 'alto' : pct >= 50 ? 'medio' : 'bajo',
+        motivoNoCarga: item.motivo_no_carga || 'N/A',
+        observaciones: item.observaciones || ''
+      };
+    });
+  };
+
+  // Sincronizar en tiempo real las métricas de filasReporte cuando tablaData cambia
+  useEffect(() => {
+    const mapaTec = {
+      'Urbanuss': tablaData.urbanuss || [],
+      'Zafiro': tablaData.zafiro || [],
+      'Vagoneta': tablaData.vagoneta || [],
+      'Orión': tablaData.orion || [],
+    };
+
+    setFilasReporte(prev => prev.map(fila => {
+      const lista = mapaTec[fila.tipo];
+      if (!lista || lista.length === 0) return fila;
+
+      const parque = lista.length;
+      let litros = 0;
+      let cargaron = 0;
+      lista.forEach(u => {
+        const c = parseFloat(u.combustible) || 0;
+        if (c > 0) {
+          litros += c;
+          cargaron++;
+        }
+      });
+      const sinCargar = Math.max(0, parque - cargaron);
+      const pct = parque > 0 ? Math.round((cargaron / parque) * 100) : 0;
+
+      return {
+        ...fila,
+        parque,
+        litros: Number(litros.toFixed(2)),
+        cargaron,
+        sinCargar,
+        abastecimiento: `${pct}%`,
+        nivelAbastecimiento: pct >= 80 ? 'alto' : pct >= 50 ? 'medio' : 'bajo'
+      };
+    }));
+  }, [tablaData]);
 
   // Cargar datos del backend al montar y cuando cambie la fecha
   useEffect(() => {
@@ -314,10 +249,10 @@ export default function ControlCombustible() {
           if (jsonCargas.status === 'success' && jsonCargas.data && isMounted) {
             setTablaData(prev => ({
               ...prev,
-              urbanuss: (jsonCargas.data.urbanuss && jsonCargas.data.urbanuss.length > 0) ? jsonCargas.data.urbanuss : prev.urbanuss,
-              zafiro: (jsonCargas.data.zafiro && jsonCargas.data.zafiro.length > 0) ? jsonCargas.data.zafiro : prev.zafiro,
-              orion: (jsonCargas.data.orion && jsonCargas.data.orion.length > 0) ? jsonCargas.data.orion : prev.orion,
-              vagoneta: (jsonCargas.data.vagoneta && jsonCargas.data.vagoneta.length > 0) ? jsonCargas.data.vagoneta : prev.vagoneta,
+              urbanuss: Array.isArray(jsonCargas.data.urbanuss) ? jsonCargas.data.urbanuss : prev.urbanuss,
+              zafiro: Array.isArray(jsonCargas.data.zafiro) ? jsonCargas.data.zafiro : prev.zafiro,
+              orion: Array.isArray(jsonCargas.data.orion) ? jsonCargas.data.orion : prev.orion,
+              vagoneta: Array.isArray(jsonCargas.data.vagoneta) ? jsonCargas.data.vagoneta : prev.vagoneta,
             }));
             setModificados({});
           }
@@ -331,19 +266,7 @@ export default function ControlCombustible() {
         if (resReporte.ok) {
           const jsonReporte = await resReporte.json();
           if (jsonReporte.status === 'success' && Array.isArray(jsonReporte.data) && isMounted) {
-            const mappedFilas = jsonReporte.data.map(item => ({
-              tipo: item.tipo_unidad || item.tipo,
-              combustible: item.combustible || 'Diésel',
-              parque: item.parque || 0,
-              litros: parseFloat(item.litros_combustible || item.litros || 0),
-              cargaron: item.unidades_cargaron || item.cargaron || 0,
-              sinCargar: item.unidades_sin_cargar || item.sinCargar || 0,
-              rendimiento: item.rendimiento != null ? String(item.rendimiento) : '0.00',
-              abastecimiento: `${item.porcentaje_abastecimiento || item.porcentaje || 0}%`,
-              nivelAbastecimiento: (item.porcentaje_abastecimiento || item.porcentaje || 0) >= 80 ? 'alto' : (item.porcentaje_abastecimiento || item.porcentaje || 0) >= 50 ? 'medio' : 'bajo',
-              motivoNoCarga: item.motivo_no_carga || 'N/A',
-              observaciones: item.observaciones || ''
-            }));
+            const mappedFilas = mapearFilasReporte(jsonReporte.data);
             if (mappedFilas.length > 0) {
               setFilasReporte(mappedFilas);
             }
@@ -380,8 +303,8 @@ export default function ControlCombustible() {
     let cleanVal = '';
 
     if (campo === 'km') {
-      // Solo enteros positivos (sin puntos ni signos)
-      cleanVal = valor.replace(/\D/g, '');
+      // Solo enteros positivos (sin puntos ni signos), máximo 8 dígitos
+      cleanVal = valor.replace(/\D/g, '').slice(0, 8);
     } else {
       // Combustible / Adblue: números con hasta 3 decimales
       const sanitized = valor.replace(/[^0-9.]/g, '');
@@ -509,25 +432,61 @@ export default function ControlCombustible() {
         })
       });
 
-      // 2. Guardar estado del reporte diario (motivos de no carga, observaciones, etc.)
-      const totalLitrosReporte = filasReporte.reduce((acc, f) => acc + (parseFloat(f.litros) || 0), 0);
-      const totalCargaronReporte = filasReporte.reduce((acc, f) => acc + (parseInt(f.cargaron, 10) || 0), 0);
-      const totalSinCargarReporte = filasReporte.reduce((acc, f) => acc + (parseInt(f.sinCargar, 10) || 0), 0);
-      const totalParqueReporte = filasReporte.reduce((acc, f) => acc + (parseInt(f.parque, 10) || 0), 0);
+      if (!resCargas.ok) {
+        const errJson = await resCargas.json().catch(() => ({}));
+        throw new Error(errJson.message || 'Error al guardar las cargas de combustible en el servidor');
+      }
+
+      const jsonRes = await resCargas.json();
+
+      // 2. Consultar estadísticas actualizadas del día (con rendimientos recalculados) y fusionar motivos/observaciones
+      let filasActualizadas = filasReporte;
+      const resReporteGet = await fetch(`${API_BASE}/api/mantenimiento/reporte-combustible?fecha=${fechaCaptura}`, {
+        headers: getAuthHeaders()
+      });
+      if (resReporteGet.ok) {
+        const jsonReporteGet = await resReporteGet.json();
+        if (jsonReporteGet.status === 'success' && Array.isArray(jsonReporteGet.data)) {
+          const frescas = mapearFilasReporte(jsonReporteGet.data);
+          if (frescas.length > 0) {
+            filasActualizadas = frescas.map(f => {
+              const previa = filasReporte.find(p => p.tipo === f.tipo);
+              return {
+                ...f,
+                motivoNoCarga: previa?.motivoNoCarga || f.motivoNoCarga || 'N/A',
+                observaciones: previa?.observaciones !== undefined ? previa.observaciones : (f.observaciones || '')
+              };
+            });
+            setFilasReporte(filasActualizadas);
+          }
+        }
+      }
+
+      // 3. Guardar estado del reporte diario (motivos de no carga, observaciones, etc.)
+      const totalLitrosReporte = filasActualizadas.reduce((acc, f) => acc + (parseFloat(f.litros) || 0), 0);
+      const totalCargaronReporte = filasActualizadas.reduce((acc, f) => acc + (parseInt(f.cargaron, 10) || 0), 0);
+      const totalSinCargarReporte = filasActualizadas.reduce((acc, f) => acc + (parseInt(f.sinCargar, 10) || 0), 0);
+      const totalParqueReporte = filasActualizadas.reduce((acc, f) => acc + (parseInt(f.parque, 10) || 0), 0);
       const pctReporte = totalParqueReporte > 0 ? Math.round((totalCargaronReporte / totalParqueReporte) * 100) : 0;
 
-      const dataParaReporte = filasReporte.map(f => ({
-        tipo_unidad: f.tipo,
-        combustible: f.combustible,
-        parque: f.parque,
-        litros_combustible: f.litros,
-        unidades_cargaron: f.cargaron,
-        unidades_sin_cargar: f.sinCargar,
-        rendimiento: f.rendimiento,
-        porcentaje_abastecimiento: parseInt(String(f.abastecimiento).replace('%', ''), 10) || 0,
-        motivo_no_carga: f.motivoNoCarga,
-        observaciones: f.observaciones,
-      }));
+      const dataParaReporte = filasActualizadas.map(f => {
+        const pctFila = parseInt(String(f.abastecimiento).replace('%', ''), 10) || 0;
+        return {
+          tipo: f.tipo,
+          tipo_unidad: f.tipo,
+          combustible: f.combustible,
+          parque: f.parque,
+          litros_cargados: f.litros,
+          litros_combustible: f.litros,
+          unidades_cargaron: f.cargaron,
+          unidades_sin_cargar: f.sinCargar,
+          rendimiento: f.rendimiento,
+          porcentaje: pctFila,
+          porcentaje_abastecimiento: pctFila,
+          motivo_no_carga: f.motivoNoCarga,
+          observaciones: f.observaciones,
+        };
+      });
 
       await fetch(`${API_BASE}/api/mantenimiento/reporte-combustible`, {
         method: 'POST',
@@ -535,7 +494,7 @@ export default function ControlCombustible() {
         body: JSON.stringify({
           fecha_reporte: fechaCaptura,
           totales: {
-            litros_totales: totalLitrosReporte,
+            litros_totales: Number(totalLitrosReporte.toFixed(2)),
             unidades_cargaron: totalCargaronReporte,
             unidades_sin_cargar: totalSinCargarReporte,
             porcentaje: pctReporte,
@@ -544,18 +503,39 @@ export default function ControlCombustible() {
         })
       });
 
-      if (resCargas.ok) {
-        const jsonRes = await resCargas.json();
-        Swal.fire({
-          icon: 'success',
-          title: '¡Información Guardada!',
-          text: jsonRes.message || `Se han actualizado los consumos de combustible para la fecha ${fechaCaptura}.`,
-          confirmButtonColor: '#6b1d33',
-        });
-        setModificados({});
-      } else {
-        throw new Error('Error al procesar la respuesta del servidor');
+      // 4. Actualizar resumen semanal y cargas diarias desde BD para mantener las 3 pestañas sincronizadas
+      const [resSemanal, resCargasRefresh] = await Promise.all([
+        fetch(`${API_BASE}/api/combustible/resumen-semanal?fecha=${fechaCaptura}`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/api/combustible/cargas-diarias?fecha=${fechaCaptura}`, { headers: getAuthHeaders() })
+      ]);
+
+      if (resSemanal.ok) {
+        const jsonSemanal = await resSemanal.json();
+        if (jsonSemanal.status === 'success' && jsonSemanal.data) {
+          setResumenSemanal(jsonSemanal.data);
+        }
       }
+
+      if (resCargasRefresh.ok) {
+        const jsonCargasRefresh = await resCargasRefresh.json();
+        if (jsonCargasRefresh.status === 'success' && jsonCargasRefresh.data) {
+          setTablaData(prev => ({
+            ...prev,
+            urbanuss: Array.isArray(jsonCargasRefresh.data.urbanuss) ? jsonCargasRefresh.data.urbanuss : prev.urbanuss,
+            zafiro: Array.isArray(jsonCargasRefresh.data.zafiro) ? jsonCargasRefresh.data.zafiro : prev.zafiro,
+            orion: Array.isArray(jsonCargasRefresh.data.orion) ? jsonCargasRefresh.data.orion : prev.orion,
+            vagoneta: Array.isArray(jsonCargasRefresh.data.vagoneta) ? jsonCargasRefresh.data.vagoneta : prev.vagoneta,
+          }));
+        }
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: '¡Información Guardada!',
+        text: jsonRes.message || `Se han actualizado los consumos de combustible para la fecha ${fechaCaptura}.`,
+        confirmButtonColor: '#6b1d33',
+      });
+      setModificados({});
     } catch (err) {
       console.error('Error al guardar cargas de combustible:', err);
       Swal.fire({
@@ -637,47 +617,130 @@ export default function ControlCombustible() {
     XLSX.writeFile(wb, `Resumen_Semanal_Combustible_${fechaCaptura}.xlsx`);
   };
 
-  // Exportar a Excel el Reporte Diario y Estadísticas
-  const handleExportarReporteDiario = () => {
-    const wb = XLSX.utils.book_new();
+  // Generar y descargar en PDF el Reporte Diario de Combustible (formato oficial de la imagen)
+  const handleExportarReporteDiario = async () => {
+    try {
+      setGenerandoPDF(true);
 
-    const reporteRows = filasReporte.map(f => ({
-      'TIPO DE UNIDAD': f.tipo,
-      'COMBUSTIBLE': f.combustible,
-      'PARQUE': f.parque,
-      'LITROS CARGADOS': f.litros,
-      'UNIDADES QUE CARGARON': f.cargaron,
-      'UNIDADES SIN CARGAR': f.sinCargar,
-      'RENDIMIENTO (KM/L)': f.rendimiento,
-      '% ABASTECIMIENTO': f.abastecimiento,
-      'MOTIVO DE NO CARGA': f.motivoNoCarga,
-      'OBSERVACIONES': f.observaciones
-    }));
+      const totalLitros = filasReporte.reduce((acc, f) => acc + (parseFloat(f.litros) || 0), 0);
+      const totalCargaron = filasReporte.reduce((acc, f) => acc + (parseInt(f.cargaron, 10) || 0), 0);
+      const totalSinCargar = filasReporte.reduce((acc, f) => acc + (parseInt(f.sinCargar, 10) || 0), 0);
+      const totalParque = filasReporte.reduce((acc, f) => acc + (parseInt(f.parque, 10) || 0), 0);
+      const pctAbastecimiento = totalParque > 0 ? Math.round((totalCargaron / totalParque) * 100) : 0;
 
-    const totalLitros = filasReporte.reduce((acc, f) => acc + (parseFloat(f.litros) || 0), 0);
-    const totalCargaron = filasReporte.reduce((acc, f) => acc + (parseInt(f.cargaron, 10) || 0), 0);
-    const totalSinCargar = filasReporte.reduce((acc, f) => acc + (parseInt(f.sinCargar, 10) || 0), 0);
-    const totalParque = filasReporte.reduce((acc, f) => acc + (parseInt(f.parque, 10) || 0), 0);
-    const pctAbastecimiento = totalParque > 0 ? Math.round((totalCargaron / totalParque) * 100) : 0;
+      // Calcular rendimiento promedio ponderado de las filas con rendimiento > 0
+      let sumaKmEstimados = 0;
+      let sumaLitrosConRend = 0;
+      filasReporte.forEach(f => {
+        const rend = parseFloat(f.rendimiento) || 0;
+        const lit = parseFloat(f.litros) || 0;
+        if (rend > 0 && lit > 0) {
+          sumaKmEstimados += rend * lit;
+          sumaLitrosConRend += lit;
+        }
+      });
+      const rendimientoPromedio = sumaLitrosConRend > 0
+        ? Number((sumaKmEstimados / sumaLitrosConRend).toFixed(2))
+        : null;
 
-    // Fila total
-    reporteRows.push({
-      'TIPO DE UNIDAD': 'TOTAL GENERAL',
-      'COMBUSTIBLE': '',
-      'PARQUE': totalParque,
-      'LITROS CARGADOS': Number(totalLitros.toFixed(2)),
-      'UNIDADES QUE CARGARON': totalCargaron,
-      'UNIDADES SIN CARGAR': totalSinCargar,
-      'RENDIMIENTO (KM/L)': '',
-      '% ABASTECIMIENTO': `${pctAbastecimiento}%`,
-      'MOTIVO DE NO CARGA': '',
-      'OBSERVACIONES': ''
-    });
+      const dataFormateada = filasReporte.map(f => {
+        const pctFila = parseInt(String(f.abastecimiento).replace('%', ''), 10) || 0;
+        const rendNum = parseFloat(f.rendimiento);
+        return {
+          tipo: f.tipo,
+          tipo_unidad: f.tipo,
+          combustible: f.combustible,
+          parque: Number(f.parque) || 0,
+          litros_cargados: Number(f.litros) || 0,
+          litros_combustible: Number(f.litros) || 0,
+          unidades_cargaron: Number(f.cargaron) || 0,
+          unidades_sin_cargar: Number(f.sinCargar) || 0,
+          rendimiento: !isNaN(rendNum) && rendNum > 0 ? rendNum : null,
+          porcentaje: pctFila,
+          porcentaje_abastecimiento: pctFila,
+          motivo_no_carga: f.motivoNoCarga || 'N/A',
+          observaciones: f.observaciones || '',
+        };
+      });
 
-    const ws = XLSX.utils.json_to_sheet(reporteRows);
-    XLSX.utils.book_append_sheet(wb, ws, 'REPORTE_COMBUSTIBLE');
+      const totalesPayload = {
+        litros_totales: Number(totalLitros.toFixed(2)),
+        unidades_cargaron: totalCargaron,
+        unidades_sin_cargar: totalSinCargar,
+        rendimiento: rendimientoPromedio,
+        porcentaje: pctAbastecimiento,
+        parqueTotal: totalParque,
+      };
 
-    XLSX.writeFile(wb, `Reporte_Combustible_${fechaCaptura}.xlsx`);
+      // Registrar/actualizar el reporte en backend y obtener su folio COMB-XXX
+      let folioGenerado = 'COMB-001';
+      try {
+        const resReg = await fetch(`${API_BASE}/api/mantenimiento/reporte-combustible`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            fecha_reporte: fechaCaptura,
+            totales: totalesPayload,
+            data: dataFormateada,
+          }),
+        });
+        if (resReg.ok) {
+          const jsonReg = await resReg.json();
+          if (jsonReg.status === 'success' && jsonReg.folio) {
+            folioGenerado = jsonReg.folio;
+          }
+        }
+      } catch (errPost) {
+        console.warn('No se pudo obtener folio remoto, usando folio local:', errPost);
+      }
+
+      setPdfData(dataFormateada);
+      setPdfTotales({
+        ...totalesPayload,
+        folio: folioGenerado,
+        fecha: fechaCaptura,
+      });
+
+      setTimeout(async () => {
+        try {
+          if (pdfRef.current) {
+            const canvas = await html2canvas(pdfRef.current, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL('image/png');
+
+            const pdf = new jsPDF({
+              orientation: 'landscape',
+              unit: 'px',
+              format: [canvas.width, canvas.height],
+            });
+
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            const partesFecha = String(fechaCaptura).split('-');
+            const fechaArchivo = partesFecha.length === 3
+              ? `${partesFecha[2]}-${partesFecha[1]}-${partesFecha[0]}`
+              : fechaCaptura;
+            pdf.save(`Reporte_Combustible_${folioGenerado}_${fechaArchivo}.pdf`);
+          }
+
+          Swal.fire({
+            title: `¡Reporte Generado! (${folioGenerado})`,
+            text: 'El PDF del Reporte de Combustible se ha descargado correctamente.',
+            icon: 'success',
+            confirmButtonColor: '#6b1d33',
+          });
+        } catch (errCanvas) {
+          console.error('Error al renderizar PDF:', errCanvas);
+          Swal.fire('Error', 'No se pudo generar el archivo PDF.', 'error');
+        } finally {
+          setPdfData(null);
+          setPdfTotales(null);
+          setGenerandoPDF(false);
+        }
+      }, 500);
+    } catch (e) {
+      console.error('Error al generar PDF de combustible:', e);
+      setGenerandoPDF(false);
+      Swal.fire('Error', e.message || 'No se pudo generar el reporte PDF', 'error');
+    }
   };
 
   return (
@@ -982,6 +1045,7 @@ export default function ControlCombustible() {
                             <input
                               type="text"
                               inputMode="numeric"
+                              maxLength={8}
                               placeholder="0"
                               value={unidad.km}
                               onChange={(e) => handleCellChange(selectedTecnologia, unidad.eco, 'km', e.target.value)}
@@ -1231,19 +1295,39 @@ export default function ControlCombustible() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                className="btn-descargar-reporte"
-                onClick={handleExportarReporteDiario}
-                title="Descargar Estadísticas del Día en Excel"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Descargar Reporte Diario
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn-guardar-combustible"
+                  onClick={handleGuardarCambios}
+                  disabled={guardando}
+                  style={guardando ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
+                  title="Guardar motivos de no carga, observaciones y reporte diario"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  {guardando ? 'Guardando...' : 'Guardar Reporte'}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-descargar-reporte"
+                  onClick={handleExportarReporteDiario}
+                  disabled={generandoPDF}
+                  style={generandoPDF ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
+                  title="Descargar Reporte Diario de Combustible en PDF"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  {generandoPDF ? 'Generando PDF...' : 'Descargar Reporte Diario'}
+                </button>
+              </div>
             </div>
 
             {/* Hoja Formato Reporte Oficial */}
@@ -1505,6 +1589,8 @@ export default function ControlCombustible() {
             </div>
           </div>
         )}
+
+        <ReporteCombustiblePDF ref={pdfRef} data={pdfData} totales={pdfTotales} />
       </main>
     </div>
   );

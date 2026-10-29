@@ -22,7 +22,18 @@ function LogoSTM({ className = '' }) {
 const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
   if (!data || !totales) return null;
 
-  const todayStr = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const formatFechaReporte = (fechaISO) => {
+    if (!fechaISO) {
+      return new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+    const partes = String(fechaISO).split('-');
+    if (partes.length === 3) {
+      return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+    return fechaISO;
+  };
+
+  const todayStr = formatFechaReporte(totales.fecha);
   const folio = totales.folio || "S/F"; 
 
   // Helper para formatear números
@@ -30,10 +41,10 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
   
   // Datos para gráficas
   const chartData = data.map(d => ({
-    name: d.tipo_unidad,
-    litros: Number(d.litros_cargados) || 0,
-    cargaron: Number(d.unidades_cargaron) || 0,
-    sincargar: Number(d.unidades_sin_cargar) || 0,
+    name: d.tipo_unidad || d.tipo,
+    litros: Number(d.litros_cargados ?? d.litros_combustible ?? d.litros ?? 0),
+    cargaron: Number(d.unidades_cargaron ?? d.cargaron ?? 0),
+    sincargar: Number(d.unidades_sin_cargar ?? d.sinCargar ?? 0),
   }));
 
   const darkRed = "#5b1626"; // Vino oscuro
@@ -137,31 +148,38 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
           </tr>
         </thead>
         <tbody>
-          {data.map((row, idx) => (
+          {data.map((row, idx) => {
+            const litrosRow = row.litros_cargados ?? row.litros_combustible ?? row.litros ?? 0;
+            const cargaronRow = row.unidades_cargaron ?? row.cargaron ?? 0;
+            const sinCargarRow = row.unidades_sin_cargar ?? row.sinCargar ?? 0;
+            const pctRow = Number(row.porcentaje ?? row.porcentaje_abastecimiento ?? 0);
+            const rendNum = Number(row.rendimiento || 0);
+            return (
             <tr key={idx} style={{ background: bgLight, fontWeight: 'bold' }}>
-              <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{row.tipo_unidad}</td>
+              <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{row.tipo_unidad || row.tipo}</td>
               <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{row.combustible}</td>
               <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{row.parque}</td>
-              <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{formatNum(row.litros_cargados)}</td>
-              <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{row.unidades_cargaron || ''}</td>
-              <td style={{ padding: '8px', border: '1px solid ' + darkRed, color: row.unidades_sin_cargar > 0 ? 'red' : 'inherit' }}>
-                {row.unidades_sin_cargar}
+              <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{formatNum(litrosRow)}</td>
+              <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{cargaronRow || ''}</td>
+              <td style={{ padding: '8px', border: '1px solid ' + darkRed, color: sinCargarRow > 0 ? 'red' : 'inherit' }}>
+                {sinCargarRow}
               </td>
               <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>
-                {row.rendimiento ? `${formatNum(row.rendimiento)} km/L` : '—'}
+                {rendNum > 0 ? `${formatNum(rendNum)} km/L` : '—'}
               </td>
               <td style={{ 
                 padding: '8px', 
                 border: '1px solid ' + darkRed, 
-                background: row.porcentaje >= 90 ? cellGreen : (row.porcentaje < 50 ? cellRed : '#f3c258'),
-                color: row.porcentaje < 50 ? '#fff' : '#000'
+                background: pctRow >= 90 ? cellGreen : (pctRow < 50 ? cellRed : '#f3c258'),
+                color: pctRow < 50 ? '#fff' : '#000'
               }}>
-                {row.porcentaje}%
+                {pctRow}%
               </td>
               <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{row.motivo_no_carga}</td>
               <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{row.observaciones}</td>
             </tr>
-          ))}
+            );
+          })}
           {/* TOTAL GENERAL */}
           <tr style={{ background: darkRed, color: '#fff', fontWeight: 'bold' }}>
             <td colSpan={2} style={{ padding: '8px', border: '1px solid ' + darkRed }}>TOTAL GENERAL</td>
@@ -190,7 +208,7 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
               <XAxis dataKey="name" tick={{fill: '#000', fontSize: 12}} axisLine={{stroke: '#000'}} tickLine={false} />
               <YAxis tick={{fill: '#000', fontSize: 12}} axisLine={{stroke: '#000'}} tickLine={false} />
               <Bar dataKey="litros" fill="#fdf5cc" stroke="#d5b565" strokeWidth={1} barSize={40} isAnimationActive={false}>
-                <LabelList dataKey="litros" position="top" style={{fill: '#000', fontSize: 12, fontWeight: 'bold'}} formatter={(val) => formatNum(val)} />
+                <LabelList dataKey="litros" position="top" style={{fill: '#000', fontSize: 12, fontWeight: 'bold'}} formatter={(val) => Number(val) > 0 ? formatNum(val) : ''} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -206,10 +224,10 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
               <YAxis tick={{fill: '#000', fontSize: 12}} axisLine={{stroke: '#000'}} tickLine={false} />
               <Legend iconType="square" wrapperStyle={{fontSize: '12px', bottom: -10}} />
               <Bar dataKey="cargaron" name="Unidades que cargaron" fill="#6b1d33" barSize={30} isAnimationActive={false}>
-                <LabelList dataKey="cargaron" position="top" style={{fill: '#000', fontSize: 12, fontWeight: 'bold'}} />
+                <LabelList dataKey="cargaron" position="top" style={{fill: '#000', fontSize: 12, fontWeight: 'bold'}} formatter={(val) => Number(val) > 0 ? val : ''} />
               </Bar>
               <Bar dataKey="sincargar" name="Unidades sin cargar" fill="#cccccc" stroke="#888" strokeWidth={1} barSize={30} isAnimationActive={false}>
-                <LabelList dataKey="sincargar" position="top" style={{fill: '#000', fontSize: 12, fontWeight: 'bold'}} />
+                <LabelList dataKey="sincargar" position="top" style={{fill: '#000', fontSize: 12, fontWeight: 'bold'}} formatter={(val) => Number(val) > 0 ? val : ''} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>

@@ -6078,12 +6078,45 @@ class DespachoController extends Controller
     }
 
     /**
+     * Determina de forma confiable la tecnología de una unidad ('urbanuss', 'zafiro', 'vagoneta', 'orion')
+     * priorizando informacion_operativa.tipo, unidades.tipo y el rango oficial de número económico.
+     */
+    private static function resolverTecnologiaCombustible($u, ?string $infoTipo = null): string
+    {
+        $candidato = strtolower(trim((string) ($infoTipo ?: ($u->tipo ?? ''))));
+        if ($candidato !== '') {
+            if (str_contains($candidato, 'urbanus')) return 'urbanuss';
+            if (str_contains($candidato, 'zafiro')) return 'zafiro';
+            if (str_contains($candidato, 'vagoneta') || str_contains($candidato, 'urvan')) return 'vagoneta';
+            if (str_contains($candidato, 'orion') || str_contains($candidato, 'orión')) return 'orion';
+        }
+
+        $ecoNum = (int) ltrim(trim((string) ($u->numero_eco ?? '')), '0');
+        if ($ecoNum >= 1 && $ecoNum <= 99) return 'urbanuss';
+        if ($ecoNum >= 100 && $ecoNum <= 199) return 'zafiro';
+        if ($ecoNum >= 200 && $ecoNum <= 299) return 'vagoneta';
+        if ($ecoNum >= 400 && $ecoNum <= 499) return 'orion';
+
+        $transNombre = strtolower(trim((string) ($u->transporte_nombre ?? '')));
+        if (str_contains($transNombre, 'urbanus')) return 'urbanuss';
+        if (str_contains($transNombre, 'zafiro')) return 'zafiro';
+        if (str_contains($transNombre, 'vagoneta') || str_contains($transNombre, 'urvan')) return 'vagoneta';
+        if (str_contains($transNombre, 'orion') || str_contains($transNombre, 'orión')) return 'orion';
+
+        return 'urbanuss';
+    }
+
+    /**
      * Obtiene el listado de unidades con sus cargas para el módulo Control de Combustible.
      */
     public function getCargasCombustibleDiarias(Request $request)
     {
         try {
-            $fecha = $request->query('fecha') ?: now()->toDateString();
+            $fecha = $request->query('fecha') ?: Carbon::now('America/Mexico_City')->toDateString();
+
+            $infoTipoPorUnidad = Schema::hasTable('informacion_operativa')
+                ? DB::table('informacion_operativa')->pluck('tipo', 'unidad_id')
+                : collect();
 
             $unidadesRaw = DB::table('unidades')
                 ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
@@ -6104,9 +6137,11 @@ class DespachoController extends Controller
             // Buscar si hay cargas en historial_mantenimiento para la fecha indicada
             $historialHoy = DB::table('historial_mantenimiento')
                 ->where(function ($q) use ($fecha) {
-                    $q->whereDate('fecha_registro', $fecha)
-                      ->orWhereDate('created_at', $fecha)
-                      ->orWhere('fecha_ultima_carga', $fecha);
+                    $q->where('fecha_ultima_carga', $fecha)
+                      ->orWhere(function ($q2) use ($fecha) {
+                          $q2->whereNull('fecha_ultima_carga')
+                             ->whereDate('fecha_registro', $fecha);
+                      });
                 })
                 ->orderBy('id', 'desc')
                 ->get()
@@ -6120,12 +6155,8 @@ class DespachoController extends Controller
             ];
 
             foreach ($unidadesRaw as $u) {
-                $tipoUnidad = strtolower(trim($u->tipo ?: $u->transporte_nombre ?: ''));
-                if ($tipoUnidad === 'urvan') {
-                    $tipoUnidad = 'vagoneta';
-                } elseif ($tipoUnidad === 'urbanus') {
-                    $tipoUnidad = 'urbanuss';
-                }
+                $infoTipo = $infoTipoPorUnidad->get($u->id);
+                $tipoUnidad = self::resolverTecnologiaCombustible($u, $infoTipo);
 
                 if (!isset($organizadas[$tipoUnidad])) {
                     $organizadas[$tipoUnidad] = [];
@@ -6139,11 +6170,13 @@ class DespachoController extends Controller
                 $adblue = '';
                 $km = '';
 
+                $fechaUltimaUnidad = substr(trim((string) ($u->fecha_ultima_carga ?? '')), 0, 10);
+
                 if ($h) {
                     $comb = $h->litros_combustible !== null && $h->litros_combustible !== '' ? $h->litros_combustible : '';
                     $adblue = $h->litros_adblue !== null && $h->litros_adblue !== '' ? $h->litros_adblue : '';
                     $km = $h->kilometraje !== null && $h->kilometraje !== '' ? $h->kilometraje : ($h->odometro ?: '');
-                } elseif ($u->fecha_ultima_carga === $fecha || $fecha === now()->toDateString()) {
+                } elseif ($fechaUltimaUnidad === $fecha) {
                     $comb = $u->litros_combustible !== null && $u->litros_combustible !== '' ? $u->litros_combustible : '';
                     $adblue = $u->litros_adblue !== null && $u->litros_adblue !== '' ? $u->litros_adblue : '';
                     $km = $u->kilometraje !== null && $u->kilometraje !== '' ? $u->kilometraje : ($u->odometro ?: '');
@@ -6184,16 +6217,38 @@ class DespachoController extends Controller
             ]);
 
             $cargas = $request->input('cargas'); // objeto con arrays por tecnología { urbanuss: [...], zafiro: [...] }
-            $fecha = $request->input('fecha') ?: now()->toDateString();
+            $fecha = $request->input('fecha') ?: Carbon::now('America/Mexico_City')->toDateString();
             $usuario = $request->user();
             $responsable = $usuario ? ($usuario->nombre_completo ?? $usuario->nombre ?? 'Sistema') : 'Sistema';
 
             @set_time_limit(120);
 
-            $todasUnidades = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
+            $todasUnidadesRaw = DB::table('unidades')
+                ->select('id', 'numero_eco', 'litros_combustible', 'litros_adblue', 'kilometraje', 'odometro', 'fecha_ultima_carga')
+                ->get();
 
-            $historialBatch = [];
-            $unidadesActualizar = [];
+            $todasUnidades = [];
+            foreach ($todasUnidadesRaw as $u) {
+                $todasUnidades[$u->numero_eco] = $u;
+                $todasUnidades[ltrim((string) $u->numero_eco, '0')] = $u;
+            }
+
+            // Obtener registros ya existentes en historial_mantenimiento para esta fecha
+            $existentesFecha = DB::table('historial_mantenimiento')
+                ->where(function ($q) use ($fecha) {
+                    $q->where('fecha_ultima_carga', $fecha)
+                      ->orWhere(function ($q2) use ($fecha) {
+                          $q2->whereNull('fecha_ultima_carga')
+                             ->whereDate('fecha_registro', $fecha);
+                      });
+                })
+                ->orderBy('id', 'desc')
+                ->get()
+                ->groupBy('unidad_id');
+
+            $historialInsertBatch = [];
+            $totalProcesadas = 0;
+            $ahora = Carbon::now('America/Mexico_City');
 
             foreach ($cargas as $tecKey => $items) {
                 if (!is_array($items)) {
@@ -6208,65 +6263,128 @@ class DespachoController extends Controller
                         continue;
                     }
 
-                    $combustible = isset($item['combustible']) && $item['combustible'] !== '' ? (string) $item['combustible'] : null;
-                    $adblue = isset($item['adblue']) && $item['adblue'] !== '' ? (string) $item['adblue'] : null;
-                    $km = isset($item['km']) && $item['km'] !== '' ? (string) $item['km'] : null;
-
-                    // Si no tiene ningún dato de carga o odómetro, no saturamos la BD
-                    if ($combustible === null && $adblue === null && $km === null) {
-                        continue;
-                    }
-
-                    $numeroEcoClean = str_pad($eco, 3, '0', STR_PAD_LEFT);
-                    $unidad = $todasUnidades->get($numeroEcoClean) ?? $todasUnidades->get($eco);
+                    $numeroEcoClean = str_pad(ltrim($eco, '0') ?: '0', 3, '0', STR_PAD_LEFT);
+                    $unidad = $todasUnidades[$numeroEcoClean] ?? ($todasUnidades[$eco] ?? ($todasUnidades[ltrim($eco, '0')] ?? null));
 
                     if (!$unidad) {
                         continue;
                     }
 
-                    $unidadesActualizar[] = [
-                        'id' => $unidad->id,
-                        'litros_combustible' => $combustible,
-                        'litros_adblue' => $adblue,
-                        'kilometraje' => $km,
-                        'odometro' => $km,
-                        'fecha_ultima_carga' => $fecha,
-                    ];
+                    $combustible = isset($item['combustible']) && trim((string) $item['combustible']) !== '' ? trim((string) $item['combustible']) : null;
+                    $adblue = isset($item['adblue']) && trim((string) $item['adblue']) !== '' ? trim((string) $item['adblue']) : null;
+                    $kmRaw = isset($item['km']) ? preg_replace('/\D/', '', (string) $item['km']) : '';
+                    $km = $kmRaw !== '' ? substr($kmRaw, 0, 8) : null;
 
-                    $historialBatch[] = [
-                        'unidad_id' => $unidad->id,
-                        'tipo_vehiculo' => $tipoVehiculo,
-                        'litros_combustible' => $combustible,
-                        'litros_adblue' => $adblue,
-                        'kilometraje' => $km,
-                        'odometro' => $km,
-                        'fecha_ultima_carga' => $fecha,
-                        'fecha_registro' => now(),
-                        'responsable' => $responsable,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+                    $registrosExistentesUnidad = $existentesFecha->get($unidad->id);
+                    $registroExistente = $registrosExistentesUnidad ? $registrosExistentesUnidad->first() : null;
+
+                    // Si todos los campos vienen vacíos
+                    if ($combustible === null && $adblue === null && $km === null) {
+                        // Si existía un registro para esta fecha y el usuario lo vació, limpiarlo
+                        if ($registroExistente) {
+                            DB::table('historial_mantenimiento')
+                                ->whereIn('id', $registrosExistentesUnidad->pluck('id')->toArray())
+                                ->delete();
+
+                            $prevHist = DB::table('historial_mantenimiento')
+                                ->where('unidad_id', $unidad->id)
+                                ->orderByRaw("COALESCE(CAST(fecha_ultima_carga AS VARCHAR), SUBSTRING(CAST(fecha_registro AS VARCHAR), 1, 10)) DESC")
+                                ->orderBy('id', 'desc')
+                                ->first();
+
+                            DB::table('unidades')
+                                ->where('id', $unidad->id)
+                                ->update([
+                                    'litros_combustible' => $prevHist ? $prevHist->litros_combustible : null,
+                                    'litros_adblue' => $prevHist ? $prevHist->litros_adblue : null,
+                                    'kilometraje' => $prevHist ? $prevHist->kilometraje : null,
+                                    'odometro' => $prevHist ? $prevHist->odometro : null,
+                                    'fecha_ultima_carga' => $prevHist ? $prevHist->fecha_ultima_carga : null,
+                                ]);
+                        }
+                        continue;
+                    }
+
+                    // Actualizar tabla unidades si la fecha es igual o más reciente que su última carga
+                    $fechaActualUnidad = substr(trim((string) ($unidad->fecha_ultima_carga ?? '')), 0, 10);
+                    if ($fechaActualUnidad === '' || $fecha >= $fechaActualUnidad) {
+                        DB::table('unidades')
+                            ->where('id', $unidad->id)
+                            ->update([
+                                'litros_combustible' => $combustible,
+                                'litros_adblue' => $adblue,
+                                'kilometraje' => $km ?? $unidad->kilometraje,
+                                'odometro' => $km ?? $unidad->odometro,
+                                'fecha_ultima_carga' => $fecha,
+                            ]);
+                    }
+
+                    if ($registroExistente) {
+                        $cambioReal = (
+                            (string) ($registroExistente->litros_combustible ?? '') !== (string) ($combustible ?? '') ||
+                            (string) ($registroExistente->litros_adblue ?? '') !== (string) ($adblue ?? '') ||
+                            (string) ($registroExistente->kilometraje ?? '') !== (string) ($km ?? '')
+                        );
+
+                        DB::table('historial_mantenimiento')
+                            ->where('id', $registroExistente->id)
+                            ->update([
+                                'tipo_vehiculo' => $tipoVehiculo,
+                                'litros_combustible' => $combustible,
+                                'litros_adblue' => $adblue,
+                                'kilometraje' => $km,
+                                'odometro' => $km,
+                                'fecha_ultima_carga' => $fecha,
+                                'responsable' => $responsable,
+                                'updated_at' => $ahora,
+                            ]);
+
+                        // Eliminar duplicados previos de la misma unidad en esa misma fecha si existieran
+                        if ($registrosExistentesUnidad->count() > 1) {
+                            $idsExtra = $registrosExistentesUnidad->skip(1)->pluck('id')->toArray();
+                            DB::table('historial_mantenimiento')->whereIn('id', $idsExtra)->delete();
+                        }
+
+                        if ($cambioReal) {
+                            BitacoraHelper::registrarCambio(
+                                $unidad->id,
+                                'CARGA_COMBUSTIBLE',
+                                "ACTUALIZACIÓN CARGA ({$fecha}) - COMBUSTIBLE: " . ($combustible ?? '0') . " L, ADBLUE: " . ($adblue ?? '0') . " L, KM: " . ($km ?? 'N/A'),
+                                $registroExistente->litros_combustible ? "{$registroExistente->litros_combustible} L" : 'SIN CARGA',
+                                $combustible ? "{$combustible} L" : 'SIN CARGA'
+                            );
+                        }
+                    } else {
+                        $historialInsertBatch[] = [
+                            'unidad_id' => $unidad->id,
+                            'tipo_vehiculo' => $tipoVehiculo,
+                            'litros_combustible' => $combustible,
+                            'litros_adblue' => $adblue,
+                            'kilometraje' => $km,
+                            'odometro' => $km,
+                            'fecha_ultima_carga' => $fecha,
+                            'fecha_registro' => $ahora,
+                            'responsable' => $responsable,
+                            'created_at' => $ahora,
+                            'updated_at' => $ahora,
+                        ];
+
+                        BitacoraHelper::registrarCambio(
+                            $unidad->id,
+                            'CARGA_COMBUSTIBLE',
+                            "REGISTRO CARGA ({$fecha}) - COMBUSTIBLE: " . ($combustible ?? '0') . " L, ADBLUE: " . ($adblue ?? '0') . " L, KM: " . ($km ?? 'N/A'),
+                            'SIN CARGA',
+                            $combustible ? "{$combustible} L" : 'CARGADO'
+                        );
+                    }
 
                     $totalProcesadas++;
                 }
             }
 
-            // Actualizar unidades
-            foreach ($unidadesActualizar as $uAct) {
-                DB::table('unidades')
-                    ->where('id', $uAct['id'])
-                    ->update([
-                        'litros_combustible' => $uAct['litros_combustible'],
-                        'litros_adblue' => $uAct['litros_adblue'],
-                        'kilometraje' => $uAct['kilometraje'],
-                        'odometro' => $uAct['odometro'],
-                        'fecha_ultima_carga' => $uAct['fecha_ultima_carga'],
-                    ]);
-            }
-
-            // Insertar historial en bloques de 50
-            if (!empty($historialBatch)) {
-                foreach (array_chunk($historialBatch, 50) as $chunk) {
+            // Insertar nuevos registros de historial en bloques de 50
+            if (!empty($historialInsertBatch)) {
+                foreach (array_chunk($historialInsertBatch, 50) as $chunk) {
                     DB::table('historial_mantenimiento')->insert($chunk);
                 }
             }
@@ -6275,7 +6393,7 @@ class DespachoController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => "Se guardaron correctamente las cargas de {$totalProcesadas} unidades.",
+                'message' => "Se guardaron correctamente las cargas de {$totalProcesadas} unidades para la fecha {$fecha}.",
                 'total_procesadas' => $totalProcesadas,
             ]);
         } catch (\Exception $e) {
@@ -6294,7 +6412,7 @@ class DespachoController extends Controller
     public function getResumenSemanalCombustible(Request $request)
     {
         try {
-            $fechaRefStr = $request->query('fecha') ?: now()->toDateString();
+            $fechaRefStr = $request->query('fecha') ?: Carbon::now('America/Mexico_City')->toDateString();
             $fechaRef = Carbon::parse($fechaRefStr);
 
             // Determinar la semana (Lunes a Domingo)
@@ -6313,28 +6431,36 @@ class DespachoController extends Controller
             $inicioStr = $fechasISO[0];
             $finStr = $fechasISO[6];
 
-            // Consultar historial_mantenimiento para el rango de la semana
+            // Consultar historial_mantenimiento para el rango de la semana (ordenado desc por id para deduplicar)
             $cargasHistorial = DB::table('historial_mantenimiento')
                 ->where(function ($q) use ($inicioStr, $finStr) {
-                    $q->whereBetween(DB::raw("CAST(fecha_registro AS DATE)"), [$inicioStr, $finStr])
-                      ->orWhereBetween('fecha_ultima_carga', [$inicioStr, $finStr]);
+                    $q->whereBetween('fecha_ultima_carga', [$inicioStr, $finStr])
+                      ->orWhere(function ($q2) use ($inicioStr, $finStr) {
+                          $q2->whereNull('fecha_ultima_carga')
+                             ->whereBetween(DB::raw("CAST(fecha_registro AS DATE)"), [$inicioStr, $finStr]);
+                      });
                 })
                 ->whereNotNull('litros_combustible')
                 ->where('litros_combustible', '!=', '')
                 ->where('litros_combustible', '!=', '0')
                 ->where('litros_combustible', '!=', '0.0')
                 ->select(
+                    'id',
                     'unidad_id',
                     'tipo_vehiculo',
                     'litros_combustible',
-                    DB::raw("COALESCE(fecha_ultima_carga, CAST(fecha_registro AS VARCHAR)) as fecha_carga")
+                    DB::raw("COALESCE(CAST(fecha_ultima_carga AS VARCHAR), CAST(fecha_registro AS VARCHAR)) as fecha_carga")
                 )
+                ->orderBy('id', 'desc')
                 ->get();
 
-            // También mapear transportes de unidades si tipo_vehiculo viene vacío
+            $infoTipoPorUnidad = Schema::hasTable('informacion_operativa')
+                ? DB::table('informacion_operativa')->pluck('tipo', 'unidad_id')
+                : collect();
+
             $unidadesMap = DB::table('unidades')
                 ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
-                ->select('unidades.id', 'unidades.tipo', 'transportes.nombre as transporte_nombre')
+                ->select('unidades.id', 'unidades.numero_eco', 'unidades.tipo', 'transportes.nombre as transporte_nombre')
                 ->get()
                 ->keyBy('id');
 
@@ -6343,6 +6469,9 @@ class DespachoController extends Controller
             $valoresZafiro   = array_fill(0, 7, 0.0);
             $valoresOrion    = array_fill(0, 7, 0.0);
             $valoresVagoneta = array_fill(0, 7, 0.0);
+
+            // Deduplicar por unidad_id + fecha_carga para evitar sumar registros repetidos
+            $procesadosUnidadDia = [];
 
             foreach ($cargasHistorial as $reg) {
                 $litros = floatval($reg->litros_combustible ?? 0);
@@ -6356,11 +6485,17 @@ class DespachoController extends Controller
                     continue;
                 }
 
-                $tipo = strtolower(trim((string)$reg->tipo_vehiculo));
-                if (!$tipo && isset($unidadesMap[$reg->unidad_id])) {
-                    $uObj = $unidadesMap[$reg->unidad_id];
-                    $tipo = strtolower(trim($uObj->tipo ?: $uObj->transporte_nombre ?: ''));
+                $dedupKey = "{$reg->unidad_id}_{$fechaCargaRaw}";
+                if (isset($procesadosUnidadDia[$dedupKey])) {
+                    continue;
                 }
+                $procesadosUnidadDia[$dedupKey] = true;
+
+                $uObj = $unidadesMap->get($reg->unidad_id);
+                $infoTipo = $infoTipoPorUnidad->get($reg->unidad_id);
+                $tipo = $uObj
+                    ? self::resolverTecnologiaCombustible($uObj, $infoTipo ?: $reg->tipo_vehiculo)
+                    : strtolower(trim((string)$reg->tipo_vehiculo));
 
                 if (str_contains($tipo, 'urbanus')) {
                     $valoresUrbanuss[$diaIdx] += $litros;
@@ -6497,7 +6632,6 @@ class DespachoController extends Controller
         try {
             $fechaFiltro = $request->query('fecha');
             if (! $fechaFiltro) {
-                // Al registrarse con fecha del día anterior, buscar la fecha más reciente registrada
                 $maxFecha = null;
                 if (Schema::hasTable('unidades')) {
                     $maxFecha = DB::table('unidades')
@@ -6519,60 +6653,86 @@ class DespachoController extends Controller
                         ->max('fecha_ultima_carga');
                 }
 
-                $fechaFiltro = $maxFecha ? Carbon::parse($maxFecha)->toDateString() : Carbon::yesterday()->toDateString();
+                $fechaFiltro = $maxFecha ? Carbon::parse($maxFecha)->toDateString() : Carbon::now('America/Mexico_City')->toDateString();
             }
             $today = $fechaFiltro;
             $unidades = Schema::hasTable('unidades') ? DB::table('unidades')->get() : collect();
             $informacion = Schema::hasTable('informacion_operativa') ? DB::table('informacion_operativa')->get()->keyBy('unidad_id') : collect();
             $transportes = Schema::hasTable('transportes') ? DB::table('transportes')->get()->keyBy('id') : collect();
 
-            // Cargar historial de mantenimiento con kilometraje/odometro para calcular rendimiento
+            // Cargar historial de mantenimiento de la fecha seleccionada
+            $historialDiaPorUnidad = collect();
             $historialPorUnidad = collect();
             if (Schema::hasTable('historial_mantenimiento')) {
+                $historialDiaPorUnidad = DB::table('historial_mantenimiento')
+                    ->where(function ($q) use ($today) {
+                        $q->where('fecha_ultima_carga', $today)
+                          ->orWhere(function ($q2) use ($today) {
+                              $q2->whereNull('fecha_ultima_carga')
+                                 ->whereDate('fecha_registro', $today);
+                          });
+                    })
+                    ->orderBy('id', 'desc')
+                    ->get()
+                    ->groupBy('unidad_id');
+
                 $historialPorUnidad = DB::table('historial_mantenimiento')
                     ->where(function ($q) {
                         $q->whereNotNull('kilometraje')->orWhereNotNull('odometro');
                     })
+                    ->where(function ($q) use ($today) {
+                        $q->where('fecha_ultima_carga', '<=', $today)
+                          ->orWhere(function ($q2) use ($today) {
+                              $q2->whereNull('fecha_ultima_carga')
+                                 ->whereDate('fecha_registro', '<=', $today);
+                          });
+                    })
+                    ->orderByRaw("COALESCE(CAST(fecha_ultima_carga AS VARCHAR), SUBSTRING(CAST(fecha_registro AS VARCHAR), 1, 10)) DESC")
                     ->orderBy('id', 'desc')
                     ->get()
                     ->groupBy('unidad_id');
             }
 
             $reporte = [];
-            $tipos = ['urbanuss', 'zafiro', 'urvan', 'orion'];
+            $tipos = ['urbanuss', 'zafiro', 'vagoneta', 'orion'];
 
             $totalesKm = 0;
             $totalesLitrosKm = 0;
 
             foreach ($tipos as $tipo) {
-                $unidadesTipo = $unidades->filter(function ($u) use ($tipo, $transportes) {
+                $unidadesTipo = $unidades->filter(function ($u) use ($tipo, $informacion, $transportes) {
+                    $info = $informacion->get($u->id);
+                    $infoTipo = $info ? ($info->tipo ?? null) : null;
                     $transporte = $transportes->get($u->transporte_id);
-                    $nombreTrans = $transporte ? strtolower(trim($transporte->nombre)) : '';
-                    if ($tipo === 'urvan' && $nombreTrans === 'vagoneta') {
-                        return true;
-                    }
-                    if ($nombreTrans === $tipo) {
-                        return true;
-                    }
-                    $tipoU = strtolower(trim($u->tipo ?? ''));
-                    if ($tipo === 'urvan' && ($tipoU === 'urvan' || $tipoU === 'vagoneta')) {
-                        return true;
-                    }
+                    $uClone = clone $u;
+                    $uClone->transporte_nombre = $transporte ? $transporte->nombre : null;
 
-                    return $tipoU === $tipo;
+                    return self::resolverTecnologiaCombustible($uClone, $infoTipo) === $tipo;
                 });
 
                 $parque = $unidadesTipo->count();
 
-                $unidadesCargaron = $unidadesTipo->filter(function ($u) use ($today) {
-                    $fecha = (string) ($u->fecha_ultima_carga ?? '');
+                // Determinar litros cargados por unidad en la fecha $today
+                $litrosPorUnidadHoy = [];
+                foreach ($unidadesTipo as $u) {
+                    $hRecs = $historialDiaPorUnidad->get($u->id);
+                    $h = $hRecs ? $hRecs->first() : null;
+                    $litrosVal = 0.0;
+                    if ($h) {
+                        $litrosVal = floatval($h->litros_combustible ?? 0);
+                    } elseif (substr((string) ($u->fecha_ultima_carga ?? ''), 0, 10) === $today) {
+                        $litrosVal = floatval($u->litros_combustible ?? 0);
+                    }
+                    if ($litrosVal > 0) {
+                        $litrosPorUnidadHoy[$u->id] = $litrosVal;
+                    }
+                }
 
-                    return str_starts_with($fecha, $today) && floatval($u->litros_combustible ?? 0) > 0;
-                });
+                $unidadesCargaron = $unidadesTipo->filter(fn ($u) => isset($litrosPorUnidadHoy[$u->id]));
 
                 $cargaronCount = $unidadesCargaron->count();
                 $sinCargarCount = $parque - $cargaronCount;
-                $litrosTotal = round($unidadesCargaron->sum(fn ($u) => floatval($u->litros_combustible ?? 0)), 2);
+                $litrosTotal = round(array_sum($litrosPorUnidadHoy), 2);
 
                 $porcentaje = $parque > 0 ? round(($cargaronCount / $parque) * 100) : 0;
 
@@ -6581,7 +6741,7 @@ class DespachoController extends Controller
                 $litrosDeltaTipo = 0;
 
                 foreach ($unidadesCargaron as $u) {
-                    $litrosU = floatval($u->litros_combustible ?? 0);
+                    $litrosU = $litrosPorUnidadHoy[$u->id] ?? 0;
                     if ($litrosU <= 0) {
                         continue;
                     }
@@ -6624,15 +6784,11 @@ class DespachoController extends Controller
                 $totalesKm += $kmDeltaTipo;
                 $totalesLitrosKm += $litrosDeltaTipo;
 
-                $motivo = '';
+                $motivo = 'N/A';
                 $obs = '';
 
                 if ($sinCargarCount > 0) {
-                    $unidadesSinCargar = $unidadesTipo->filter(function ($u) use ($today) {
-                        $fecha = (string) ($u->fecha_ultima_carga ?? '');
-
-                        return ! (str_starts_with($fecha, $today) && floatval($u->litros_combustible ?? 0) > 0);
-                    });
+                    $unidadesSinCargar = $unidadesTipo->filter(fn ($u) => !isset($litrosPorUnidadHoy[$u->id]));
 
                     $estatusCounts = [];
                     foreach ($unidadesSinCargar as $u) {
@@ -6655,8 +6811,8 @@ class DespachoController extends Controller
                         $motivo = 'Combustible suficiente';
                         $obs = 'UNIDADES RESERVA';
                     } elseif (in_array($primaryEstatus, ['mantenimiento', 'taller', 'baja', 'percance'])) {
-                        $motivo = 'Fuera de operación';
-                        $obs = "$countEstatus UNIDADES FUERA DE OPERACIÓN";
+                        $motivo = 'Unidad en taller';
+                        $obs = "$countEstatus UNIDADES EN MANTENIMIENTO";
                     } else {
                         $motivo = 'Combustible suficiente';
                         $obs = 'COMBUSTIBLE SUFICIENTE';
@@ -6665,7 +6821,7 @@ class DespachoController extends Controller
 
                 $combustibleStr = in_array($tipo, ['urbanuss', 'zafiro', 'orion']) ? 'Diésel' : 'Gasolina';
                 $nombreDisplay = ucfirst($tipo);
-                if ($tipo === 'urvan') {
+                if ($tipo === 'vagoneta' || $tipo === 'urvan') {
                     $nombreDisplay = 'Vagoneta';
                 } elseif ($nombreDisplay === 'Orion') {
                     $nombreDisplay = 'Orión';
@@ -6675,13 +6831,17 @@ class DespachoController extends Controller
 
                 $reporte[] = [
                     'tipo_unidad' => $nombreDisplay,
+                    'tipo' => $nombreDisplay,
                     'combustible' => $combustibleStr,
                     'parque' => $parque,
                     'litros_cargados' => $litrosTotal,
+                    'litros_combustible' => $litrosTotal,
+                    'litros' => $litrosTotal,
                     'unidades_cargaron' => $cargaronCount,
                     'unidades_sin_cargar' => $sinCargarCount,
                     'rendimiento' => $rendimiento,
                     'porcentaje' => $porcentaje,
+                    'porcentaje_abastecimiento' => $porcentaje,
                     'motivo_no_carga' => $motivo,
                     'observaciones' => $obs,
                     'raw_tipo' => $tipo,
@@ -6713,10 +6873,10 @@ class DespachoController extends Controller
                         $key = strtolower(trim($fila['tipo_unidad']));
                         if ($guardadosMap->has($key)) {
                             $saved = $guardadosMap->get($key);
-                            if (!empty($saved['motivo_no_carga'])) {
+                            if (array_key_exists('motivo_no_carga', $saved) && $saved['motivo_no_carga'] !== null && $saved['motivo_no_carga'] !== '') {
                                 $fila['motivo_no_carga'] = $saved['motivo_no_carga'];
                             }
-                            if (isset($saved['observaciones']) && $saved['observaciones'] !== '') {
+                            if (array_key_exists('observaciones', $saved) && $saved['observaciones'] !== null) {
                                 $fila['observaciones'] = $saved['observaciones'];
                             }
                         }

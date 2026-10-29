@@ -24,6 +24,29 @@ class HistorialOperativoController extends Controller
             ->pluck('fecha')
             ->toArray();
 
+        if (Schema::hasTable('historial_mantenimiento') && Schema::hasColumn('historial_mantenimiento', 'fecha_ultima_carga')) {
+            $fechasComb = DB::table('historial_mantenimiento')
+                ->whereNotNull('fecha_ultima_carga')
+                ->whereRaw("TRIM(CAST(fecha_ultima_carga AS VARCHAR)) != ''")
+                ->distinct()
+                ->pluck('fecha_ultima_carga')
+                ->map(fn($f) => substr(trim((string) $f), 0, 10))
+                ->filter(fn($f) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $f))
+                ->toArray();
+            $fechas = array_merge($fechas, $fechasComb);
+        }
+
+        if (Schema::hasTable('reportes_combustible') && Schema::hasColumn('reportes_combustible', 'fecha_reporte')) {
+            $fechasRepComb = DB::table('reportes_combustible')
+                ->whereNotNull('fecha_reporte')
+                ->distinct()
+                ->pluck('fecha_reporte')
+                ->map(fn($f) => substr(trim((string) $f), 0, 10))
+                ->filter(fn($f) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $f))
+                ->toArray();
+            $fechas = array_merge($fechas, $fechasRepComb);
+        }
+
         $hoy = Carbon::today()->toDateString();
         $hoyMx = Carbon::now('America/Mexico_City')->toDateString();
         if (!in_array($hoy, $fechas)) array_unshift($fechas, $hoy);
@@ -1421,7 +1444,7 @@ class HistorialOperativoController extends Controller
 
             $historial = DB::table('historial_mantenimiento')->where('id', $request->id_historial)->first();
             if (!$historial) {
-                return response()->json(['status' => 'error', 'message' => 'Registro hist�rico no encontrado'], 404);
+                return response()->json(['status' => 'error', 'message' => 'Registro histórico no encontrado'], 404);
             }
 
             // Update historial_mantenimiento
@@ -1471,25 +1494,35 @@ class HistorialOperativoController extends Controller
     public function getHistorialCombustible($fecha)
     {
         try {
-            // 1. Cargas de combustible registradas en esa fecha
-            $cargas = DB::table('historial_mantenimiento')
+            // 1. Cargas de combustible registradas para esa fecha
+            $cargasRaw = DB::table('historial_mantenimiento')
                 ->join('unidades', 'historial_mantenimiento.unidad_id', '=', 'unidades.id')
                 ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where(function($q) use ($fecha) {
-                    $q->whereDate('historial_mantenimiento.fecha_registro', $fecha)
-                      ->orWhereDate('historial_mantenimiento.created_at', $fecha)
-                      ->orWhere('historial_mantenimiento.fecha_ultima_carga', $fecha);
+                    $q->where('historial_mantenimiento.fecha_ultima_carga', $fecha)
+                      ->orWhere(function($sub) use ($fecha) {
+                          $sub->where(function($nullDate) {
+                              $nullDate->whereNull('historial_mantenimiento.fecha_ultima_carga')
+                                       ->orWhereRaw("TRIM(CAST(historial_mantenimiento.fecha_ultima_carga AS VARCHAR)) = ''");
+                          })->where(function($regDate) use ($fecha) {
+                              $regDate->whereDate('historial_mantenimiento.fecha_registro', $fecha)
+                                      ->orWhereDate('historial_mantenimiento.created_at', $fecha);
+                          });
+                      });
                 })
                 ->where(function($q) {
                     $q->whereNotNull('historial_mantenimiento.litros_combustible')
+                      ->orWhereNotNull('historial_mantenimiento.litros_adblue')
+                      ->orWhereNotNull('historial_mantenimiento.kilometraje')
                       ->orWhereNotNull('historial_mantenimiento.nivel_combustible')
                       ->orWhereNotNull('historial_mantenimiento.numero_cincho');
                 })
                 ->select(
                     'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
-                    $this->tipoUnidadRaw('historial_mantenimiento.tipo_vehiculo', 'tipo'),
-                    $this->tipoUnidadRaw('historial_mantenimiento.tipo_vehiculo', 'tipo_unidad'),
+                    'historial_mantenimiento.tipo_vehiculo',
+                    'unidades.tipo as u_tipo',
+                    'transportes.nombre as t_nombre',
                     'historial_mantenimiento.nivel_combustible',
                     'historial_mantenimiento.litros_combustible',
                     'historial_mantenimiento.nivel_adblue',
@@ -1501,27 +1534,54 @@ class HistorialOperativoController extends Controller
                     'historial_mantenimiento.fecha_ultima_carga',
                     DB::raw("COALESCE(historial_mantenimiento.fecha_registro, historial_mantenimiento.created_at) as hora_guardado")
                 )
-                ->orderBy('unidades.numero_eco')
+                ->orderByDesc('historial_mantenimiento.id')
                 ->get();
 
-            // Si es hoy y no hay en historial_mantenimiento, checar unidades que tienen carga registrada hoy
-            $todayUtc = Carbon::today()->toDateString();
-            $todayMx = Carbon::now('America/Mexico_City')->toDateString();
-            if ($cargas->isEmpty() && in_array($fecha, [$todayUtc, $todayMx], true)) {
-                $cargas = DB::table('unidades')
+            $resolverTipo = function($eco, $tipoVehiculo, $uTipo, $tNombre) {
+                $ecoNum = (int) preg_replace('/\D/', '', (string) $eco);
+                $tv = strtoupper(trim((string) ($tipoVehiculo ?? '')));
+                if (in_array($tv, ['URBANUSS', 'URBANUS', 'ZAFIRO', 'VAGONETA', 'ORION', 'ORIÓN'], true)) {
+                    return $tv === 'URBANUS' ? 'URBANUSS' : ($tv === 'ORIÓN' ? 'ORION' : $tv);
+                }
+                if ($ecoNum >= 1 && $ecoNum <= 99) return 'URBANUSS';
+                if ($ecoNum >= 100 && $ecoNum <= 199) return 'ZAFIRO';
+                if ($ecoNum >= 200 && $ecoNum <= 299) return 'VAGONETA';
+                if ($ecoNum >= 400 && $ecoNum <= 499) return 'ORION';
+                $fallback = strtoupper(trim((string) ($uTipo ?: $tNombre ?: 'DIESEL')));
+                return $fallback === 'URBANUS' ? 'URBANUSS' : $fallback;
+            };
+
+            // Deduplicar por económico conservando el registro más reciente de esa fecha
+            $cargasPorEco = [];
+            foreach ($cargasRaw as $row) {
+                $ecoKey = trim((string) $row->economico);
+                if (isset($cargasPorEco[$ecoKey])) {
+                    continue;
+                }
+                $tipoNormalizado = $resolverTipo($row->economico, $row->tipo_vehiculo, $row->u_tipo, $row->t_nombre);
+                $row->tipo = $tipoNormalizado;
+                $row->tipo_unidad = $tipoNormalizado;
+                unset($row->tipo_vehiculo, $row->u_tipo, $row->t_nombre);
+                $cargasPorEco[$ecoKey] = $row;
+            }
+
+            $cargas = collect(array_values($cargasPorEco))->sortBy('economico')->values();
+
+            // Si no hay en historial_mantenimiento, checar unidades que tienen fecha_ultima_carga exactamente en esa fecha
+            if ($cargas->isEmpty()) {
+                $cargasUnidades = DB::table('unidades')
                     ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
-                    ->where(function($q) use ($fecha) {
-                        $q->where('fecha_ultima_carga', $fecha)
-                          ->orWhere(function($sub) {
-                              $sub->whereNotNull('litros_combustible')
-                                  ->whereRaw("CAST(litros_combustible AS VARCHAR) != '' AND CAST(litros_combustible AS VARCHAR) != '0'");
-                          });
+                    ->where('unidades.fecha_ultima_carga', $fecha)
+                    ->where(function($sub) {
+                        $sub->whereNotNull('unidades.litros_combustible')
+                            ->orWhereNotNull('unidades.litros_adblue')
+                            ->orWhereNotNull('unidades.kilometraje');
                     })
                     ->select(
                         DB::raw('NULL as id_historial'),
                         'unidades.numero_eco as economico',
-                        $this->tipoUnidadFromUnidadesRaw('tipo'),
-                        $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
+                        'unidades.tipo as u_tipo',
+                        'transportes.nombre as t_nombre',
                         'unidades.nivel_combustible',
                         'unidades.litros_combustible',
                         'unidades.nivel_adblue',
@@ -1534,7 +1594,15 @@ class HistorialOperativoController extends Controller
                         'unidades.fecha_ultima_carga as hora_guardado'
                     )
                     ->orderBy('unidades.numero_eco')
-                    ->get();
+                    ->get()
+                    ->map(function($row) use ($resolverTipo) {
+                        $tipoNormalizado = $resolverTipo($row->economico, null, $row->u_tipo, $row->t_nombre);
+                        $row->tipo = $tipoNormalizado;
+                        $row->tipo_unidad = $tipoNormalizado;
+                        unset($row->u_tipo, $row->t_nombre);
+                        return $row;
+                    });
+                $cargas = $cargasUnidades;
             }
 
             // 2. Cambios en bitácora relacionados a combustible
