@@ -92,6 +92,11 @@ class FixMantenimientoColumns extends Command
                     EXECUTE 'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultima_conexion timestamp null';
                 END IF;
 
+                -- Inyectar columna fecha_reingreso en tabla conductores si no existe
+                IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'conductores') THEN
+                    EXECUTE 'ALTER TABLE conductores ADD COLUMN IF NOT EXISTS fecha_reingreso date null';
+                END IF;
+
                 -- Inyectar trigger para sincronización automática de última conexión
                 IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'personal_access_tokens') AND EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'usuarios') THEN
                     CREATE OR REPLACE FUNCTION trg_sync_user_ultima_conexion()

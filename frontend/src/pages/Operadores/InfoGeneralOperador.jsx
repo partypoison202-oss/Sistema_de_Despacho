@@ -362,11 +362,26 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
                 <div>
                   <span className="text-gray-500 text-[9.5px] uppercase tracking-wider font-bold block">Fecha de Ingreso</span>
                   <span className="text-gray-900 font-bold text-sm mt-0.5 block">
-                    {conductor.fecha_ingreso ? new Date(conductor.fecha_ingreso).toLocaleDateString('es-MX') : 'No registrada'}
+                    {conductor.fecha_ingreso ? formatearFechaDetalle(conductor.fecha_ingreso) : 'No registrada'}
                   </span>
                 </div>
                 <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
+
+              {conductor.fecha_reingreso && (
+                <div 
+                  className="bg-amber-50/70 p-2.5 rounded-lg border border-amber-200/80 flex items-center justify-between"
+                  style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+                >
+                  <div>
+                    <span className="text-amber-800 text-[9.5px] uppercase tracking-wider font-bold block">Fecha de Reingreso</span>
+                    <span className="text-gray-900 font-bold text-sm mt-0.5 block">
+                      {formatearFechaDetalle(conductor.fecha_reingreso)}
+                    </span>
+                  </div>
+                  <svg aria-hidden="true" className="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </div>
+              )}
 
               <div 
                 className="bg-[#65002D] text-white p-2.5 rounded-lg flex items-center justify-between shadow-xs"
@@ -821,7 +836,7 @@ export default function InfoGeneralOperador({ conductores }) {
     nombre: '------------------------', id: '---', tarjeton: '---', estatus: '---', tipo_tarjeton: '---',
     vigencia_licencia: null, sexo: '---', fecha_nacimiento: null,
     telefono: '---', referencia_1: '---', referencia_2: '---',
-    fecha_ingreso: null, amonestaciones_detalle: [], reconocimientos_detalle: [],
+    fecha_ingreso: null, fecha_reingreso: null, amonestaciones_detalle: [], reconocimientos_detalle: [],
     accidentes_siniestros: 0, faltas: 0, retardos: 0, amonestaciones: 0,
     reconocimientos: 0, permutas: 0, permisos: 0, condicionamientos_medicos: '---',
     condicionamientos_juridicos: '---', evaluacion: '---', observaciones: '---',
@@ -1073,11 +1088,23 @@ export default function InfoGeneralOperador({ conductores }) {
                 <div>
                   <span className="text-gray-500 text-[10px] uppercase tracking-wider font-bold block">Fecha de Ingreso</span>
                   <span className="text-gray-900 font-bold text-base mt-0.5 block">
-                    {displayConductor.fecha_ingreso ? new Date(displayConductor.fecha_ingreso).toLocaleDateString() : 'No registrada'}
+                    {displayConductor.fecha_ingreso ? formatearFechaDetalle(displayConductor.fecha_ingreso) : 'No registrada'}
                   </span>
                 </div>
                 <svg className="w-6 h-6 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
+
+              {displayConductor.fecha_reingreso && (
+                <div className="bg-amber-50/70 p-3 rounded-lg border border-amber-200/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-amber-800 text-[10px] uppercase tracking-wider font-bold block">Fecha de Reingreso</span>
+                    <span className="text-gray-900 font-bold text-base mt-0.5 block">
+                      {formatearFechaDetalle(displayConductor.fecha_reingreso)}
+                    </span>
+                  </div>
+                  <svg aria-hidden="true" className="w-6 h-6 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </div>
+              )}
 
               <div className="bg-[#65002D] text-white p-3 rounded-lg flex items-center justify-between shadow-xs">
                 <div>

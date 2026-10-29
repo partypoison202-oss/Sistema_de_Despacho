@@ -386,7 +386,7 @@ export default function Operadores() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterEstadoServicio, setFilterEstadoServicio] = useState('');
-  const [mostrarBajasKardex, setMostrarBajasKardex] = useState(true);
+  const [soloBajasKardex, setSoloBajasKardex] = useState(false);
   const navigate = useNavigate();
 
   // Paginación para Kardex
@@ -414,6 +414,10 @@ export default function Operadores() {
   const [foto, setFoto] = useState(null);
   const [qrFile, setQrFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [tarjetonManual, setTarjetonManual] = useState('');
+  const [tarjetonStatus, setTarjetonStatus] = useState(null);
+  const [verificandoTarjeton, setVerificandoTarjeton] = useState(false);
+  const tarjetonDebounceRef = useRef(null);
   const fetchAbortControllerRef = useRef(null);
 
   const tipoOptions = [
@@ -465,6 +469,77 @@ export default function Operadores() {
     const filtered = val.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
     if (filtered.length <= 100) {
       setter(filtered);
+    }
+  };
+
+  const parseRef = (refStr) => {
+    if (!refStr) return ['', ''];
+    const parts = refStr.split(' - ');
+    if (parts.length === 2) return parts;
+    return [parts[0] || '', parts.slice(1).join(' - ') || ''];
+  };
+
+  const handleTarjetonChange = (e) => {
+    // Estricto: Sólo números
+    const val = e.target.value.replace(/\D/g, '');
+    if (val.length <= 10) {
+      setTarjetonManual(val);
+      if (tarjetonDebounceRef.current) clearTimeout(tarjetonDebounceRef.current);
+      if (!val.trim()) {
+        setTarjetonStatus(null);
+      } else if (val.trim().length >= 1) {
+        tarjetonDebounceRef.current = setTimeout(() => {
+          void verificarTarjetonBackend(val);
+        }, 350);
+      }
+    }
+  };
+
+  const verificarTarjetonBackend = async (valor) => {
+    const val = (valor !== undefined ? valor : tarjetonManual).trim();
+    if (!val) {
+      setTarjetonStatus(null);
+      return;
+    }
+    setVerificandoTarjeton(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/conductores/verificar-tarjeton/${encodeURIComponent(val)}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTarjetonStatus(data);
+        if (data.es_baja && data.conductor) {
+          const c = data.conductor;
+          // Jalar y llenar en automático todos los datos previamente guardados en mayúsculas
+          if (c.nombres) setNombres(c.nombres.toUpperCase());
+          if (c.apellidos) setApellidos(c.apellidos.toUpperCase());
+          if (c.tipo_tarjeton) setTipoTarjeton(c.tipo_tarjeton);
+          if (c.sexo) setSexo(c.sexo);
+          if (c.telefono) setTelefono(c.telefono);
+          if (c.vigencia_licencia) setVigenciaLicencia(c.vigencia_licencia);
+          if (c.fecha_nacimiento) setFechaNacimiento(c.fecha_nacimiento);
+          // Para reingreso: la fecha a mostrar debe ser la nueva fecha de reingreso (por defecto hoy)
+          // La primera fecha original queda guardada intacta en el expediente del operador
+          setFechaIngreso(new Date().toISOString().split('T')[0]);
+          if (c.referencia_1) {
+            const [r1n, r1t] = parseRef(c.referencia_1);
+            setRef1Nombre(r1n ? r1n.toUpperCase() : '');
+            setRef1Telefono(r1t || '');
+          }
+          if (c.referencia_2) {
+            const [r2n, r2t] = parseRef(c.referencia_2);
+            setRef2Nombre(r2n ? r2n.toUpperCase() : '');
+            setRef2Telefono(r2t || '');
+          }
+        }
+      } else {
+        setTarjetonStatus(null);
+      }
+    } catch (error) {
+      console.error('Error al verificar tarjetón:', error);
+    } finally {
+      setVerificandoTarjeton(false);
     }
   };
 
@@ -688,8 +763,12 @@ export default function Operadores() {
   const handleOpenAddModal = () => {
     setNombres('');
     setApellidos('');
+    setTarjetonManual('');
+    setTarjetonStatus(null);
+    setVerificandoTarjeton(false);
     setTipoTarjeton('');
     setFoto(null);
+    setQrFile(null);
     setVigenciaLicencia('');
     setSexo('');
     setFechaNacimiento('');
@@ -699,7 +778,6 @@ export default function Operadores() {
     setRef2Nombre('');
     setRef2Telefono('');
     setFechaIngreso('');
-    setFoto(null);
     setShowAddModal(true);
   };
 
@@ -712,6 +790,16 @@ export default function Operadores() {
         icon: 'warning',
         title: 'Campos requeridos',
         text: 'Por favor ingresa nombres, apellidos, tipo de tarjetón y sexo.',
+        confirmButtonColor: '#c5a059'
+      });
+      return;
+    }
+
+    if (tarjetonStatus && !tarjetonStatus.disponible) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Tarjetón no disponible',
+        text: tarjetonStatus.mensaje || 'El número de tarjetón ya está asignado a otro operador activo.',
         confirmButtonColor: '#c5a059'
       });
       return;
@@ -731,20 +819,28 @@ export default function Operadores() {
     setSubmitting(true);
     try {
       const payload = {
-        nombres: nombresLimpio,
-        apellidos: apellidosLimpio,
+        nombres: nombresLimpio.toUpperCase(),
+        apellidos: apellidosLimpio.toUpperCase(),
         tipo_tarjeton: tipoTarjeton.trim(),
       };
+      if (tarjetonManual.trim()) {
+        payload.tarjeton = tarjetonManual.trim();
+      }
       if (vigenciaLicencia) payload.vigencia_licencia = vigenciaLicencia;
       if (sexo) payload.sexo = sexo;
       if (fechaNacimiento) payload.fecha_nacimiento = fechaNacimiento;
       if (telefono) payload.telefono = telefono;
-      const ref1 = [ref1Nombre.trim(), ref1Telefono.trim()].filter(Boolean).join(' - ');
+      const ref1 = [ref1Nombre.trim().toUpperCase(), ref1Telefono.trim()].filter(Boolean).join(' - ');
       if (ref1) payload.referencia_1 = ref1;
 
-      const ref2 = [ref2Nombre.trim(), ref2Telefono.trim()].filter(Boolean).join(' - ');
+      const ref2 = [ref2Nombre.trim().toUpperCase(), ref2Telefono.trim()].filter(Boolean).join(' - ');
       if (ref2) payload.referencia_2 = ref2;
-      if (fechaIngreso) payload.fecha_ingreso = fechaIngreso;
+      
+      if (tarjetonStatus?.es_baja) {
+        payload.fecha_reingreso = fechaIngreso;
+      } else if (fechaIngreso) {
+        payload.fecha_ingreso = fechaIngreso;
+      }
 
       const res = await fetch(`${API_BASE}/api/conductores`, {
         method: 'POST',
@@ -795,10 +891,15 @@ export default function Operadores() {
       }
 
       setShowAddModal(false);
+      const isReingreso = data.es_reingreso;
       Swal.fire({
         icon: 'success',
-        title: 'Operador Registrado',
-        text: `El operador se creó exitosamente con el Tarjetón Automático: ${data.conductor.tarjeton}`,
+        title: isReingreso ? 'Reingreso Registrado' : 'Operador Registrado',
+        text: isReingreso 
+          ? `El operador se reactivó exitosamente con su Tarjetón: ${data.conductor.tarjeton}`
+          : (tarjetonManual.trim() 
+              ? `El operador se registró exitosamente con el Tarjetón: ${data.conductor.tarjeton}`
+              : `El operador se creó exitosamente con el Tarjetón Automático: ${data.conductor.tarjeton}`),
         confirmButtonColor: '#c5a059'
       });
       fetchConductores();
@@ -816,26 +917,20 @@ export default function Operadores() {
 
   const handleOpenEditModal = (c) => {
     setSelectedConductor(c);
-    setNombres(c.nombres || '');
-    setApellidos(c.apellidos || '');
+    setNombres(c.nombres ? c.nombres.toUpperCase() : '');
+    setApellidos(c.apellidos ? c.apellidos.toUpperCase() : '');
     setTipoTarjeton(c.tipo_tarjeton === 'C' ? 'C' : 'B');
     setVigenciaLicencia(c.vigencia_licencia || '');
     setSexo(c.sexo || '');
     setFechaNacimiento(c.fecha_nacimiento || '');
     setTelefono(c.telefono || '');
-    const parseRef = (refStr) => {
-      if (!refStr) return ['', ''];
-      const parts = refStr.split(' - ');
-      if (parts.length === 2) return parts;
-      return [parts[0] || '', parts.slice(1).join(' - ') || ''];
-    };
 
     const [r1n, r1t] = parseRef(c.referencia_1);
-    setRef1Nombre(r1n);
+    setRef1Nombre(r1n ? r1n.toUpperCase() : '');
     setRef1Telefono(r1t);
 
     const [r2n, r2t] = parseRef(c.referencia_2);
-    setRef2Nombre(r2n);
+    setRef2Nombre(r2n ? r2n.toUpperCase() : '');
     setRef2Telefono(r2t);
     setFechaIngreso(c.fecha_ingreso || '');
     setFoto(null);
@@ -883,18 +978,18 @@ export default function Operadores() {
     setSubmitting(true);
     try {
       const payload = {
-        nombres: nombresLimpio,
-        apellidos: apellidosLimpio,
+        nombres: nombresLimpio.toUpperCase(),
+        apellidos: apellidosLimpio.toUpperCase(),
         tipo_tarjeton: tipoTarjeton.trim(),
       };
       if (vigenciaLicencia) payload.vigencia_licencia = vigenciaLicencia;
       if (sexo) payload.sexo = sexo;
       if (fechaNacimiento) payload.fecha_nacimiento = fechaNacimiento;
       if (telefono) payload.telefono = telefono;
-      const ref1 = [ref1Nombre.trim(), ref1Telefono.trim()].filter(Boolean).join(' - ');
+      const ref1 = [ref1Nombre.trim().toUpperCase(), ref1Telefono.trim()].filter(Boolean).join(' - ');
       if (ref1) payload.referencia_1 = ref1;
 
-      const ref2 = [ref2Nombre.trim(), ref2Telefono.trim()].filter(Boolean).join(' - ');
+      const ref2 = [ref2Nombre.trim().toUpperCase(), ref2Telefono.trim()].filter(Boolean).join(' - ');
       if (ref2) payload.referencia_2 = ref2;
       if (fechaIngreso) payload.fecha_ingreso = fechaIngreso;
 
@@ -1057,7 +1152,7 @@ export default function Operadores() {
       if (activeTab === 'catalogo' && c.estatus === 'baja') {
         return false;
       }
-      if (activeTab === 'kardex' && !mostrarBajasKardex && c.estatus === 'baja') {
+      if (activeTab === 'kardex' && soloBajasKardex && c.estatus !== 'baja') {
         return false;
       }
 
@@ -1076,13 +1171,13 @@ export default function Operadores() {
     }).sort((a, b) => {
       return getTarjetonNumber(a.tarjeton) - getTarjetonNumber(b.tarjeton);
     });
-  }, [conductores, activeTab, mostrarBajasKardex, filterTipo, filterEstadoServicio, searchTerm]);
+  }, [conductores, activeTab, soloBajasKardex, filterTipo, filterEstadoServicio, searchTerm]);
 
   // Reset de página al cambiar filtros
   useEffect(() => {
     setPaginaCatalogo(1);
     setPaginaKardex(1);
-  }, [searchTerm, filterTipo, filterEstadoServicio, mostrarBajasKardex, activeTab]);
+  }, [searchTerm, filterTipo, filterEstadoServicio, soloBajasKardex, activeTab]);
 
   const totalPaginasCatalogo = Math.ceil(filteredConductores.length / catalogoPorPagina) || 1;
   const indiceInicioCatalogo = (paginaCatalogo - 1) * catalogoPorPagina;
@@ -1244,14 +1339,18 @@ export default function Operadores() {
 
               {activeTab === 'kardex' && (
                 <div className="flex w-full md:w-auto items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors">
+                  <label className={`flex items-center gap-2 cursor-pointer text-sm font-bold px-3 py-2 rounded-lg border shadow-sm transition-all ${
+                    soloBajasKardex 
+                      ? 'bg-red-50 text-red-800 border-red-300 ring-2 ring-red-200' 
+                      : 'text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  }`}>
                     <input 
                       type="checkbox" 
                       className="w-4 h-4 text-[#6b1d33] rounded border-gray-300 focus:ring-[#6b1d33]"
-                      checked={mostrarBajasKardex}
-                      onChange={(e) => setMostrarBajasKardex(e.target.checked)}
+                      checked={soloBajasKardex}
+                      onChange={(e) => setSoloBajasKardex(e.target.checked)}
                     />
-                    Mostrar Operadores en Baja
+                    <span>Solo Operadores en Baja</span>
                   </label>
                 </div>
               )}
@@ -1352,19 +1451,18 @@ export default function Operadores() {
                               </button>
                             )}
 
-                            {canEdit && (
-                              <button
-                                type="button"
-                                className="btn-action baja"
-                                onClick={() => handleDarDeBaja(c)}
-                                title="Dar de baja en sistema"
-                              >
-                                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
-                                </svg>
-                                <span>Dar de Baja</span>
-                              </button>
-                            )}
+                            {/* Botón Dar de Baja habilitado para todos los usuarios con acceso al módulo */}
+                            <button
+                              type="button"
+                              className="btn-action baja"
+                              onClick={() => handleDarDeBaja(c)}
+                              title="Dar de baja en sistema"
+                            >
+                              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
+                              </svg>
+                              <span>Dar de Baja</span>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1437,7 +1535,7 @@ export default function Operadores() {
                     {conductoresPaginadosKardex.length === 0 ? (
                       <tr>
                         <td colSpan="17" className="empty-table-cell">
-                          No se encontraron T6 registrados.
+                          {soloBajasKardex ? 'No se encontraron T6 dados de baja.' : 'No se encontraron T6 registrados.'}
                         </td>
                       </tr>
                     ) : (
@@ -1607,7 +1705,10 @@ export default function Operadores() {
           <div className="modal-content" style={{ position: 'relative', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
             <div className="modal-header" style={{ backgroundColor: '#6A1B29', borderBottom: 'none', flexShrink: 0 }}>
               <div className="modal-header-title">
-                <h2 style={{ color: 'white', fontSize: '1.25rem', fontWeight: '600' }}>Agregar Nuevo T6</h2>
+                <h2 style={{ color: 'white', fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>Agregar Nuevo T6</h2>
+                <span style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.78rem', display: 'block', marginTop: '3px' }}>
+                  Los campos marcados con (<span style={{ color: '#fca5a5', fontWeight: 'bold' }}>*</span>) son obligatorios
+                </span>
               </div>
               <button 
                 className="close-btn" 
@@ -1742,9 +1843,101 @@ export default function Operadores() {
                 
               </div>
 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: '#fff5f5',
+                border: '1px solid #fed7d7',
+                borderLeft: '4px solid #ef4444',
+                padding: '0.55rem 0.85rem',
+                borderRadius: '6px',
+                marginBottom: '1.25rem',
+                fontSize: '0.8rem',
+                color: '#742a2a'
+              }}>
+                <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '1.1rem', lineHeight: 1 }}>*</span>
+                <span>Los campos marcados con un asterisco rojo (<strong style={{ color: '#ef4444' }}>*</strong>) son obligatorios.</span>
+              </div>
+
               <div className="form-group">
-                <label className="form-label">Apellidos del T6</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Número de Tarjetón (ID)</label>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '500' }}>Opcional / Reingreso</span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Automático (o ingrese número para reingreso ej. 0184)"
+                    value={tarjetonManual}
+                    onChange={handleTarjetonChange}
+                    onBlur={() => verificarTarjetonBackend()}
+                    maxLength={10}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      borderColor: tarjetonStatus ? (tarjetonStatus.disponible ? (tarjetonStatus.es_baja ? '#f59e0b' : '#10b981') : '#ef4444') : undefined,
+                      backgroundColor: tarjetonStatus && !tarjetonStatus.disponible ? '#fff1f2' : undefined,
+                      paddingRight: verificandoTarjeton ? '35px' : undefined
+                    }}
+                  />
+                  {verificandoTarjeton && (
+                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}>
+                      <svg aria-hidden="true" className="animate-spin" style={{ width: '16px', height: '16px', color: '#6A1B29' }} viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"></circle>
+                        <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {tarjetonStatus && (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    fontSize: '0.82rem',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    backgroundColor: tarjetonStatus.disponible ? (tarjetonStatus.es_baja ? '#fffbeb' : '#f0fdf4') : '#fef2f2',
+                    color: tarjetonStatus.disponible ? (tarjetonStatus.es_baja ? '#92400e' : '#166534') : '#991b1b',
+                    border: `1px solid ${tarjetonStatus.disponible ? (tarjetonStatus.es_baja ? '#fde68a' : '#bbf7d0') : '#fecaca'}`
+                  }}>
+                    {tarjetonStatus.disponible ? (
+                      tarjetonStatus.es_baja ? (
+                        <>
+                          <svg aria-hidden="true" style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          <div>
+                            <strong>Reingreso detectado:</strong> El Tarjetón <b>{tarjetonStatus.tarjeton}</b> perteneció a un operador dado de baja ({tarjetonStatus.conductor?.nombres} {tarjetonStatus.conductor?.apellidos}). Al guardar, se reactivará su expediente.
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <svg aria-hidden="true" style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                          <div>
+                            <strong>Tarjetón disponible:</strong> Se asignará el Tarjetón <b>{tarjetonStatus.tarjeton}</b> para este nuevo registro.
+                          </div>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <svg aria-hidden="true" style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div>
+                          <strong>Tarjetón no disponible:</strong> {tarjetonStatus.mensaje}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="add-apellidos" className="form-label">Apellidos del T6 <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
+                  id="add-apellidos"
                   type="text"
                   required
                   placeholder="Ej. PÉREZ LÓPEZ"
@@ -1752,12 +1945,14 @@ export default function Operadores() {
                   onChange={handleApellidosChange}
                   maxLength={100}
                   className="modal-input"
+                  style={{ textTransform: 'uppercase' }}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre(s) del T6</label>
+                <label htmlFor="add-nombres" className="form-label">Nombre(s) del T6 <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
+                  id="add-nombres"
                   type="text"
                   required
                   placeholder="Ej. JUAN ARTURO"
@@ -1765,11 +1960,12 @@ export default function Operadores() {
                   onChange={handleNombresChange}
                   maxLength={100}
                   className="modal-input"
+                  style={{ textTransform: 'uppercase' }}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Tipo de Tarjetón</label>
+                <label className="form-label">Tipo de Tarjetón <span style={{ color: '#ef4444' }}>*</span></label>
                 <CustomSelect
                   value={tipoTarjeton}
                   onChange={setTipoTarjeton}
@@ -1780,7 +1976,7 @@ export default function Operadores() {
               <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem' }}>Datos Personales y Operativos</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Sexo</label>
+                  <label className="form-label">Sexo <span style={{ color: '#ef4444' }}>*</span></label>
                   <CustomSelect
                     value={sexo}
                     onChange={setSexo}
@@ -1796,7 +1992,7 @@ export default function Operadores() {
                   <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={telefono} onChange={e => handlePhoneChange(e, setTelefono)} placeholder="Ej. 5551234567" maxLength={10} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Fecha de Ingreso</label>
+                  <label className="form-label">{tarjetonStatus?.es_baja ? 'Fecha de Reingreso' : 'Fecha de Ingreso'}</label>
                   <AppleDatePicker value={fechaIngreso} onChange={setFechaIngreso} disableFuture={true} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
@@ -1808,7 +2004,7 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Nombre</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Nombre} onChange={e => handleRefNombreChange(e, setRef1Nombre)} placeholder="Ej. Juan Pérez" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem', textTransform: 'uppercase' }} value={ref1Nombre} onChange={e => handleRefNombreChange(e, setRef1Nombre)} placeholder="Ej. JUAN PÉREZ" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Teléfono</label>
@@ -1819,7 +2015,7 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Nombre</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Nombre} onChange={e => handleRefNombreChange(e, setRef2Nombre)} placeholder="Ej. María López" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem', textTransform: 'uppercase' }} value={ref2Nombre} onChange={e => handleRefNombreChange(e, setRef2Nombre)} placeholder="Ej. MARÍA LÓPEZ" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Teléfono</label>
@@ -1831,7 +2027,13 @@ export default function Operadores() {
                 <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="info-icon">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                 </svg>
-                <span>El número de tarjetón se generará de manera automática en el sistema (ej. TJ-XXXX).</span>
+                <span>
+                  {tarjetonManual.trim() 
+                    ? (tarjetonStatus?.es_baja 
+                        ? `Se reactivará al operador con el Tarjetón ${tarjetonStatus.tarjeton || tarjetonManual}.`
+                        : `Se asignará el Tarjetón manual: ${tarjetonManual}.`)
+                    : 'Si deja el campo de tarjetón vacío, el sistema generará el siguiente número consecutivo automáticamente.'}
+                </span>
               </div>
 
               <div className="modal-footer">
@@ -1862,7 +2064,10 @@ export default function Operadores() {
           <div className="modal-content" style={{ position: 'relative', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
             <div className="modal-header" style={{ backgroundColor: '#6A1B29', borderBottom: 'none', flexShrink: 0 }}>
               <div className="modal-header-title">
-                <h2 style={{ color: 'white', fontSize: '1.25rem', fontWeight: '600' }}>Editar T6</h2>
+                <h2 style={{ color: 'white', fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>Editar T6</h2>
+                <span style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.78rem', display: 'block', marginTop: '3px' }}>
+                  Los campos marcados con (<span style={{ color: '#fca5a5', fontWeight: 'bold' }}>*</span>) son obligatorios
+                </span>
               </div>
               <button 
                 className="close-btn" 
@@ -2009,6 +2214,23 @@ export default function Operadores() {
 
               </div>
 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: '#fff5f5',
+                border: '1px solid #fed7d7',
+                borderLeft: '4px solid #ef4444',
+                padding: '0.55rem 0.85rem',
+                borderRadius: '6px',
+                marginBottom: '1.25rem',
+                fontSize: '0.8rem',
+                color: '#742a2a'
+              }}>
+                <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '1.1rem', lineHeight: 1 }}>*</span>
+                <span>Los campos marcados con un asterisco rojo (<strong style={{ color: '#ef4444' }}>*</strong>) son obligatorios.</span>
+              </div>
+
               <div className="form-group">
                 <label className="form-label">Tarjetón Asignado (Automático)</label>
                 <input
@@ -2020,8 +2242,9 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Apellidos del T6</label>
+                <label htmlFor="add-apellidos" className="form-label">Apellidos del T6 <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
+                  id="add-apellidos"
                   type="text"
                   required
                   placeholder="Ej. PÉREZ LÓPEZ"
@@ -2029,12 +2252,14 @@ export default function Operadores() {
                   onChange={handleApellidosChange}
                   maxLength={100}
                   className="modal-input"
+                  style={{ textTransform: 'uppercase' }}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre(s) del T6</label>
+                <label htmlFor="add-nombres" className="form-label">Nombre(s) del T6 <span style={{ color: '#ef4444' }}>*</span></label>
                 <input
+                  id="add-nombres"
                   type="text"
                   required
                   placeholder="Ej. JUAN ARTURO"
@@ -2042,11 +2267,12 @@ export default function Operadores() {
                   onChange={handleNombresChange}
                   maxLength={100}
                   className="modal-input"
+                  style={{ textTransform: 'uppercase' }}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Tipo de Tarjetón</label>
+                <label className="form-label">Tipo de Tarjetón <span style={{ color: '#ef4444' }}>*</span></label>
                 <CustomSelect
                   value={tipoTarjeton}
                   onChange={setTipoTarjeton}
@@ -2057,7 +2283,7 @@ export default function Operadores() {
               <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem' }}>Datos Personales y Operativos</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Sexo</label>
+                  <label className="form-label">Sexo <span style={{ color: '#ef4444' }}>*</span></label>
                   <CustomSelect
                     value={sexo}
                     onChange={setSexo}
@@ -2085,7 +2311,7 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Nombre</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Nombre} onChange={e => handleRefNombreChange(e, setRef1Nombre)} placeholder="Ej. Juan Pérez" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem', textTransform: 'uppercase' }} value={ref1Nombre} onChange={e => handleRefNombreChange(e, setRef1Nombre)} placeholder="Ej. JUAN PÉREZ" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Teléfono</label>
@@ -2096,7 +2322,7 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Nombre</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Nombre} onChange={e => handleRefNombreChange(e, setRef2Nombre)} placeholder="Ej. María López" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem', textTransform: 'uppercase' }} value={ref2Nombre} onChange={e => handleRefNombreChange(e, setRef2Nombre)} placeholder="Ej. MARÍA LÓPEZ" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Teléfono</label>
