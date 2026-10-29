@@ -300,7 +300,7 @@ export default function HistorialMantenimiento() {
     if (motivo && motivo.toUpperCase() !== 'MANTENIMIENTO' && motivo.toUpperCase() !== 'PERCANCE') {
       return { texto: motivo, esGenerico: false };
     }
-    return { texto: 'Revisión general en taller', esGenerico: true };
+    return { texto: 'Revisión general en mtto', esGenerico: true };
   };
 
   // Filtrado local por buscador
@@ -382,8 +382,8 @@ export default function HistorialMantenimiento() {
         'N° DE FOLIO': d.folio_mantenimiento || 'SIN FOLIO',
         'FECHA INCIDENCIA': d.fecha_registro ? new Date(d.fecha_registro).toLocaleString('es-MX') : 'N/A',
         'FECHA FOLIO': d.fecha_folio_mantenimiento ? new Date(d.fecha_folio_mantenimiento).toLocaleString('es-MX') : 'N/A',
-        'ESTATUS ACTUAL': (d.estatus || '').toUpperCase(),
-        'FALLA / MOTIVO': (d.falla && d.falla.toUpperCase() !== 'MANTENIMIENTO') ? d.falla : (d.motivo_estatus && d.motivo_estatus.toUpperCase() !== 'MANTENIMIENTO' ? d.motivo_estatus : 'Revisión general en taller'),
+        'TIEMPO EN MANTENIMIENTO': getTiempoMantenimiento(d)?.textoCompleto || 'N/A',
+        'FALLA / MOTIVO': (d.falla && d.falla.toUpperCase() !== 'MANTENIMIENTO') ? d.falla : (d.motivo_estatus && d.motivo_estatus.toUpperCase() !== 'MANTENIMIENTO' ? d.motivo_estatus : 'Revisión general en mtto'),
         'DIAGNÓSTICO': d.diagnostico || '',
         'MODIFICACIONES REGISTRADAS': d.auditoria ? d.auditoria.length : 0
       }));
@@ -582,6 +582,41 @@ export default function HistorialMantenimiento() {
       texto,
       etiqueta,
       esOperacion
+    };
+  };
+
+  // Obtener tiempo y días de estancia para la columna de la tabla principal
+  const getTiempoMantenimiento = (item) => {
+    if (!item) return null;
+    const t = item.tiempo_incidencia || item.tiempo_folio || calcularDiasEstancia(item);
+    if (!t) return null;
+
+    const estatusNorm = String(item.estatus || '').trim().toLowerCase();
+    const esOperacion = t.es_operacion !== undefined ? t.es_operacion : estatusNorm !== 'mantenimiento';
+    const dias = t.dias !== undefined ? Number(t.dias) : 0;
+    const horas = t.horas !== undefined ? Number(t.horas) : 0;
+
+    let duracionTexto = '';
+    if (dias === 0) {
+      duracionTexto = horas <= 1 ? '< 1 hr' : `${horas} hrs`;
+    } else if (dias === 1) {
+      duracionTexto = '1 día';
+    } else {
+      duracionTexto = `${dias} días`;
+    }
+
+    const etiqueta = esOperacion ? 'Estuvo' : 'Lleva';
+    const textoCompleto = `${etiqueta} ${duracionTexto}`;
+    const variante = esOperacion ? 'resuelto' : (dias >= 3 ? 'critico' : 'activo');
+
+    return {
+      dias,
+      horas,
+      duracionTexto,
+      etiqueta,
+      textoCompleto,
+      esOperacion,
+      variante
     };
   };
 
@@ -869,7 +904,22 @@ export default function HistorialMantenimiento() {
             </div>
           </div>
         ) : null}
-        <span className="detalle-simple-text">{parsed.texto || rawDetalles}</span>
+        <span className="detalle-simple-row">
+          <span className="detalle-simple-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </span>
+          <span className="detalle-simple-text">
+            {String(parsed.texto || rawDetalles || '').split(/((?:OCT|INC)-[A-Za-z0-9-]+|ECO\s?\d+)/g).map((part, idx) =>
+              /^((?:OCT|INC)-[A-Za-z0-9-]+|ECO\s?\d+)$/.test(part)
+                ? <span key={idx} className="detalle-code-chip">{part}</span>
+                : <React.Fragment key={idx}>{part}</React.Fragment>
+            )}
+          </span>
+        </span>
       </div>
     );
   };
@@ -919,7 +969,7 @@ export default function HistorialMantenimiento() {
               Registro Diario de Mantenimiento
             </h2>
             <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.86rem', fontWeight: 500 }}>
-              Supervisión de operaciones de taller, hojas de chequeo y registro histórico de folios
+              Supervisión de operaciones de mtto, hojas de chequeo y registro histórico de folios
             </p>
           </div>
 
@@ -1218,12 +1268,12 @@ export default function HistorialMantenimiento() {
               </span>
               <span className="deep-search-alert-text">
                 {expedienteProfundo.estadisticas.estatus_actual === 'mantenimiento' ? (
-                  <>Unidad actualmente en <strong>Taller</strong> {expedienteProfundo.estadisticas.folio_actual ? `(Folio activo: ${expedienteProfundo.estadisticas.folio_actual})` : '(Sin folio asignado hoy)'}</>
+                  <>Unidad actualmente en <strong>Mtto</strong> {expedienteProfundo.estadisticas.folio_actual ? `(Folio activo: ${expedienteProfundo.estadisticas.folio_actual})` : '(Sin folio asignado hoy)'}</>
                 ) : (
                   <>Unidad actualmente en <strong>{expedienteProfundo.estadisticas.estatus_actual.toUpperCase()}</strong> {expedienteProfundo.estado_actual?.ruta ? `• Ruta ${expedienteProfundo.estado_actual.ruta}` : ''}</>
                 )}
                 {expedienteProfundo.estadisticas.total_ingresos_taller > 0 ? (
-                  <> • <strong>{expedienteProfundo.estadisticas.total_ingresos_taller}</strong> ingresos históricos a taller</>
+                  <> • <strong>{expedienteProfundo.estadisticas.total_ingresos_taller}</strong> ingresos históricos a mtto</>
                 ) : (
                   <> • <strong>{expedienteProfundo.estadisticas.total_movimientos_bitacora}</strong> movimientos en bitácora</>
                 )}
@@ -1278,11 +1328,11 @@ export default function HistorialMantenimiento() {
                   const info = interpretarCambioMantenimiento(dEnriched);
                   return (
                     <tr key={d.id || i}>
-                      <td style={{ fontWeight: '700', color: '#64748b' }}>{formatearHora(d.hora)}</td>
-                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
+                      <td style={{ fontWeight: '700', color: '#64748b', whiteSpace: 'nowrap' }}>{formatearHora(d.hora)}</td>
                       <td style={{ fontWeight: '600' }}>{d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '-'}</td>
+                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
                       <td>
-                        <span className="estatus-badge" style={info.badgeStyle}>
+                        <span className="cambio-mod-badge" style={info.badgeStyle}>
                           {info.modificacion}
                         </span>
                       </td>
@@ -1295,23 +1345,23 @@ export default function HistorialMantenimiento() {
                       </td>
                       <td>
                         {info.tipoPillNuevo === 'incidencia' ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '800', color: '#A02142', background: '#fdf2f4', padding: '2px 8px', borderRadius: '5px', border: '1px solid #fecdd3' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#A02142' }}></span>
+                          <span className="cambio-valor-pill" style={{ color: '#A02142', background: '#fdf2f4', border: '1px solid #fecdd3' }}>
+                            <span className="cambio-dot" style={{ backgroundColor: '#A02142' }}></span>
                             {info.valorNuevo}
                           </span>
                         ) : info.tipoPillNuevo === 'folio' ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '800', color: '#BC955B', background: '#fdfbf7', padding: '2px 8px', borderRadius: '5px', border: '1.5px solid #DDC9A3' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#BC955B' }}></span>
+                          <span className="cambio-valor-pill" style={{ color: '#BC955B', background: '#fdfbf7', border: '1.5px solid #DDC9A3' }}>
+                            <span className="cambio-dot" style={{ backgroundColor: '#BC955B' }}></span>
                             {info.valorNuevo}
                           </span>
                         ) : info.tipoPillNuevo === 'permanece' ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: '700', color: '#691B31', background: '#fdf2f4', padding: '3px 8px', borderRadius: '5px', border: '1px solid #fecdd3', fontSize: '0.78rem' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#691B31' }}></span>
+                          <span className="cambio-valor-pill" style={{ color: '#691B31', background: '#fdf2f4', border: '1px solid #fecdd3' }}>
+                            <span className="cambio-dot" style={{ backgroundColor: '#691B31' }}></span>
                             {info.valorNuevo}
                           </span>
                         ) : info.tipoPillNuevo === 'mantenimiento' ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: '700', color: '#b45309', background: '#fef3c7', padding: '3px 8px', borderRadius: '5px', border: '1px solid #fcd34d', fontSize: '0.78rem' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#b45309' }}></span>
+                          <span className="cambio-valor-pill" style={{ color: '#b45309', background: '#fef3c7', border: '1px solid #fcd34d' }}>
+                            <span className="cambio-dot" style={{ backgroundColor: '#b45309' }}></span>
                             MANTENIMIENTO
                           </span>
                         ) : (
@@ -1320,8 +1370,10 @@ export default function HistorialMantenimiento() {
                           </span>
                         )}
                       </td>
-                      <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', color: '#334155', fontSize: '0.86rem' }}>
-                        {info.detalles}
+                      <td style={{ minWidth: '280px' }}>
+                        <div className="cambio-detalle-wrap" style={{ '--detalle-accent': (info.badgeStyle && info.badgeStyle.color) || '#691B31' }}>
+                          {renderDetallesModificacionGlobal(info.detalles, null)}
+                        </div>
                       </td>
                       <td style={{ fontWeight: '600' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                     </tr>
@@ -1347,13 +1399,14 @@ export default function HistorialMantenimiento() {
                   <th style={{ width: '110px', minWidth: '105px' }}>N° FOLIO</th>
                   <th style={{ width: '275px', minWidth: '265px' }}>CRONOLOGÍA (INC / FOLIO)</th>
                   <th style={{ minWidth: '150px' }}>FALLA & DIAGNÓSTICO</th>
-                  <th style={{ width: '120px', minWidth: '115px', textAlign: 'center' }}>ESTATUS</th>
+                  <th style={{ width: '160px', minWidth: '150px', textAlign: 'center' }}>TIEMPO EN MANTENIMIENTO</th>
                   <th style={{ textAlign: 'center', width: '165px', minWidth: '160px' }}>ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
                 {datosFiltrados.map((d) => {
                   const fallaInfo = getFallaDetalle(d);
+                  const tiempoMtto = getTiempoMantenimiento(d);
                   return (
                     <tr key={d.id} className="tr-folio-item">
                       {/* 1. Tipo (Texto limpio tipo Estado Inicial) */}
@@ -1410,7 +1463,7 @@ export default function HistorialMantenimiento() {
                                 type="button"
                                 className="btn-quick-asignar"
                                 onClick={() => abrirModalEdicion(d)}
-                                title="Asignar folio físico emitido por taller"
+                                title="Asignar folio físico emitido en mtto"
                               >
                                 + Asignar
                               </button>
@@ -1437,7 +1490,7 @@ export default function HistorialMantenimiento() {
                             )}
                           </div>
 
-                          <div className="fecha-dual-row" title="Fecha oficial del folio emitido en taller">
+                          <div className="fecha-dual-row" title="Fecha oficial del folio emitido en mtto">
                             <span className="fecha-tag-pill muted">Folio:</span>
                             <span className="fecha-dual-text">{d.folio_mantenimiento && d.fecha_folio_mantenimiento ? formatearFechaHora(d.fecha_folio_mantenimiento) : 'Sin registro'}</span>
                             {d.folio_mantenimiento && d.tiempo_folio ? (
@@ -1447,9 +1500,7 @@ export default function HistorialMantenimiento() {
                               >
                                 {formatearTiempoCorto(d.tiempo_folio)}
                               </span>
-                            ) : (
-                              <span className="tiempo-tag-pill sin-folio">Sin folio</span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </td>
@@ -1471,12 +1522,22 @@ export default function HistorialMantenimiento() {
                         </div>
                       </td>
 
-                      {/* 7. Estatus */}
+                      {/* 7. Tiempo en Mantenimiento (Sin colores) */}
                       <td style={{ textAlign: 'center' }}>
-                        <span className={`estatus-badge estatus-${String(d.estatus || 'mantenimiento').toLowerCase()}`}>
-                          <span className="pulse-dot"></span>
-                          {String(d.estatus || 'Mantenimiento').toUpperCase()}
-                        </span>
+                        {tiempoMtto ? (
+                          <span
+                            className="tiempo-mantenimiento-badge"
+                            title={
+                              tiempoMtto.esOperacion
+                                ? `Mantenimiento concluido. Estuvo ${tiempoMtto.duracionTexto} en mtto (${tiempoMtto.horas} hrs registradas).`
+                                : `En atención activa. Lleva ${tiempoMtto.duracionTexto} en mantenimiento (${tiempoMtto.horas} hrs acumuladas).`
+                            }
+                          >
+                            <span>{tiempoMtto.textoCompleto}</span>
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span>
+                        )}
                       </td>
 
                       {/* 8. Acciones (Ajustadas para caber perfectamente sin corte) */}
@@ -1544,7 +1605,7 @@ export default function HistorialMantenimiento() {
 
                           <h4 style={{ margin: '0.85rem 0 0.35rem 0', fontWeight: 800, color: '#1e293b', fontSize: '1.2rem' }}>
                             {expedienteProfundo.estadisticas.estatus_actual === 'mantenimiento'
-                              ? `El ECO ${expedienteProfundo.unidad.numero_eco} está en Taller pero sin folio asignado hoy`
+                              ? `El ECO ${expedienteProfundo.unidad.numero_eco} está en Mtto pero sin folio asignado hoy`
                               : `El ECO ${expedienteProfundo.unidad.numero_eco} no tiene folios ni fallas activas hoy`}
                           </h4>
 
@@ -1559,7 +1620,7 @@ export default function HistorialMantenimiento() {
                             ) : null}
                             {expedienteProfundo.estadisticas.total_ingresos_taller > 0 || expedienteProfundo.estadisticas.total_movimientos_bitacora > 0 ? (
                               <>
-                                Cuenta con un expediente registrado de <strong>{expedienteProfundo.estadisticas.total_ingresos_taller} ingresos históricos a taller</strong> y <strong>{expedienteProfundo.estadisticas.total_movimientos_bitacora} movimientos en bitácora</strong>.
+                                Cuenta con un expediente registrado de <strong>{expedienteProfundo.estadisticas.total_ingresos_taller} ingresos históricos a mtto</strong> y <strong>{expedienteProfundo.estadisticas.total_movimientos_bitacora} movimientos en bitácora</strong>.
                               </>
                             ) : (
                               'No cuenta con ingresos pasados por fallas mecánicas registrados en el sistema.'
@@ -1652,7 +1713,7 @@ export default function HistorialMantenimiento() {
                     <td>{d.nivel_adblue || '-'}</td>
                     <td>{d.kilometraje || '-'}</td>
                     <td>{d.numero_cincho || '-'}</td>
-                    <td>{d.fecha_ultima_carga || '-'}</td>
+                    <td>{formatearFechaDiaMesAnio(d.fecha_ultima_carga) || '-'}</td>
                     <td>{d.hora_guardado ? new Date(d.hora_guardado).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                     <td>
                       <button 
@@ -1883,7 +1944,7 @@ export default function HistorialMantenimiento() {
                     rows="3"
                     value={formMotivoCambio}
                     onChange={(e) => setFormMotivoCambio(e.target.value.toUpperCase())}
-                    placeholder="ESCRIBA LA JUSTIFICACIÓN OBLIGATORIA DEL CAMBIO PARA LA BITÁCORA HISTÓRICA (EJ. CORRECCIÓN EN FOLIO FÍSICO EMITIDO POR TALLER)..."
+                    placeholder="ESCRIBA LA JUSTIFICACIÓN OBLIGATORIA DEL CAMBIO PARA LA BITÁCORA HISTÓRICA (EJ. CORRECCIÓN EN FOLIO FÍSICO EMITIDO EN MTTO)..."
                     className="textarea-luxury"
                     style={{ textTransform: 'uppercase' }}
                     required
@@ -2156,7 +2217,7 @@ export default function HistorialMantenimiento() {
             <div className="expediente-kpi-bar">
               <div className="expediente-kpi-item">
                 <span className="exp-kpi-num">{expedienteSeleccionado.estadisticas.total_ingresos_taller}</span>
-                <span className="exp-kpi-lbl">Ingresos a Taller</span>
+                <span className="exp-kpi-lbl">Ingresos a Mtto</span>
               </div>
               <div className="expediente-kpi-item">
                 <span className="exp-kpi-num">{expedienteSeleccionado.estadisticas.total_movimientos_bitacora}</span>
@@ -2184,7 +2245,7 @@ export default function HistorialMantenimiento() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                 </svg>
-                <span>Ingresos y Reportes de Taller ({expedienteSeleccionado.historial_taller?.length || 0})</span>
+                <span>Ingresos y Reportes de Mtto ({expedienteSeleccionado.historial_taller?.length || 0})</span>
               </button>
               <button
                 type="button"
@@ -2222,7 +2283,7 @@ export default function HistorialMantenimiento() {
                         <div className="exp-card-body">
                           <div className="exp-falla-row">
                             <span className="exp-label">Falla / Motivo:</span>
-                            <span className="exp-val exp-val-falla">{t.falla_reportada || t.falla || t.motivo_estatus || 'Revisión en taller'}</span>
+                            <span className="exp-val exp-val-falla">{t.falla_reportada || t.falla || t.motivo_estatus || 'Revisión en mtto'}</span>
                           </div>
                           {t.diagnostico && (
                             <div className="exp-falla-row">
@@ -2246,7 +2307,7 @@ export default function HistorialMantenimiento() {
                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                       </svg>
                     </div>
-                    <h4>Sin Reportes de Taller Registrados</h4>
+                    <h4>Sin Reportes de Mtto Registrados</h4>
                     <p>Esta unidad no registra ingresos históricos por fallas en los cierres de jornada.</p>
                   </div>
                 )
@@ -3455,6 +3516,43 @@ export default function HistorialMantenimiento() {
           box-shadow: 0 3px 6px rgba(105, 27, 49, 0.3);
         }
 
+        /* Tabla Cambios en el Transcurso: badges y puntos centrados */
+        .cambio-mod-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          min-width: 118px;
+          padding: 5px 12px;
+          border-radius: 9999px;
+          font-size: 0.7rem;
+          font-weight: 800;
+          line-height: 1.2;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          white-space: nowrap;
+          box-sizing: border-box;
+        }
+        .cambio-valor-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          font-weight: 800;
+          font-size: 0.78rem;
+          line-height: 1;
+          padding: 4px 10px;
+          border-radius: 5px;
+          white-space: nowrap;
+        }
+        .cambio-dot {
+          display: inline-block;
+          flex-shrink: 0;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+        }
+
         /* Diseño Entendible y Estructurado de Detalles de Modificación */
         .detalle-audit-card {
           display: flex;
@@ -3466,6 +3564,46 @@ export default function HistorialMantenimiento() {
           padding: 0.55rem 0.75rem;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
           text-align: left;
+        }
+        .cambio-detalle-wrap .detalle-audit-card {
+          border-left: 4px solid var(--detalle-accent, #691B31);
+          background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.07);
+          padding: 0.6rem 0.8rem;
+          gap: 0.5rem;
+        }
+        .detalle-simple-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
+        .detalle-simple-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #f1f5f9;
+          color: #691B31;
+        }
+        .cambio-detalle-wrap .detalle-simple-icon {
+          color: var(--detalle-accent, #691B31);
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+        }
+        .detalle-code-chip {
+          display: inline-block;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-weight: 800;
+          font-size: 0.74rem;
+          padding: 0 0.35rem;
+          margin: 0 1px;
+          border-radius: 4px;
+          color: #691B31;
+          background: #fdf2f4;
+          border: 1px solid #fecdd3;
         }
         .detalle-context-pill {
           display: inline-block;
@@ -4095,6 +4233,22 @@ export default function HistorialMantenimiento() {
           color: #64748b;
           border: 1px solid #e2e8f0;
           font-style: italic;
+        }
+
+        /* Badge de Tiempo en Mantenimiento en Tabla Principal (Neutro, sin colores) */
+        .tiempo-mantenimiento-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #1e293b;
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          white-space: nowrap;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
 
         /* Tarjetas Duales de Estancia en Modal (Incidencia y Folio Separados) */

@@ -1,9 +1,11 @@
+import DetalleAccion from '../../components/DetalleAccion/DetalleAccion';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
+import { formatearFechaDiaMesAnio } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
@@ -199,7 +201,7 @@ export default function HistorialConductores() {
               title="Refrescar datos en vivo"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: isFetching ? 'spin 1s linear infinite' : 'none' }}>
-                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
               </svg>
               {isFetching ? 'Actualizando...' : 'Actualizar'}
             </button>
@@ -212,7 +214,7 @@ export default function HistorialConductores() {
                 onClick={() => !isLoading && setIsDropdownOpen(!isDropdownOpen)}
                 disabled={isLoading}
               >
-                {selectedFecha || 'SELECCIONAR'}
+                {selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'SELECCIONAR'}
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M7 10l5 5 5-5H7z" />
                 </svg>
@@ -227,7 +229,7 @@ export default function HistorialConductores() {
                         className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
                         onClick={() => handleFechaChange(f)}
                       >
-                        {f}
+                        {formatearFechaDiaMesAnio(f)}
                       </button>
                     ))}
                   </div>
@@ -353,7 +355,7 @@ export default function HistorialConductores() {
                 ) : (
                   accionesFiltradas.map((a, idx) => {
                     const badge = getBadgeStyle(a.tipo_accion);
-                    const horaFormatted = a.created_at 
+                    const horaFormatted = a.created_at
                       ? new Date(a.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                       : '—';
 
@@ -397,8 +399,8 @@ export default function HistorialConductores() {
                             {a.usuario_nombre || 'Sistema'}
                           </span>
                         </td>
-                        <td style={{ color: '#334155', fontSize: '0.875rem', lineHeight: '1.4' }}>
-                          {a.detalles || 'Sin detalles'}
+                        <td>
+                          <DetalleAccion texto={a.detalles} accent={badge?.color} vacio="Sin detalles" />
                         </td>
                         <td style={{ whiteSpace: 'nowrap', color: '#64748b', fontSize: '0.825rem', fontWeight: '600' }}>
                           {horaFormatted}

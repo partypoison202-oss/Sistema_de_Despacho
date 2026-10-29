@@ -124,6 +124,16 @@
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+
+  .mantenimiento__actions-btns {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mantenimiento__actions-btns .mant-btn {
+    width: 100%;
+    max-width: 340px;
+  }
 }
 
 /* Modo oscuro */
@@ -170,7 +180,26 @@ html.dark .mantenimiento__search {
   display: flex;
   gap: 16px;
   justify-content: center;
+  align-items: center;
   flex-wrap: wrap;
+}
+
+.mantenimiento__actions-btns .mant-btn {
+  width: 324px;
+  max-width: 100%;
+  min-height: 64px;
+  box-sizing: border-box;
+  padding: 12px 20px;
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.mantenimiento__actions-btns .mant-btn strong {
+  white-space: nowrap;
+}
+
+.mantenimiento__actions-btns .mant-btn small {
+  white-space: nowrap;
 }
 
 .mant-btn {
@@ -186,6 +215,7 @@ html.dark .mantenimiento__search {
   transition: all 0.3s ease;
   border: 2px solid;
   outline: none;
+  box-sizing: border-box;
 }
 
 .mant-btn svg {
@@ -252,6 +282,24 @@ html.dark .mantenimiento__search {
 }
 .mant-btn--secondary:hover:not(:disabled) svg,
 .mant-btn--secondary:focus-visible:not(:disabled) svg {
+  color: #ffffff;
+}
+
+/* Variante Operativo por Hora (#B7791F) */
+.mant-btn--hora {
+  border-color: #B7791F;
+  color: #B7791F;
+}
+.mant-btn--hora svg {
+  color: #B7791F;
+}
+.mant-btn--hora:hover:not(:disabled),
+.mant-btn--hora:focus-visible:not(:disabled) {
+  background-color: #B7791F;
+  color: #ffffff;
+}
+.mant-btn--hora:hover:not(:disabled) svg,
+.mant-btn--hora:focus-visible:not(:disabled) svg {
   color: #ffffff;
 }
 
@@ -348,6 +396,23 @@ html.dark .mant-btn--secondary:focus-visible:not(:disabled) svg {
   color: #0b0b0c;
 }
 
+html.dark .mant-btn--hora {
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+html.dark .mant-btn--hora svg {
+  color: #fbbf24;
+}
+html.dark .mant-btn--hora:hover:not(:disabled),
+html.dark .mant-btn--hora:focus-visible:not(:disabled) {
+  background-color: #f59e0b;
+  color: #1a1a20;
+}
+html.dark .mant-btn--hora:hover:not(:disabled) svg,
+html.dark .mant-btn--hora:focus-visible:not(:disabled) svg {
+  color: #1a1a20;
+}
+
 html.dark .mant-btn--historial {
   border-color: #c5a059;
   color: #f3e8ff;
@@ -373,4 +438,14 @@ html.dark .mant-btn--historial:hover:not(:disabled) .mant-btn-arrow,
 html.dark .mant-btn--historial:focus-visible:not(:disabled) .mant-btn-icon,
 html.dark .mant-btn--historial:focus-visible:not(:disabled) .mant-btn-arrow {
   color: #fde047;
+}
+
+html.dark .centro-btn-report--hora {
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+html.dark .centro-btn-report--hora:not(:disabled):hover,
+html.dark .centro-btn-report--hora:not(:disabled):focus-visible {
+  background: #f59e0b;
+  color: #1a1a20;
 }

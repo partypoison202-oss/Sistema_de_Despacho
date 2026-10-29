@@ -1,9 +1,10 @@
+import DetalleAccion from '../../components/DetalleAccion/DetalleAccion';
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, formatearFechaDiaMesAnio, getValoresTransicion } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
@@ -228,7 +229,7 @@ export default function HistorialMesaControl() {
                 onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
                 disabled={cargando}
               >
-                {selectedFecha || 'SELECCIONAR'}
+                {selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'SELECCIONAR'}
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M7 10l5 5 5-5H7z" />
                 </svg>
@@ -243,7 +244,7 @@ export default function HistorialMesaControl() {
                         className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
                         onClick={() => handleFechaChange(f)}
                       >
-                        {f}
+                        {formatearFechaDiaMesAnio(f)}
                       </button>
                     ))}
                   </div>
@@ -385,7 +386,7 @@ export default function HistorialMesaControl() {
                 </thead>
                 <tbody>
                   {cambiosFiltrados.map((c, i) => {
-                    const badgeStyle = getAccionBadgeStyle(c.tipo_accion);
+                    const badgeStyle = getAccionBadgeStyle(c.tipo_accion) || { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' };
                     return (
                       <tr key={c.id || i}>
                         <td style={{ fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>
@@ -406,26 +407,33 @@ export default function HistorialMesaControl() {
                               fontSize: '0.72rem',
                               fontWeight: '800',
                               letterSpacing: '0.03em',
-                              backgroundColor: badgeStyle.backgroundColor,
-                              color: badgeStyle.color,
-                              border: badgeStyle.border,
+                              backgroundColor: badgeStyle?.backgroundColor || '#f1f5f9',
+                              color: badgeStyle?.color || '#475569',
+                              border: badgeStyle?.border || '1px solid #cbd5e1',
                             }}
                           >
                             {formatAccion(c.tipo_accion)}
                           </span>
                         </td>
+                        {(() => {
+                          const trans = getValoresTransicion(c);
+                          return (
+                            <>
+                              <td>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600' }}>
+                                  {trans.anterior}
+                                </span>
+                              </td>
+                              <td>
+                                <span style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: '700' }}>
+                                  {trans.nuevo}
+                                </span>
+                              </td>
+                            </>
+                          );
+                        })()}
                         <td>
-                          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600' }}>
-                            {c.estatus_anterior ? String(c.estatus_anterior).toUpperCase() : '—'}
-                          </span>
-                        </td>
-                        <td>
-                          <span style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: '700' }}>
-                            {c.estatus_nuevo ? String(c.estatus_nuevo).toUpperCase() : '—'}
-                          </span>
-                        </td>
-                        <td style={{ fontSize: '0.83rem', color: '#334155' }}>
-                          {c.detalles || 'Sin observaciones'}
+                          <DetalleAccion texto={c.detalles} accent={badgeStyle?.color} vacio="Sin observaciones" />
                         </td>
                         <td style={{ fontSize: '0.8rem' }}>
                           <span style={{ fontWeight: '700', color: '#1e293b', display: 'block' }}>

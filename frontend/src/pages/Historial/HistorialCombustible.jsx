@@ -1,3 +1,4 @@
+import DetalleAccion from '../../components/DetalleAccion/DetalleAccion';
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
@@ -5,7 +6,7 @@ import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import * as XLSX from 'xlsx';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, formatearFechaDiaMesAnio } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
@@ -215,7 +216,7 @@ export default function HistorialCombustible() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Error al guardar');
-      
+
       Swal.fire({
         icon: 'success',
         title: 'Guardado',
@@ -326,7 +327,7 @@ export default function HistorialCombustible() {
               title="Refrescar datos en vivo"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: isFetching ? 'spin 1s linear infinite' : 'none' }}>
-                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
               </svg>
               {isFetching ? 'Actualizando...' : 'Actualizar'}
             </button>
@@ -393,8 +394,8 @@ export default function HistorialCombustible() {
             activeTab === 'cargas'
               ? 'Buscar por económico, tipo de unidad o número de cincho...'
               : activeTab === 'cambios'
-              ? 'Buscar por económico, tipo, detalles o usuario...'
-              : 'Buscar por folio o usuario que generó el reporte...'
+                ? 'Buscar por económico, tipo, detalles o usuario...'
+                : 'Buscar por folio o usuario que generó el reporte...'
           }
           totalCount={activeData.length}
           filteredCount={datosFiltrados.length}
@@ -431,16 +432,16 @@ export default function HistorialCombustible() {
                     <tr key={index}>
                       <td style={{ fontWeight: '600' }}>{(d.tipo || d.tipo_unidad) ? (String(d.tipo || d.tipo_unidad).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo || d.tipo_unidad).toUpperCase()) : '—'}</td>
                       <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
-                      
+
                       {editingRow === d.id_historial && d.id_historial ? (
                         <>
-                          <td><input type="text" value={editForm.nivel_combustible} onChange={e => handleChangeEdit('nivel_combustible', e.target.value)} style={{width: '60px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827'}} /></td>
-                          <td><input type="number" value={editForm.litros_combustible} onChange={e => handleChangeEdit('litros_combustible', e.target.value)} style={{width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', fontWeight: 'bold'}} /></td>
-                          <td><input type="text" value={editForm.nivel_adblue} onChange={e => handleChangeEdit('nivel_adblue', e.target.value)} style={{width: '60px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827'}} /></td>
-                          <td><input type="number" value={editForm.litros_adblue} onChange={e => handleChangeEdit('litros_adblue', e.target.value)} style={{width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', fontWeight: 'bold'}} /></td>
-                          <td><input type="text" value={editForm.numero_cincho} onChange={e => handleChangeEdit('numero_cincho', e.target.value)} style={{width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', textTransform: 'uppercase'}} /></td>
-                          <td><input type="text" value={editForm.numero_cincho_adblue} onChange={e => handleChangeEdit('numero_cincho_adblue', e.target.value)} style={{width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', textTransform: 'uppercase'}} /></td>
-                          <td><input type="number" value={editForm.kilometraje} onChange={e => handleChangeEdit('kilometraje', e.target.value)} style={{width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827'}} /></td>
+                          <td><input type="text" value={editForm.nivel_combustible} onChange={e => handleChangeEdit('nivel_combustible', e.target.value)} style={{ width: '60px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827' }} /></td>
+                          <td><input type="number" value={editForm.litros_combustible} onChange={e => handleChangeEdit('litros_combustible', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', fontWeight: 'bold' }} /></td>
+                          <td><input type="text" value={editForm.nivel_adblue} onChange={e => handleChangeEdit('nivel_adblue', e.target.value)} style={{ width: '60px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827' }} /></td>
+                          <td><input type="number" value={editForm.litros_adblue} onChange={e => handleChangeEdit('litros_adblue', e.target.value)} style={{ width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', fontWeight: 'bold' }} /></td>
+                          <td><input type="text" value={editForm.numero_cincho} onChange={e => handleChangeEdit('numero_cincho', e.target.value)} style={{ width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', textTransform: 'uppercase' }} /></td>
+                          <td><input type="text" value={editForm.numero_cincho_adblue} onChange={e => handleChangeEdit('numero_cincho_adblue', e.target.value)} style={{ width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', textTransform: 'uppercase' }} /></td>
+                          <td><input type="number" value={editForm.kilometraje} onChange={e => handleChangeEdit('kilometraje', e.target.value)} style={{ width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827' }} /></td>
                         </>
                       ) : (
                         <>
@@ -454,21 +455,21 @@ export default function HistorialCombustible() {
                         </>
                       )}
 
-                      <td>{d.fecha_ultima_carga || '-'}</td>
+                      <td>{formatearFechaDiaMesAnio(d.fecha_ultima_carga) || '-'}</td>
                       <td>{d.hora_guardado ? new Date(d.hora_guardado).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                      
+
                       <td>
                         {d.id_historial ? (
                           editingRow === d.id_historial ? (
-                            <div style={{display: 'flex', gap: '6px'}}>
-                              <button onClick={() => handleSaveEdit(d.id_historial)} disabled={isSavingEdit} style={{background: '#047857', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>{isSavingEdit ? <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }} /> : '✓'} Guardar</button>
-                              <button onClick={handleCancelEdit} style={{background: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>✕</button>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button onClick={() => handleSaveEdit(d.id_historial)} disabled={isSavingEdit} style={{ background: '#047857', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>{isSavingEdit ? <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }} /> : '✓'} Guardar</button>
+                              <button onClick={handleCancelEdit} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>✕</button>
                             </div>
                           ) : (
-                            <button onClick={() => handleEditClick(d)} style={{background: '#f59e0b', color: 'white', border: '1px solid #d97706', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'}}>✎ Editar</button>
+                            <button onClick={() => handleEditClick(d)} style={{ background: '#f59e0b', color: 'white', border: '1px solid #d97706', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>✎ Editar</button>
                           )
                         ) : (
-                          <span style={{fontSize: '0.8rem', color: '#9ca3af'}} title="Registro heredado">N/A</span>
+                          <span style={{ fontSize: '0.8rem', color: '#9ca3af' }} title="Registro heredado">N/A</span>
                         )}
                       </td>
                     </tr>
@@ -514,7 +515,7 @@ export default function HistorialCombustible() {
                       </td>
                       <td>{d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A'}</td>
                       <td style={{ fontWeight: '600' }}>{d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A'}</td>
-                      <td style={{ maxWidth: '300px' }}>{d.detalles || '-'}</td>
+                      <td style={{ maxWidth: '300px' }}><DetalleAccion texto={d.detalles} vacio="-" /></td>
                       <td style={{ fontWeight: '500', color: '#4b5563' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                     </tr>
                   ))
@@ -553,7 +554,7 @@ export default function HistorialCombustible() {
                     return (
                       <tr key={r.id}>
                         <td style={{ fontWeight: '700', color: '#6b1d33' }}>{r.folio}</td>
-                        <td>{r.fecha_reporte}</td>
+                        <td>{formatearFechaDiaMesAnio(r.fecha_reporte)}</td>
                         <td style={{ fontWeight: '500' }}>{r.generado_por}</td>
                         <td>
                           <span style={{ fontSize: '0.85rem' }}>

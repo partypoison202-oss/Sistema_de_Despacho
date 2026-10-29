@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, formatearFechaDiaMesAnio, getValoresTransicion } from '../../utils/historialHelper';
+import DetalleAccion from '../../components/DetalleAccion/DetalleAccion';
 import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
@@ -31,7 +32,7 @@ const processResumenData = (inicio, cambios, fin) => {
   (inicio || []).forEach(row => {
     const eco = row.economico;
     if (!eco) return;
-    
+
     const initialTarjeton = row.numero_tarjeton || getTarjeton(row.nombre_conductor);
 
     resumenMap[eco] = {
@@ -119,7 +120,7 @@ const processResumenData = (inicio, cambios, fin) => {
     if (row.estatus) item.estatuses.add(row.estatus);
     if (row.corridas !== null && row.corridas !== undefined) item.corridas.add(row.corridas);
     if (row.hora_acople) item.acoples.add(row.hora_acople);
-    
+
     const mot = row.motivo || row.motivo_estatus || row.falla;
     if (mot) item.motivos.add(mot);
   });
@@ -368,7 +369,7 @@ export default function HistorialGeneral() {
                 onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
                 disabled={cargando}
               >
-                {selectedFecha || 'SELECCIONAR'}
+                {selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'SELECCIONAR'}
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M7 10l5 5 5-5H7z" />
                 </svg>
@@ -383,7 +384,7 @@ export default function HistorialGeneral() {
                         className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
                         onClick={() => handleFechaChange(f)}
                       >
-                        {f}
+                        {formatearFechaDiaMesAnio(f)}
                       </button>
                     ))}
                     {fechas.length === 0 && (
@@ -450,8 +451,8 @@ export default function HistorialGeneral() {
             activeTab === 'cambios'
               ? 'Buscar por económico, tipo, modificación, estatus, detalles o usuario...'
               : activeTab === 'resumen'
-              ? 'Buscar por económico, tipo, rutas, conductores, estatus u observaciones...'
-              : 'Buscar por económico, tipo, ruta, conductor titular/relevo, tarjetón o estatus...'
+                ? 'Buscar por económico, tipo, rutas, conductores, estatus u observaciones...'
+                : 'Buscar por económico, tipo, ruta, conductor titular/relevo, tarjetón o estatus...'
           }
           totalCount={activeData.length}
           filteredCount={filteredData.length}
@@ -489,17 +490,24 @@ export default function HistorialGeneral() {
                         {formatAccion(d.tipo_accion)}
                       </span>
                     </td>
-                    <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : '-'}</td>
-                    <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : '-'}</td>
-                    <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', paddingRight: '1rem', color: '#334155' }}>{d.detalles || 'Sin detalles adicionales'}</td>
+                    {(() => {
+                      const trans = getValoresTransicion(d);
+                      return (
+                        <>
+                          <td style={{ fontWeight: '700', color: '#dc2626' }}>{trans.anterior}</td>
+                          <td style={{ fontWeight: '700', color: '#16a34a' }}>{trans.nuevo}</td>
+                        </>
+                      );
+                    })()}
+                    <td style={{ minWidth: '350px', paddingRight: '1rem' }}><DetalleAccion texto={d.detalles} accent={getAccionBadgeStyle(d.tipo_accion)?.color} vacio="Sin detalles adicionales" /></td>
                     <td style={{ fontWeight: '600' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                   </tr>
                 ))}
                 {filteredData.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
-                      {activeData.length === 0 
-                        ? 'No hay modificaciones registradas en el transcurso de este día.' 
+                      {activeData.length === 0
+                        ? 'No hay modificaciones registradas en el transcurso de este día.'
                         : `No se encontraron registros que coincidan con "${busqueda}".`}
                     </td>
                   </tr>

@@ -6,6 +6,7 @@ export const formatAccion = (accion) => {
   if (!accion) return 'Acción General';
   switch (accion.toUpperCase()) {
     case 'CAMBIO_ESTATUS': return 'Cambio de Estatus';
+    case 'CAMBIO_HORA':
     case 'CAMBIO_HORAS': return 'Modificación de Horarios / Acople';
     case 'CAMBIO_RUTA': return 'Cambio de Ruta';
     case 'CAMBIO_CONDUCTOR': return 'Cambio de Conductor';
@@ -22,7 +23,7 @@ export const formatAccion = (accion) => {
     case 'ASIGNACION_FOLIO': return 'Asignación de Folio';
     case 'ACTUALIZACION_FOLIO': return 'Actualización de Folio';
     case 'ASIGNACION_INCIDENCIA': return 'Asignación de Incidencia';
-    case 'ACTUALIZACION_MANTENIMIENTO': return 'Actualización de Taller';
+    case 'ACTUALIZACION_MANTENIMIENTO': return 'Actualización en Mtto';
     case 'REGISTRO_INFRACCION': return 'Registro Infracción';
     case 'RELEVO_TARJETON': return 'Relevo de Conductor';
     case 'ACTUALIZACION_DATOS': return 'Actualización de Datos';
@@ -32,8 +33,9 @@ export const formatAccion = (accion) => {
 };
 
 export const getAccionBadgeStyle = (accion) => {
-  if (!accion) return { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' };
-  const act = accion.toUpperCase();
+  const fallback = { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' };
+  if (!accion) return fallback;
+  const act = String(accion).toUpperCase();
   if (act.includes('VALIDAR') || act.includes('INCORPORACION')) {
     return { backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #86efac' };
   }
@@ -46,7 +48,7 @@ export const getAccionBadgeStyle = (accion) => {
   if (act.includes('DESINCORPORACION') || act.includes('ESTATUS')) {
     return { backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' };
   }
-  if (act.includes('HORAS') || act.includes('RUTA') || act.includes('CONDUCTOR') || act.includes('ASIGNAR') || act.includes('DATOS')) {
+  if (act.includes('HORA') || act.includes('RUTA') || act.includes('CONDUCTOR') || act.includes('ASIGNAR') || act.includes('DATOS')) {
     return { backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' };
   }
   if (act.includes('MANTENIMIENTO')) {
@@ -55,6 +57,7 @@ export const getAccionBadgeStyle = (accion) => {
   if (act.includes('INFRACCION') || act.includes('REEMPLAZO') || act.includes('RETIRO')) {
     return { backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' };
   }
+  return fallback;
 };
 
 export const interpretarCambioMantenimiento = (d) => {
@@ -118,7 +121,7 @@ export const interpretarCambioMantenimiento = (d) => {
       valorNuevo: folVal || nue || 'FOLIO ASIGNADO',
       detalles: rawDetalles.includes('ASIGNACIÓN DE FOLIO:')
         ? rawDetalles
-        : (rawDetalles || `Asignación de folio de taller: ${folVal || nue || 'Asignado'}`),
+        : (rawDetalles || `Asignación de folio de mtto: ${folVal || nue || 'Asignado'}`),
       tipoPillNuevo: 'folio'
     };
   }
@@ -136,7 +139,7 @@ export const interpretarCambioMantenimiento = (d) => {
             valorAnterior: 'Sin Incidencia',
             valorNuevo: incVal,
             detalles: rawDetalles.includes('DE MANTENIMIENTO A MANTENIMIENTO')
-              ? `Registro de incidencia técnica en taller: ${incVal}`
+              ? `Registro de incidencia técnica en mtto: ${incVal}`
               : (rawDetalles || `Asignación de número de incidencia: ${incVal}`),
             tipoPillNuevo: 'incidencia'
           };
@@ -150,7 +153,7 @@ export const interpretarCambioMantenimiento = (d) => {
             valorAnterior: 'Sin Folio',
             valorNuevo: folVal,
             detalles: rawDetalles.includes('DE MANTENIMIENTO A MANTENIMIENTO')
-              ? `Asignación de folio físico emitido por taller: ${folVal}`
+              ? `Asignación de folio físico emitido en mtto: ${folVal}`
               : (rawDetalles || `Asignación de folio: ${folVal}`),
             tipoPillNuevo: 'folio'
           };
@@ -159,23 +162,23 @@ export const interpretarCambioMantenimiento = (d) => {
         // Si hay falla reportada o diagnóstico
         if (d.falla_reportada || d.diagnostico) {
           return {
-            modificacion: 'Actualización en Taller',
+            modificacion: 'Actualización en Mtto',
             badgeStyle: { backgroundColor: '#fdf2f4', color: '#691B31', border: '1px solid #fecdd3' },
             valorAnterior: 'Revisión',
             valorNuevo: d.falla_reportada || d.diagnostico,
-            detalles: `Falla o diagnóstico actualizado en taller: ${d.falla_reportada || d.diagnostico}`,
+            detalles: `Falla o diagnóstico actualizado en mtto: ${d.falla_reportada || d.diagnostico}`,
             tipoPillNuevo: 'permanece'
           };
         }
 
         return {
-          modificacion: 'Actualización en Taller',
+          modificacion: 'Actualización en Mtto',
           badgeStyle: { backgroundColor: '#fdf2f4', color: '#691B31', border: '1px solid #fecdd3' },
           valorAnterior: 'MANTENIMIENTO',
           valorNuevo: 'ACTUALIZADO',
           detalles: rawDetalles.includes('DE MANTENIMIENTO A MANTENIMIENTO')
-            ? 'Actualización de datos y confirmación de estatus en taller'
-            : (rawDetalles || 'Actualización de datos en taller de mantenimiento'),
+            ? 'Actualización de datos y confirmación de estatus en mtto'
+            : (rawDetalles || 'Actualización de datos en mtto'),
           tipoPillNuevo: 'permanece'
         };
       }
@@ -191,16 +194,16 @@ export const interpretarCambioMantenimiento = (d) => {
 
     // Ingreso a Mantenimiento (ej. OPERACION -> MANTENIMIENTO)
     if (nue === 'MANTENIMIENTO') {
-      let det = 'Ingreso de la unidad a taller de mantenimiento';
+      let det = 'Ingreso de la unidad a mtto';
       if (rawDetalles.includes('POR MOTIVO:')) {
         const parts = rawDetalles.split(/POR MOTIVO:/i);
         const mot = parts[1] ? parts[1].trim() : '';
         if (mot && mot.toUpperCase() !== 'MANTENIMIENTO') {
-          det = `Envío a taller de mantenimiento por: ${mot}`;
+          det = `Envío a mtto por: ${mot}`;
         }
       }
       return {
-        modificacion: 'Ingreso a Taller',
+        modificacion: 'Ingreso a Mtto',
         badgeStyle: { backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' },
         valorAnterior: ant || 'OPERACION',
         valorNuevo: 'MANTENIMIENTO',
@@ -212,11 +215,11 @@ export const interpretarCambioMantenimiento = (d) => {
     // Salida de Mantenimiento a Operación
     if (ant === 'MANTENIMIENTO') {
       return {
-        modificacion: 'Salida de Taller',
+        modificacion: 'Salida de Mtto',
         badgeStyle: { backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #86efac' },
         valorAnterior: 'MANTENIMIENTO',
         valorNuevo: nue || 'OPERACION',
-        detalles: `Salida de taller de mantenimiento e incorporación a ${nue || 'OPERACIÓN'}`,
+        detalles: `Salida de mtto e incorporación a ${nue || 'OPERACIÓN'}`,
         tipoPillNuevo: 'operacion'
       };
     }
@@ -231,14 +234,14 @@ export const interpretarCambioMantenimiento = (d) => {
     };
   }
 
-  // 4. ACTUALIZACIÓN EN TALLER / DIAGNÓSTICO TÉCNICO
+  // 4. ACTUALIZACIÓN EN MTTO / DIAGNÓSTICO TÉCNICO
   if (accion.includes('MANTENIMIENTO') || accion.includes('DIAGNOSTICO') || accion.includes('FALLA')) {
     return {
-      modificacion: 'Actualización en Taller',
+      modificacion: 'Actualización en Mtto',
       badgeStyle: { backgroundColor: '#fdf2f4', color: '#691B31', border: '1px solid #DDC9A3' },
       valorAnterior: ant || 'REVISIÓN',
       valorNuevo: nue || 'ACTUALIZADO',
-      detalles: rawDetalles || 'Actualización de diagnóstico técnico o falla reportada en taller',
+      detalles: rawDetalles || 'Actualización de diagnóstico técnico o falla reportada en mtto',
       tipoPillNuevo: 'permanece'
     };
   }
@@ -360,12 +363,84 @@ export const parseDetallesModificacion = (rawDetalles) => {
 export const formatearFechaDiaMesAnio = (fechaStr) => {
   if (!fechaStr) return '';
   const clean = String(fechaStr).trim().split(/[ T]/)[0];
-  const parts = clean.split('-');
-  if (parts.length === 3 && parts[0].length === 4) {
-    const [anio, mes, dia] = parts;
-    return `${dia}/${mes}/${anio}`;
+  const parts = clean.split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const [anio, mes, dia] = parts;
+      return `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${anio}`;
+    }
+    if (parts[2].length === 4) {
+      return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+    }
   }
   return fechaStr;
 };
+
+/**
+ * Obtiene los valores de transición (Anterior y Nuevo) para las columnas de las tablas de bitácora.
+ * Si estatus_anterior/nuevo no están definidos (ej. cambio de ruta o horario), los extrae de los detalles.
+ */
+export const getValoresTransicion = (item) => {
+  if (!item) return { anterior: '—', nuevo: '—' };
+
+  const act = String(item.tipo_accion || '').toUpperCase();
+  const t = String(item.detalles || '').trim();
+  let ant = item.estatus_anterior ? String(item.estatus_anterior).toUpperCase() : null;
+  let nvo = item.estatus_nuevo ? String(item.estatus_nuevo).toUpperCase() : null;
+
+  // 1. Despacho validado: siempre mostrar transición uniforme EN PATIO -> SALIDA HH:MM
+  const esDespacho = act.includes('DESPACHO') || t.includes('DESPACHO VALIDADO') || t.includes('SALIDA VALIDADA');
+  if (esDespacho) {
+    const mDesp = t.match(/(?:HORA(?:\s+REAL)?(?:\s+DE)?\s+SALIDA:\s*|A LAS\s+)([0-9]{1,2}:[0-9]{2})/i);
+    const hora = mDesp ? mDesp[1] : null;
+    return {
+      anterior: (ant && ant !== 'OPERACION') ? ant : 'EN PATIO',
+      nuevo: hora ? `SALIDA ${hora}` : (nvo || 'OPERACION'),
+      esEstatus: false
+    };
+  }
+
+  // 2. Si estatus anterior y nuevo son iguales (ej. ambos 'OPERACION'), buscar si en detalles hay cambio de ruta, conductor, etc.
+  if (ant && nvo && ant === nvo) {
+    const mDash = t.match(/ANTERIOR:\s*(.*?),\s*NUEV[AO]:\s*([^)|]+)/i);
+    if (mDash) {
+      return { anterior: mDash[1].trim(), nuevo: mDash[2].trim(), esEstatus: false };
+    }
+    const mArrow = t.match(/:\s*(.+?)\s*->\s*([^|]+)/);
+    if (mArrow) {
+      return { anterior: mArrow[1].trim(), nuevo: mArrow[2].trim(), esEstatus: false };
+    }
+  }
+
+  // 3. Si hay estatus diferentes entre anterior y nuevo
+  if (ant || nvo) {
+    return {
+      anterior: ant || '—',
+      nuevo: nvo || '—',
+      esEstatus: true
+    };
+  }
+
+  // 4. Dash diff: "CAMBIO DE RUTA - ANTERIOR: T01, NUEVA: T01"
+  const mDash = t.match(/ANTERIOR:\s*(.*?),\s*NUEV[AO]:\s*([^)|]+)/i);
+  if (mDash) {
+    return { anterior: mDash[1].trim(), nuevo: mDash[2].trim(), esEstatus: false };
+  }
+
+  // 5. Arrow diff: "CAMPO: X -> Y"
+  const mArrow = t.match(/:\s*(.+?)\s*->\s*([^|]+)/);
+  if (mArrow) {
+    return { anterior: mArrow[1].trim(), nuevo: mArrow[2].trim(), esEstatus: false };
+  }
+
+  // 6. Encierro
+  const mEnc = t.match(/A LAS\s*([0-9]{1,2}:[0-9]{2})/i);
+  if (act.includes('ENCIERRO') && mEnc) {
+    return { anterior: ant || 'OPERACION', nuevo: `ENCIERRO ${mEnc[1]}`, esEstatus: false };
+  }
+
+  return { anterior: '—', nuevo: '—', esEstatus: false };
+};
+
 
 

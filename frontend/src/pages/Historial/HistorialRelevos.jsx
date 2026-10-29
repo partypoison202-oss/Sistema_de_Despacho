@@ -5,6 +5,7 @@ import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import DetalleAccion from '../../components/DetalleAccion/DetalleAccion';
 import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
@@ -204,7 +205,7 @@ export default function HistorialRelevos() {
               title="Refrescar datos en vivo"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: isFetching ? 'spin 1s linear infinite' : 'none' }}>
-                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
               </svg>
               {isFetching ? 'Actualizando...' : 'Actualizar'}
             </button>
@@ -378,7 +379,7 @@ export default function HistorialRelevos() {
                         {formatAccion(b.tipo_accion)}
                       </span>
                     </td>
-                    <td style={{ color: '#334155', fontSize: '0.9rem' }}>{b.detalles || '—'}</td>
+                    <td style={{ minWidth: '280px' }}><DetalleAccion texto={b.detalles} accent={getAccionBadgeStyle(b.tipo_accion)?.color} vacio="—" /></td>
                   </tr>
                 ))}
                 {bitacoraFiltrada.length === 0 && (

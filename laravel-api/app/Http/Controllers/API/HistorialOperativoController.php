@@ -817,6 +817,7 @@ class HistorialOperativoController extends Controller
 
             $fechaFin = $bitSalida ? Carbon::parse($bitSalida->hora) : Carbon::now();
             $etiqueta = $salioDeMantenimiento ? 'Estuvo' : 'Lleva';
+            $esOperacion = $salioDeMantenimiento;
             $f->fecha_salida_operacion = $bitSalida ? $bitSalida->hora : null;
             $f->es_operacion = $salioDeMantenimiento;
             $f->cerrado = $salioDeMantenimiento;

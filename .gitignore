@@ -13,3 +13,4 @@ diff.patch
 sonar_issues*.json
 usuarios_completos.csv
 *.csv
+contrasenas_originales.txt

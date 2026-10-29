@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { generarPDFPendientesMantenimiento } from '../../utils/generarPDFPendientesMantenimiento';
+import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
 import { transportModules } from '../../config/transportModules';
 import './Mantenimiento.css';
 import '../CentroControl/CentroControl.css';
@@ -31,6 +32,7 @@ export default function Mantenimiento() {
   // Estado para el modal de previsualización
   const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
   const [previewFilename, setPreviewFilename] = useState('');
+  const [generandoOperacional, setGenerandoOperacional] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -273,6 +275,59 @@ export default function Mantenimiento() {
     }
   };
 
+  const handleGenerarReporteOperacionalPorHora = async () => {
+    try {
+      setGenerandoOperacional(true);
+      Swal.fire({
+        title: 'Generando reporte...',
+        text: 'Obteniendo datos operativos del día...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+      const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error('Error al obtener datos operativos de hoy');
+      const data = await res.json();
+
+      if (!data || data.length === 0) {
+        Swal.close();
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sin datos disponibles',
+          text: 'No hay datos de despacho registrados para el día de hoy.',
+          confirmButtonColor: '#601a2a',
+        });
+        return;
+      }
+
+      const { blob, filename } = await generarPDFReporteOperacionalPorHora(data, true);
+      Swal.close();
+      const url = URL.createObjectURL(blob);
+      setPreviewPdfUrl(url);
+      setPreviewFilename(filename);
+    } catch (error) {
+      console.error('Error al generar reporte operacional por hora:', error);
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message || 'No se pudo generar el reporte operacional por hora.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setGenerandoOperacional(false);
+    }
+  };
+
   return (
     <>
       <div className="mantenimiento">
@@ -353,6 +408,22 @@ export default function Mantenimiento() {
                   <span>
                     <strong>Económicos con folio</strong>
                     <small>Unidades con reporte de falla activo</small>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className="mant-btn mant-btn--hora"
+                  onClick={handleGenerarReporteOperacionalPorHora}
+                  disabled={generandoOperacional}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <span>
+                    <strong>{generandoOperacional ? 'Generando...' : 'Reporte Operativo por Hora'}</strong>
+                    <small>Estatus de flota, taller y patio</small>
                   </span>
                 </button>
               </div>
