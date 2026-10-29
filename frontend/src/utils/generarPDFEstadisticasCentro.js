@@ -757,43 +757,36 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
             u.MANTENIMIENTO_CORRIDA ?? u.mantenimiento_corrida ?? ''
         ).trim();
 
-        // Hora programada de salida de patio (no real)
-        const rawSalidaProg = String(
-            u.HORA_PROGRAMADA || u.hora_salida_patio || u.HORA_SALIDA_PATIO || u.hora_programada || u.HORA_DE_ACOPLE || u.hora_de_acople ||
-            fallbackIni.HORA_PROGRAMADA || fallbackIni.hora_salida_patio || fallbackIni.hora_programada || fallbackIni.HORA_DE_ACOPLE || fallbackIni.hora_de_acople ||
+        // Hora de la columna "hora de salida de patio"
+        const rawSalidaPatio = String(
+            u.hora_salida_patio || u.HORA_SALIDA_PATIO || u['HORA DE SALIDA DE PATIO'] ||
+            u.hora_salida_programada || u.hora_programada || u.HORA_PROGRAMADA ||
+            fallbackIni.hora_salida_patio || fallbackIni.HORA_SALIDA_PATIO || fallbackIni['HORA DE SALIDA DE PATIO'] ||
+            fallbackIni.hora_salida_programada || fallbackIni.hora_programada || fallbackIni.HORA_PROGRAMADA ||
+            u.HORA_DE_ACOPLE || u.hora_de_acople || fallbackIni.HORA_DE_ACOPLE || fallbackIni.hora_de_acople ||
             ''
         ).trim();
 
-        // Hora de acople
+        // Hora de acople (como fallback si no estuviera registrada hora de salida de patio)
         const rawAcople = String(u.ACOPLE || u.acople || fallbackIni.ACOPLE || fallbackIni.acople || '').trim();
 
-        // Hora de incorporación por itinerario (vespertino / segundo bloque)
-        const rawIncorp = String(
-            u.HORA_INCORPORACION || u.hora_incorporacion ||
-            fallbackIni.HORA_INCORPORACION || fallbackIni.hora_incorporacion || ''
-        ).trim();
-
-        const objSalidaProg = extraerMinutosYHora(rawSalidaProg);
+        const objSalidaPatio = extraerMinutosYHora(rawSalidaPatio);
         const objAcople = extraerMinutosYHora(rawAcople);
-        const objIncorp = extraerMinutosYHora(rawIncorp);
 
-        // Evaluar si la salida programada o el acople son posteriores a la hora del reporte,
-        // o si tiene una incorporación por itinerario pendiente posterior a la hora del reporte.
+        // Se jala estrictamente la hora de la columna "hora de salida de patio" (o acople como fallback).
+        // NO se toma la hora de incorporación, ya que esa hora corresponde a itinerario.
         let displayHora = null;
         let refMinutes = null;
 
-        const salidaPendiente = objSalidaProg && objSalidaProg.minutes > clickMinutes;
-        const acoplePendiente = objAcople && objAcople.minutes > clickMinutes;
+        const salidaPendiente = objSalidaPatio && objSalidaPatio.minutes > clickMinutes;
+        const acoplePendiente = !objSalidaPatio && objAcople && objAcople.minutes > clickMinutes;
 
-        if (salidaPendiente || acoplePendiente) {
-            const chosenObj = objAcople || objSalidaProg;
-            displayHora = chosenObj.formatted;
-            refMinutes = acoplePendiente
-                ? objAcople.minutes
-                : (salidaPendiente ? objSalidaProg.minutes : chosenObj.minutes);
-        } else if (objIncorp && objIncorp.minutes > clickMinutes) {
-            displayHora = objIncorp.formatted;
-            refMinutes = objIncorp.minutes;
+        if (salidaPendiente) {
+            displayHora = objSalidaPatio.formatted;
+            refMinutes = objSalidaPatio.minutes;
+        } else if (acoplePendiente) {
+            displayHora = objAcople.formatted;
+            refMinutes = objAcople.minutes;
         }
 
         if (!displayHora || refMinutes === null) return;
