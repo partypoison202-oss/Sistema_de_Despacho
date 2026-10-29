@@ -157,7 +157,7 @@ class BitacoraHelper
                         $estatusOrig = strtolower(trim((string)($arrayReg['estatus'] ?? '')));
                         $tieneRutaManto = !empty($arrayReg['mantenimiento_ruta']);
                         $tieneServicio = !empty($arrayReg['ruta']) || !empty($arrayReg['numero_tarjeton']) || !empty($arrayReg['corridas']);
-                        $esProgramada = ($estatusOrig === 'operacion' || $tieneServicio || $tieneRutaManto);
+                        $esProgramada = ($estatusOrig === 'operacion' || ($estatusOrig !== 'reserva' && ($tieneServicio || $tieneRutaManto)));
 
                         if ($esProgramada) {
                             $rowFiltered = [];

@@ -2470,7 +2470,7 @@ class DespachoController extends Controller
                     // 1. Determinar si esta unidad fue planificada/programada para salir a operar en la programación original
                     $estatusOriginal = strtolower(trim((string)($arrayRow['estatus'] ?? '')));
                     $tieneServicioProgramado = !empty($arrayRow['ruta']) || !empty($arrayRow['numero_tarjeton']) || !empty($arrayRow['corridas']) || !empty($arrayRow['mantenimiento_ruta']);
-                    $esProgramadaOperacion = ($estatusOriginal === 'operacion' || $tieneServicioProgramado);
+                    $esProgramadaOperacion = ($estatusOriginal === 'operacion' || ($estatusOriginal !== 'reserva' && $tieneServicioProgramado));
 
                     // 2. Registrar en programacion_inicial para que la flota programada original quede íntegra y fija (ej. 122 unidades)
                     if ($esProgramadaOperacion) {
@@ -4352,13 +4352,21 @@ class DespachoController extends Controller
         $hasProgInicial = Schema::hasTable('programacion_inicial');
         $hasProgCols = $hasProgInicial ? array_flip(Schema::getColumnListing('programacion_inicial')) : [];
 
+        $progInicialCount = $hasProgInicial 
+            ? DB::table('programacion_inicial')->where('fecha', $fechaHoy)->count() 
+            : 0;
+
+        $estatusExpr = $progInicialCount > 0
+            ? "CASE WHEN programacion_inicial.id IS NOT NULL THEN COALESCE(programacion_inicial.estatus, 'operacion') ELSE 'reserva' END"
+            : "COALESCE(historial_operativo.estatus, 'reserva')";
+
         $columns = [
             'unidades.numero_eco',
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre) as tipo'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as tarjeton'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
-            DB::raw("COALESCE(" . ($hasProgInicial ? "programacion_inicial.estatus, " : "") . "historial_operativo.estatus, 'reserva') as estatus"),
+            DB::raw($estatusExpr . ' as estatus'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.falla, ' : '') . 'historial_operativo.falla) as falla'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . 'historial_operativo.corridas) as corridas'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ciclo, ' : '') . 'historial_operativo.ciclo) as ciclo'),

@@ -816,6 +816,13 @@ class HistorialOperativoController extends Controller
         $hasAcopleInfo = Schema::hasColumn('informacion_operativa', 'acople');
 
         $hasProgInicial = Schema::hasTable('programacion_inicial');
+        $progInicialCount = $hasProgInicial 
+            ? DB::table('programacion_inicial')->where('fecha', $fecha)->count() 
+            : 0;
+
+        $estatusExpr = $progInicialCount > 0
+            ? "CASE WHEN programacion_inicial.id IS NOT NULL THEN COALESCE(programacion_inicial.estatus, 'operacion') ELSE 'reserva' END"
+            : "COALESCE(historial_operativo.estatus, 'reserva')";
 
         $queryProg = DB::table('unidades')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id');
@@ -841,7 +848,7 @@ class HistorialOperativoController extends Controller
                 DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
                 DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as numero_tarjeton'),
                 DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
-                DB::raw("COALESCE(" . ($hasProgInicial ? "programacion_inicial.estatus, " : "") . "historial_operativo.estatus, 'reserva') as estatus"),
+                DB::raw($estatusExpr . ' as estatus'),
                 $hasSalidaPatioHist ? DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_salida_patio, ' : '') . 'historial_operativo.hora_salida_patio) as hora_salida') : DB::raw('NULL as hora_salida'),
                 $hasAcopleHist ? DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.acople, ' : '') . 'historial_operativo.acople) as acople') : DB::raw('NULL as acople'),
                 DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . 'historial_operativo.corridas) as corridas'),
