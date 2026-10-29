@@ -782,37 +782,44 @@ class HistorialOperativoController extends Controller
                 }
             }
 
-            // 2. Resolver hora real del folio si fecha_folio_mantenimiento tiene 00:00:00
-            $auditFolio = $fAuditoria->first(function ($b) use ($f) {
-                if ($f->folio_mantenimiento && str_contains($b->detalles ?? '', $f->folio_mantenimiento)) {
-                    return true;
-                }
-                return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO']);
-            });
+            // 2. Resolver hora real del folio SOLO si existe un folio físico asignado
+            if (empty(trim((string)($f->folio_mantenimiento ?? '')))) {
+                $f->fecha_folio_mantenimiento = null;
+                $f->tiempo_folio = null;
+            } else {
+                $auditFolio = $fAuditoria->first(function ($b) use ($f) {
+                    if (str_contains($b->detalles ?? '', $f->folio_mantenimiento)) {
+                        return true;
+                    }
+                    return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO']);
+                });
 
-            if ($auditFolio && !empty($auditFolio->hora)) {
-                $fechaFolioStr = trim((string)($f->fecha_folio_mantenimiento ?? ''));
-                if (empty($fechaFolioStr) || str_ends_with($fechaFolioStr, '00:00:00') || str_ends_with($fechaFolioStr, '00:00')) {
-                    $f->fecha_folio_mantenimiento = $auditFolio->hora;
+                if ($auditFolio && !empty($auditFolio->hora)) {
+                    $fechaFolioStr = trim((string)($f->fecha_folio_mantenimiento ?? ''));
+                    if (empty($fechaFolioStr) || str_ends_with($fechaFolioStr, '00:00:00') || str_ends_with($fechaFolioStr, '00:00')) {
+                        $f->fecha_folio_mantenimiento = $auditFolio->hora;
+                    }
                 }
             }
 
-            // 3. Determinar estatus y fecha de corte (si regresó a Operación)
-            $esOperacion = strtolower(trim((string)($f->estatus ?? ''))) === 'operacion';
+            // 3. Determinar estatus y fecha de corte (si concluyó mantenimiento: regresó a Operación o Reserva)
+            $estatusActual = strtolower(trim((string)($f->estatus ?? '')));
+            $salioDeMantenimiento = in_array($estatusActual, ['operacion', 'reserva']);
             $bitSalida = null;
-            if ($esOperacion) {
+            if ($salioDeMantenimiento) {
                 $bitSalida = $fAuditoria->first(function ($b) {
                     $estNuevo = strtolower(trim((string)($b->estatus_nuevo ?? '')));
                     $estAnt = strtolower(trim((string)($b->estatus_anterior ?? '')));
                     $tipo = strtoupper(trim((string)($b->tipo_accion ?? '')));
-                    return $estNuevo === 'operacion' && ($estAnt === 'mantenimiento' || in_array($tipo, ['INCORPORACION', 'PROGRAMACION_LOGISTICA']));
+                    return in_array($estNuevo, ['operacion', 'reserva']) && ($estAnt === 'mantenimiento' || in_array($tipo, ['INCORPORACION', 'PROGRAMACION_LOGISTICA', 'CAMBIO_ESTATUS']));
                 });
             }
 
             $fechaFin = $bitSalida ? Carbon::parse($bitSalida->hora) : Carbon::now();
-            $etiqueta = $esOperacion ? 'Estuvo' : 'Lleva';
+            $etiqueta = $salioDeMantenimiento ? 'Estuvo' : 'Lleva';
             $f->fecha_salida_operacion = $bitSalida ? $bitSalida->hora : null;
-            $f->es_operacion = $esOperacion;
+            $f->es_operacion = $salioDeMantenimiento;
+            $f->cerrado = $salioDeMantenimiento;
             $f->estatus_etiqueta = $etiqueta;
 
             // 4. Cálculo de Días en Incidencia (Independiente)
@@ -820,7 +827,7 @@ class HistorialOperativoController extends Controller
             if (!empty($f->fecha_registro)) {
                 try {
                     $dtInc = Carbon::parse($f->fecha_registro);
-                    $diffHorasInc = max(0, $dtInc->diffInHours($fechaFin, false));
+                    $diffHorasInc = (int) round(max(0, $dtInc->diffInHours($fechaFin, false)));
                     $diasInc = (int) round($diffHorasInc / 24);
                     
                     $txtInc = '';
@@ -849,7 +856,7 @@ class HistorialOperativoController extends Controller
             if (!empty($f->folio_mantenimiento) && !empty($f->fecha_folio_mantenimiento)) {
                 try {
                     $dtFol = Carbon::parse($f->fecha_folio_mantenimiento);
-                    $diffHorasFol = max(0, $dtFol->diffInHours($fechaFin, false));
+                    $diffHorasFol = (int) round(max(0, $dtFol->diffInHours($fechaFin, false)));
                     $diasFol = (int) round($diffHorasFol / 24);
 
                     $txtFol = '';
@@ -905,6 +912,14 @@ class HistorialOperativoController extends Controller
         $registro = DB::table('informacion_operativa')->where('id', $request->id)->first();
         if (! $registro) {
             return response()->json(['status' => 'error', 'message' => 'Registro no encontrado en información operativa'], 404);
+        }
+
+        $estatusActual = strtolower(trim((string)($registro->estatus ?? '')));
+        if ($estatusActual !== 'mantenimiento') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Este registro está cerrado y no se puede modificar porque la unidad ya concluyó su mantenimiento (estatus actual: ' . strtoupper($estatusActual) . ').'
+            ], 422);
         }
 
         $unidad = DB::table('unidades')->where('id', $registro->unidad_id)->first();

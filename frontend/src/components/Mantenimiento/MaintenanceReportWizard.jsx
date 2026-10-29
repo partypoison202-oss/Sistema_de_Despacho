@@ -24,6 +24,34 @@ const parsearCodigoMes = (valor) => {
   return { mes: getMesActualAbrev(), codigo: valor.trim().toUpperCase() };
 };
 
+/**
+ * Reglas de kilometraje:
+ * - Numérico puro (sin letras, símbolos ni "km")
+ * - Hasta 8 dígitos para la parte entera (máximo 99,999,999 km)
+ * - Punto (.) únicamente como separador decimal, máximo 1 dígito para metros/décimas
+ */
+export const sanitizarKilometraje = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return '';
+  let str = String(valor).replace(',', '.').replace(/[^0-9.]/g, '');
+  const parts = str.split('.');
+  let enteros = parts[0].slice(0, 8);
+  if (parts.length > 1) {
+    let decimales = parts[1].slice(0, 1);
+    return `${enteros}.${decimales}`;
+  }
+  return enteros;
+};
+
+export const formatearKilometrajeInicial = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const num = Number(valor);
+  if (!isNaN(num)) {
+    if (num % 1 === 0) return String(Math.round(num)).slice(0, 8);
+    return String(Number(num.toFixed(1))).slice(0, 10);
+  }
+  return sanitizarKilometraje(valor);
+};
+
 export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, initialData, initialStep = 1, printOnly = false, conductores = [] }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -41,6 +69,8 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   const [incidenciaMesPrefijo, setIncidenciaMesPrefijo] = useState(getMesActualAbrev());
   const [isEditandoIncidenciaMes, setIsEditandoIncidenciaMes] = useState(false);
   const [folioOrden, setFolioOrden] = useState('');
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [previewFilename, setPreviewFilename] = useState('');
   const [formData, setFormData] = useState({
     eco: '',
     operador: '',
@@ -92,7 +122,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         hora_reporte: horaActual,
         servicio: initialData?.servicio || '',
         corrida: String(initialData?.corrida || '').replace(/\D/g, ''),
-        km: initialData?.km || '',
+        km: formatearKilometrajeInicial(initialData?.km),
         falla_reportada: initialData?.falla_reportada || '',
         diagnostico: initialData?.diagnostico || '',
         descripcion_mantenimiento: '',
@@ -104,10 +134,24 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     if (!isOpen) {
       hasInitialized.current = false;
       hasPrinted.current = false;
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(previewPdfUrl);
+        setPreviewPdfUrl(null);
+        setPreviewFilename('');
+      }
     }
   }, [isOpen, initialData, initialStep]);
 
-  // Si printOnly es true, generar PDF automáticamente después de inicializar
+  // Limpieza de URL de previsualización al desmontar
+  useEffect(() => {
+    return () => {
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(previewPdfUrl);
+      }
+    };
+  }, [previewPdfUrl]);
+
+  // Si printOnly es true, generar PDF automáticamente después de inicializar y mostrarlo en modal
   useEffect(() => {
     if (isOpen && printOnly && hasInitialized.current && !loading && !hasPrinted.current) {
       hasPrinted.current = true;
@@ -115,7 +159,6 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         setLoading(true);
         await handleGeneratePDF();
         setLoading(false);
-        onClose();
       };
       // Pequeño timeout para permitir que el DOM se pinte completamente
       setTimeout(autoPrint, 300);
@@ -224,13 +267,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   };
 
   const handleGeneratePDF = async () => {
-    if (!printableRef.current) return;
-
-    // Pre-abrimos la ventana para evitar el bloqueo de Popups en Safari
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.write('<div style="font-family: sans-serif; padding: 20px;">Generando PDF de la orden, por favor espere...</div>');
-    }
+    if (!printableRef.current) return null;
 
     try {
       const element = printableRef.current;
@@ -246,22 +283,17 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
+      const incCompleta = incidencia.trim() ? `${incidenciaMesPrefijo}-${incidencia.trim().toUpperCase()}` : (initialData?.numero_incidencia || 'MANT');
+      const filename = `Orden_Mantenimiento_${formData.eco || 'ECO'}_INC-${incCompleta}.pdf`;
 
-      // Mostrar en la pestaña nueva
-      if (newWindow) {
-        newWindow.location.href = pdfUrl;
-      } else {
-        // Fallback en caso de que el navegador lo haya bloqueado de todos modos
-        const link = document.createElement('a');
-        link.href = pdfUrl;
-        link.target = '_blank';
-        link.download = `Orden_Mantenimiento_${formData.eco}_FOLIO-${folioOrden || 'REIMPRESION'}.pdf`;
-        link.click();
-      }
+      setPreviewPdfUrl(pdfUrl);
+      setPreviewFilename(filename);
+      return pdfUrl;
 
     } catch (error) {
       console.error("Error generando PDF:", error);
       Swal.fire({ icon: 'error', title: 'Error', text: 'Hubo un problema generando el PDF.' });
+      return null;
     }
   };
 
@@ -273,29 +305,31 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     hasPrinted.current = true; // Prevent double printing if printOnly triggers
 
     try {
-      // Generamos y descargamos el PDF inmediatamente para mejor experiencia de usuario
-      await handleGeneratePDF();
-
       const incidenciaCompleta = incidencia.trim() ? `${incidenciaMesPrefijo}-${incidencia.trim().toUpperCase()}` : '';
 
-      // Luego guardamos en backend
-      await onSuccess({
-        numero_incidencia: incidenciaCompleta,
-        folio_mantenimiento: folioOrden || '',
-        motivo: 'MANTENIMIENTO',
-        fecha_folio_mantenimiento: new Date().toISOString(),
-        falla_reportada: formData.falla_reportada,
-        diagnostico: formData.diagnostico,
-        firma_base64: formData.firma_base64,
-        kilometraje: formData.km,
-        mantenimiento_conductor: formData.operador,
-        mantenimiento_tarjeton: formData.tarjeton,
-        mantenimiento_ruta: formData.servicio,
-        mantenimiento_corrida: formData.corrida,
-        mantenimiento_kilometraje: formData.km
-      });
+      const folioLimpio = (folioOrden || '').trim();
+      // Primero guardamos en backend
+      if (onSuccess) {
+        await onSuccess({
+          numero_incidencia: incidenciaCompleta,
+          folio_mantenimiento: folioLimpio || null,
+          motivo: 'MANTENIMIENTO',
+          fecha_folio_mantenimiento: folioLimpio ? (initialData?.fecha_folio_mantenimiento || new Date().toISOString()) : null,
+          falla_reportada: formData.falla_reportada,
+          diagnostico: formData.diagnostico,
+          firma_base64: formData.firma_base64,
+          kilometraje: formData.km,
+          mantenimiento_conductor: formData.operador,
+          mantenimiento_tarjeton: formData.tarjeton,
+          mantenimiento_ruta: formData.servicio,
+          mantenimiento_corrida: formData.corrida,
+          mantenimiento_kilometraje: formData.km
+        });
+      }
 
-      onClose();
+      // Luego generamos y mostramos la vista previa del PDF dentro del sistema
+      await handleGeneratePDF();
+
     } catch (error) {
       console.error(error);
       setErrorMsg(error?.message || 'Ocurrió un error al guardar. Intenta de nuevo.');
@@ -527,8 +561,16 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">KM <span className="text-red-500">*</span></label>
-              <input type="text" name="km" value={formData.km} onChange={(e) => setFormData(prev => ({ ...prev, km: e.target.value.replace(/\D/g, '') }))} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL KILOMETRAJE ACTUAL (SOLO NÚMEROS)</p>
+              <input 
+                type="text" 
+                name="km" 
+                inputMode="decimal"
+                value={formData.km} 
+                onChange={(e) => setFormData(prev => ({ ...prev, km: sanitizarKilometraje(e.target.value) }))} 
+                placeholder="Ej: 145200 o 125400.7"
+                className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" 
+              />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">Numérico puro (máx. 8 dígitos, ej. 145200 o 125400.7)</p>
             </div>
           </div>
 
@@ -553,7 +595,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
           </div>
 
           <div className="pt-2">
-            <div className="max-w-[620px] mx-auto bg-gray-50/70 p-4 rounded-xl border border-gray-200/80 shadow-xs">
+            <div className="w-full bg-gray-50/70 p-4 rounded-xl border border-gray-200/80 shadow-xs">
               <div className="flex justify-between items-center mb-2">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
                   <svg className="w-4 h-4 text-[#6b1d33]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -563,7 +605,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
               </div>
               <SignaturePad
                 label=""
-                height={160}
+                height={220}
                 disabled={isLectura}
                 initialImage={formData.firma_base64}
                 onSave={(base64) => setFormData(prev => ({ ...prev, firma_base64: base64 }))}
@@ -616,11 +658,66 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     </div>
   );
 
+  // Vista previa modal idéntica a la de Unidades en Mantenimiento
+  if (previewPdfUrl) {
+    return createPortal(
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem'
+      }}>
+        <div style={{
+          backgroundColor: '#fff', borderRadius: '8px', padding: '1rem',
+          width: '100%', maxWidth: '900px', height: '85vh', display: 'flex', flexDirection: 'column'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, color: '#601a2a', fontSize: '1.25rem', fontWeight: 'bold' }}>Vista Previa del Reporte</h3>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', backgroundColor: '#601a2a', color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background-color 0.2s' }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#4a1420'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#601a2a'}
+                onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = previewPdfUrl;
+                  a.download = previewFilename || `Orden_Mantenimiento_${formData.eco || 'ECO'}.pdf`;
+                  a.style.display = 'none';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+              >
+                Descargar PDF
+              </button>
+              <button
+                style={{ padding: '0.5rem 1rem', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: '#f9fafb', color: '#374151', cursor: 'pointer', fontWeight: '500', transition: 'background-color 0.2s' }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                onClick={() => {
+                  if (previewPdfUrl) {
+                    URL.revokeObjectURL(previewPdfUrl);
+                  }
+                  setPreviewPdfUrl(null);
+                  setPreviewFilename('');
+                  onClose();
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+          <iframe src={previewPdfUrl} title="Vista previa PDF" style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '4px' }} />
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
   if (printOnly) {
     return createPortal(
       <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm p-4 overscroll-none">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mb-4"></div>
-        <p className="text-white text-lg font-semibold animate-pulse">Generando e imprimiendo Orden de Mantenimiento...</p>
+        <p className="text-white text-lg font-semibold animate-pulse">Generando reporte de mantenimiento...</p>
         {/* Contenedor Oculto para la plantilla PDF */}
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
           <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia: (incidencia ? `${incidenciaMesPrefijo}-${incidencia}` : ''), folio: folioOrden || '' }} />

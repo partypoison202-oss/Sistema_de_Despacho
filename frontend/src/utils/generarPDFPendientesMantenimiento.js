@@ -86,20 +86,54 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   const horaStr =
     now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) + ' HORAS';
 
+  // Función auxiliar para parsear fechas locales sin sesgo de hora o zona horaria
+  const parsearFechaLocal = (fechaInput) => {
+    if (!fechaInput) return null;
+    if (fechaInput instanceof Date) {
+      return new Date(fechaInput.getFullYear(), fechaInput.getMonth(), fechaInput.getDate());
+    }
+    const str = String(fechaInput).trim();
+    // Manejar formato YYYY-MM-DD o YYYY-MM-DD HH:mm:ss o ISO
+    const match = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const day = parseInt(match[3], 10);
+      return new Date(year, month, day);
+    }
+    // Manejar formato DD/MM/YYYY
+    const matchSlash = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (matchSlash) {
+      const day = parseInt(matchSlash[1], 10);
+      const month = parseInt(matchSlash[2], 10) - 1;
+      const year = parseInt(matchSlash[3], 10);
+      return new Date(year, month, day);
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return null;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  };
+
   const calcularDias = (fecha) => {
     if (!fecha) return '—';
-    const startDate = new Date(fecha);
-    const endDate = new Date(now);
+    const startDate = parsearFechaLocal(fecha);
+    if (!startDate) return '—';
 
-    const diff = endDate - startDate;
-    if (diff < 0) return '0';
+    // Normalizar la fecha actual a medianoche (00:00:00) para calcular días calendario exactos
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const diffTime = today.getTime() - startDate.getTime();
+    if (diffTime < 0) return '0';
     
-    return Math.floor(diff / (1000 * 60 * 60 * 24)).toString();
+    // Diferencia en días calendario exactos (redondeo para tolerar cambios de horario)
+    const dias = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    return dias.toString();
   };
 
   const formatDate = (isoStr) => {
     if (!isoStr) return '—';
-    const d = new Date(isoStr);
+    const d = parsearFechaLocal(isoStr);
+    if (!d) return '—';
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   };
 
@@ -131,10 +165,14 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   // 2. Si las fechas son iguales, por número de folio / incidencia (mayor número = más nuevo arriba)
   // 3. Fallback por ID de registro (id_incidencia mayor = creado recientemente arriba)
   const obtenerTimestamp = (u) => {
-    const f = (tipo === 'en-mantenimiento' ? u.fecha_folio_mantenimiento : null) || u.fecha_registro || u.fecha_folio_mantenimiento;
+    const f = u.fecha_folio_mantenimiento || u.fecha_registro;
     if (!f) return -Infinity;
-    const t = new Date(f).getTime();
-    return isNaN(t) ? -Infinity : t;
+    if (f instanceof Date) return f.getTime();
+    const str = String(f).trim().replace(' ', 'T');
+    const t = new Date(str).getTime();
+    if (!isNaN(t)) return t;
+    const d = parsearFechaLocal(f);
+    return d ? d.getTime() : -Infinity;
   };
 
   const extraerNumero = (val) => {

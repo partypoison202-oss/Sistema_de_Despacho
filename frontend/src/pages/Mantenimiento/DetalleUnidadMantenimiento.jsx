@@ -2454,8 +2454,8 @@ export default function DetalleUnidadMantenimiento() {
                 estatus: estatusWizard,
                 motivo_estatus: data.motivo,
                 numero_incidencia: data.numero_incidencia || null,
-                folio_mantenimiento: data.folio_mantenimiento,
-                fecha_folio_mantenimiento: data.fecha_folio_mantenimiento,
+                folio_mantenimiento: data.folio_mantenimiento || null,
+                fecha_folio_mantenimiento: data.folio_mantenimiento ? (data.fecha_folio_mantenimiento || null) : null,
                 falla_reportada: data.falla_reportada,
                 diagnostico: data.diagnostico,
                 firma_base64: data.firma_base64,
@@ -2483,8 +2483,8 @@ export default function DetalleUnidadMantenimiento() {
 
               // Ya no se genera el folio automáticamente en ningún caso.
               // El usuario debe hacerlo manualmente con el botón "GENERAR FOLIO"
-              let folioFinal = data.folio_mantenimiento;
-              let fechaFolioFinal = data.fecha_folio_mantenimiento;
+              let folioFinal = data.folio_mantenimiento || null;
+              let fechaFolioFinal = folioFinal ? (data.fecha_folio_mantenimiento || null) : null;
 
               // Refrescar estado local (incluyendo numero_incidencia para que se muestre en el panel)
               setDatosOperativos(prev => ({
@@ -2492,8 +2492,8 @@ export default function DetalleUnidadMantenimiento() {
                 estatus: estatusWizard,
                 motivo_estatus: data.motivo,
                 numero_incidencia: data.numero_incidencia || prev.numero_incidencia || null,
-                folio_mantenimiento: folioFinal || prev.folio_mantenimiento || null,
-                fecha_folio_mantenimiento: fechaFolioFinal || prev.fecha_folio_mantenimiento || null,
+                folio_mantenimiento: folioFinal,
+                fecha_folio_mantenimiento: fechaFolioFinal,
                 falla_reportada: data.falla_reportada || prev.falla_reportada || null,
                 diagnostico: data.diagnostico || prev.diagnostico || null,
                 firma_base64: data.firma_base64 || prev.firma_base64 || null,

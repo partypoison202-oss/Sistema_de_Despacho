@@ -5051,7 +5051,8 @@ class DespachoController extends Controller
         }
 
         if ($request->has('fecha_folio_mantenimiento')) {
-            $updateData['fecha_folio_mantenimiento'] = $request->fecha_folio_mantenimiento;
+            $folioEfectivo = trim((string)($updateData['folio_mantenimiento'] ?? ($registroOperativo->folio_mantenimiento ?? '')));
+            $updateData['fecha_folio_mantenimiento'] = !empty($folioEfectivo) ? $request->fecha_folio_mantenimiento : null;
         }
         if ($request->has('falla_reportada')) {
             $updateData['falla_reportada'] = $request->falla_reportada;

@@ -504,6 +504,8 @@ export default function HistorialMantenimiento() {
   const formatearTiempoCorto = (tiempoObj) => {
     if (!tiempoObj) return null;
     let txt = String(tiempoObj.texto || '').trim();
+    // Limpiar posibles decimales largos en horas (ej: "2.8067558680556h" -> "3h")
+    txt = txt.replace(/(\d+)\.\d+h/i, (m) => `${Math.round(parseFloat(m))}h`);
     txt = txt
       .replace(/menos de 1 hr/i, '< 1h')
       .replace(/menos de 1 hora/i, '< 1h')
@@ -1403,14 +1405,18 @@ export default function HistorialMantenimiento() {
                           </div>
                         ) : (
                           <div className="luxury-folio-sin-asignar-wrapper">
-                            <button
-                              type="button"
-                              className="btn-quick-asignar"
-                              onClick={() => abrirModalEdicion(d)}
-                              title="Asignar folio físico emitido por taller"
-                            >
-                              + Asignar
-                            </button>
+                            {String(d.estatus || '').toLowerCase() === 'mantenimiento' ? (
+                              <button
+                                type="button"
+                                className="btn-quick-asignar"
+                                onClick={() => abrirModalEdicion(d)}
+                                title="Asignar folio físico emitido por taller"
+                              >
+                                + Asignar
+                              </button>
+                            ) : (
+                              <span className="folio-cerrado-badge" title="Orden cerrada sin folio asignado">Sin folio</span>
+                            )}
                           </div>
                         )}
                       </td>
@@ -1433,7 +1439,7 @@ export default function HistorialMantenimiento() {
 
                           <div className="fecha-dual-row" title="Fecha oficial del folio emitido en taller">
                             <span className="fecha-tag-pill muted">Folio:</span>
-                            <span className="fecha-dual-text">{d.fecha_folio_mantenimiento ? formatearFechaHora(d.fecha_folio_mantenimiento) : 'Pendiente'}</span>
+                            <span className="fecha-dual-text">{d.folio_mantenimiento && d.fecha_folio_mantenimiento ? formatearFechaHora(d.fecha_folio_mantenimiento) : 'Sin registro'}</span>
                             {d.folio_mantenimiento && d.tiempo_folio ? (
                               <span 
                                 className={`tiempo-tag-pill ${d.tiempo_folio.es_operacion ? 'resuelto' : (d.tiempo_folio.dias >= 3 ? 'critico' : 'activo')}`}
@@ -1476,18 +1482,31 @@ export default function HistorialMantenimiento() {
                       {/* 8. Acciones (Ajustadas para caber perfectamente sin corte) */}
                       <td style={{ textAlign: 'center' }}>
                         <div className="luxury-actions-cell">
-                          <button
-                            type="button"
-                            className="btn-luxury-action btn-luxury-edit"
-                            onClick={() => abrirModalEdicion(d)}
-                            title="Actualizar incidencia, folio o fecha con justificación obligatoria"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                            Editar
-                          </button>
+                          {String(d.estatus || '').toLowerCase() === 'mantenimiento' ? (
+                            <button
+                              type="button"
+                              className="btn-luxury-action btn-luxury-edit"
+                              onClick={() => abrirModalEdicion(d)}
+                              title="Actualizar incidencia, folio o fecha con justificación obligatoria"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              </svg>
+                              Editar
+                            </button>
+                          ) : (
+                            <span 
+                              className="btn-luxury-action btn-luxury-locked" 
+                              title="Registro cerrado. No es modificable porque la unidad ya concluyó su mantenimiento y pasó a otro estatus."
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                              </svg>
+                              Cerrado
+                            </span>
+                          )}
 
                           <button
                             type="button"
@@ -1752,7 +1771,7 @@ export default function HistorialMantenimiento() {
                       {folioEditando.folio_mantenimiento && folioEditando.tiempo_folio ? (
                         <strong>{folioEditando.tiempo_folio.etiqueta}: {folioEditando.tiempo_folio.texto}</strong>
                       ) : (
-                        <strong style={{ color: '#64748b' }}>Pendiente de Asignar</strong>
+                        <strong style={{ color: '#64748b' }}>Sin registro</strong>
                       )}
                     </div>
                     <span className="estancia-card-sub">
@@ -2278,7 +2297,7 @@ export default function HistorialMantenimiento() {
                       </svg>
                     </div>
                     <h4>Sin Movimientos en Bitácora</h4>
-                    <p>No se encontraron registros de auditoría para este económico.</p>
+                    <p>No se encontraron registros en el historial para este económico.</p>
                   </div>
                 )
               )}
@@ -3815,6 +3834,24 @@ export default function HistorialMantenimiento() {
           border-color: #691B31;
           color: #691B31;
           transform: translateY(-1px);
+        }
+        .btn-luxury-locked {
+          background-color: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          color: #64748b;
+          cursor: not-allowed;
+          opacity: 0.9;
+        }
+        .folio-cerrado-badge {
+          display: inline-block;
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #94a3b8;
+          font-style: italic;
+          padding: 0.2rem 0.5rem;
+          border-radius: 5px;
+          background: #f8fafc;
+          border: 1px dashed #cbd5e1;
         }
         .mini-history-count {
           background-color: #BC955B;
