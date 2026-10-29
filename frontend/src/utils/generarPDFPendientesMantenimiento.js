@@ -1,4 +1,4 @@
-import { jsPDF } from 'jspdf';
+﻿import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 /**
@@ -90,8 +90,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   const pdf = new jsPDF('l', 'mm', 'letter');
   const pageW = pdf.internal.pageSize.getWidth();
 
-  // Cargar logo de alta calidad con fondo transparente
-  const logoDataUrl = await cargarLogoTransparente('/images/sistema_de_tm.webp');
+  // Cargar logo ACOTMA de alta calidad con fondo transparente
+  const logoDataUrl = await cargarLogoTransparente('/images/acotma_logo_connombre_contorno_v2.png');
 
   // Fecha / hora
   const now = new Date();

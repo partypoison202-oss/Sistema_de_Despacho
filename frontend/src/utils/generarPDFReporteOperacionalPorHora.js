@@ -97,15 +97,17 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
     pdf.setFillColor(...COLOR_GUINDA);
     pdf.rect(0, 0, pw, 22, 'F');
     
-    // Logo STM (Izquierda)
+    // Logo ACOTMA (Izquierda) — proporcional
     try {
-        const logoImg = await loadImage('/images/sistema_de_tm.webp');
+        const logoImg = await loadImage('/images/acotma_logo_connombre_contorno_v2.png');
         if (logoImg) {
             const canvas = document.createElement('canvas');
             canvas.width = logoImg.width; canvas.height = logoImg.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(logoImg, 0, 0);
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 5, 2, 45, 18);
+            const logoH = 18; // altura fija en mm
+            const logoW = logoH * (logoImg.width / logoImg.height); // ancho proporcional
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 5, 2, logoW, logoH);
         }
     } catch(e) {
         // Ignorar fallo al cargar logo principal
