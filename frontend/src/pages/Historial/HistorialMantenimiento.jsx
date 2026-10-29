@@ -913,8 +913,8 @@ export default function HistorialMantenimiento() {
             </svg>
           </span>
           <span className="detalle-simple-text">
-            {String(parsed.texto || rawDetalles || '').split(/((?:OCT|INC)-[A-Za-z0-9-]+|ECO\s?\d+)/g).map((part, idx) =>
-              /^((?:OCT|INC)-[A-Za-z0-9-]+|ECO\s?\d+)$/.test(part)
+            {String(parsed.texto || rawDetalles || '').split(/((?:[A-Z]{3}|INC)-[A-Za-z0-9-]+|ECO\s?\d+)/g).map((part, idx) =>
+              /^((?:[A-Z]{3}|INC)-[A-Za-z0-9-]+|ECO\s?\d+)$/.test(part)
                 ? <span key={idx} className="detalle-code-chip">{part}</span>
                 : <React.Fragment key={idx}>{part}</React.Fragment>
             )}
@@ -1901,7 +1901,7 @@ export default function HistorialMantenimiento() {
                       type="text"
                       value={formFolio}
                       onChange={(e) => setFormFolio(e.target.value.toUpperCase())}
-                      placeholder="Ej. OCT-4545 o MANT-01"
+                      placeholder="Ej. 111 o F-102"
                       className="input-luxury monospace-input"
                       disabled={isGuardandoEdicion}
                     />

@@ -92,9 +92,7 @@ export default function DetalleUnidadMantenimiento() {
   const [folioFormValue, setFolioFormValue] = useState('');
   const [fallaReportadaFormValue, setFallaReportadaFormValue] = useState('');
   const [isGuardandoFolio, setIsGuardandoFolio] = useState(false);
-  const [folioMesPrefijo, setFolioMesPrefijo] = useState(getMesActualAbrev());
   const [incidenciaMesPrefijo, setIncidenciaMesPrefijo] = useState(getMesActualAbrev());
-  const [isEditandoFolioMes, setIsEditandoFolioMes] = useState(false);
   const [isEditandoIncidenciaMes, setIsEditandoIncidenciaMes] = useState(false);
 
   const [datosOperativos, setDatosOperativos] = useState({
@@ -113,10 +111,7 @@ export default function DetalleUnidadMantenimiento() {
 
   useEffect(() => {
     if (isFolioModalOpen) {
-      const parsed = parsearCodigoMes(datosOperativos?.folio_mantenimiento);
-      setFolioMesPrefijo(parsed.mes);
-      setFolioFormValue(parsed.codigo);
-      setIsEditandoFolioMes(false);
+      setFolioFormValue(datosOperativos?.folio_mantenimiento || '');
     }
   }, [isFolioModalOpen, datosOperativos?.folio_mantenimiento]);
 
@@ -182,7 +177,7 @@ export default function DetalleUnidadMantenimiento() {
       Swal.fire('Atención', 'Debes ingresar el número de folio.', 'warning');
       return;
     }
-    const folioCompleto = `${folioMesPrefijo}-${codigoLimpio}`;
+    const folioCompleto = codigoLimpio;
     setIsGuardandoFolio(true);
     try {
       const token = getToken();
@@ -2573,55 +2568,18 @@ export default function DetalleUnidadMantenimiento() {
                 <label htmlFor="folioInput" className="block text-sm font-semibold text-slate-700 mb-1">
                   Asignar número de folio:
                 </label>
-                <div className="flex items-center w-full border border-slate-300 rounded-lg overflow-hidden focus-within:border-brand-maroon focus-within:ring-1 focus-within:ring-brand-maroon bg-white transition-all shadow-xs">
-                  {isEditandoFolioMes ? (
-                    <div className="bg-slate-100 border-r border-slate-300 flex items-center px-1.5 py-1">
-                      <input
-                        type="text"
-                        value={folioMesPrefijo}
-                        maxLength={3}
-                        autoFocus
-                        onChange={(e) => setFolioMesPrefijo(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
-                        onBlur={() => {
-                          if (!folioMesPrefijo.trim()) setFolioMesPrefijo(getMesActualAbrev());
-                          setIsEditandoFolioMes(false);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (!folioMesPrefijo.trim()) setFolioMesPrefijo(getMesActualAbrev());
-                            setIsEditandoFolioMes(false);
-                          }
-                        }}
-                        className="w-14 px-1 py-0.5 text-center font-bold text-slate-800 bg-white border border-brand-maroon rounded text-xs focus:outline-none uppercase shadow-xs"
-                        placeholder="MES"
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditandoFolioMes(true)}
-                      title="Haz clic para editar el mes (ej. OCT)"
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 border-r border-slate-300 select-none flex items-center gap-1.5 text-sm tracking-wide transition-colors cursor-pointer group"
-                    >
-                      <span className="group-hover:text-brand-maroon">{folioMesPrefijo}</span>
-                      <svg className="w-3 h-3 text-slate-400 group-hover:text-brand-maroon transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  )}
-                  <span className="text-slate-400 font-extrabold select-none pl-2.5 pr-1">-</span>
+                <div className="flex items-center w-full border border-slate-300 rounded-lg overflow-hidden focus-within:border-brand-maroon focus-within:ring-1 focus-within:ring-brand-maroon bg-white transition-all shadow-xs px-3 py-1">
                   <input
                     id="folioInput"
                     type="text"
-                    placeholder=""
+                    placeholder="Ej. 111 o F-102"
                     value={folioFormValue}
-                    onChange={(e) => setFolioFormValue(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
-                    className="flex-1 px-2 py-2 text-slate-800 font-bold focus:outline-none bg-transparent"
-                    autoFocus={!isEditandoFolioMes}
+                    onChange={(e) => setFolioFormValue(e.target.value.toUpperCase())}
+                    className="flex-1 py-1 text-slate-800 font-bold focus:outline-none bg-transparent uppercase tracking-wider text-base"
+                    autoFocus
                   />
                 </div>
-                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe el folio (solo letras y números). Haz clic en el mes para cambiarlo.</span>
+                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe el número de folio físico (números y letras en mayúsculas).</span>
               </div>
 
               <div className="flex gap-2 mt-4">
