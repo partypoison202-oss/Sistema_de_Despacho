@@ -77,8 +77,13 @@ export default function ResumenDespacho() {
             }).length
             : 0;
 
-          const progActual = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI') || Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta)).length;
-          const prog = hasSnapshot ? progInicio : (progActual || units.length);
+          const progActual = units.filter(d => {
+            const est = normStr(d.ESTATUS || d.estatus);
+            const isOper = est.includes('OPERACI');
+            const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta);
+            return isOper || isMantoConRuta;
+          }).length;
+          const prog = hasSnapshot ? progInicio : progActual;
 
           const isEncierroCumplido = (d) => {
             if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;

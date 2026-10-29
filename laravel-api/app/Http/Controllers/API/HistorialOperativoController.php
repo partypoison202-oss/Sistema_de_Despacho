@@ -816,8 +816,6 @@ class HistorialOperativoController extends Controller
         $hasAcopleInfo = Schema::hasColumn('informacion_operativa', 'acople');
 
         $hasProgInicial = Schema::hasTable('programacion_inicial');
-        $hasInfoOperativa = Schema::hasTable('informacion_operativa');
-        $esHoy = ($fecha === Carbon::today('America/Mexico_City')->toDateString());
 
         $queryProg = DB::table('unidades')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id');
@@ -827,10 +825,6 @@ class HistorialOperativoController extends Controller
                 $join->on('unidades.id', '=', 'programacion_inicial.unidad_id')
                     ->where('programacion_inicial.fecha', $fecha);
             });
-        }
-
-        if ($hasInfoOperativa && $esHoy) {
-            $queryProg->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id');
         }
 
         $queryProg->leftJoin('historial_operativo', function ($join) use ($fecha) {
@@ -844,13 +838,13 @@ class HistorialOperativoController extends Controller
                 'unidades.numero_eco as economico',
                 $this->tipoUnidadRaw(DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre)'), 'tipo'),
                 $this->tipoUnidadRaw(DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre)'), 'tipo_unidad'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . ($hasInfoOperativa && $esHoy ? 'informacion_operativa.mantenimiento_ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . ($hasInfoOperativa && $esHoy ? 'informacion_operativa.mantenimiento_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as numero_tarjeton'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . ($hasInfoOperativa && $esHoy ? 'informacion_operativa.mantenimiento_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
-                DB::raw("COALESCE(" . ($hasProgInicial ? "programacion_inicial.estatus, " : "") . ($hasInfoOperativa && $esHoy ? "CASE WHEN informacion_operativa.mantenimiento_ruta IS NOT NULL AND TRIM(CAST(informacion_operativa.mantenimiento_ruta AS VARCHAR)) != '' THEN 'operacion' ELSE NULL END, " : "") . "historial_operativo.estatus, 'reserva') as estatus"),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as numero_tarjeton'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
+                DB::raw("COALESCE(" . ($hasProgInicial ? "programacion_inicial.estatus, " : "") . "historial_operativo.estatus, 'reserva') as estatus"),
                 $hasSalidaPatioHist ? DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_salida_patio, ' : '') . 'historial_operativo.hora_salida_patio) as hora_salida') : DB::raw('NULL as hora_salida'),
                 $hasAcopleHist ? DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.acople, ' : '') . 'historial_operativo.acople) as acople') : DB::raw('NULL as acople'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . ($hasInfoOperativa && $esHoy ? 'informacion_operativa.mantenimiento_corrida, ' : '') . 'historial_operativo.corridas) as corridas'),
+                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . 'historial_operativo.corridas) as corridas'),
                 DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ciclo, ' : '') . 'historial_operativo.ciclo) as ciclo'),
                 DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo, ' : '') . 'historial_operativo.motivo) as motivo'),
                 DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.falla, ' : '') . 'historial_operativo.falla) as falla'),

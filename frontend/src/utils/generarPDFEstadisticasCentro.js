@@ -86,8 +86,13 @@ function calcularMetricasDesdeDatos(apiData = [], inicioData = []) {
                 return matchesModel && estatusNorm.includes('OPERACI');
             }).length
             : 0;
-        const progFallback = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI') || Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta)).length;
-        const programadas = hasSnapshot ? programadasInicio : (progFallback || total || unidadesOperacion.length);
+        const progFallback = units.filter(d => {
+            const est = normStr(d.ESTATUS || d.estatus);
+            const isOper = est.includes('OPERACI');
+            const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta);
+            return isOper || isMantoConRuta;
+        }).length;
+        const programadas = hasSnapshot ? programadasInicio : progFallback;
 
         return {
             ...mc,

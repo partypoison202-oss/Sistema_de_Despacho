@@ -252,10 +252,11 @@ export default function CentroControl() {
       // Si aún no hay snapshot, programadas contempla la flota total asignada al servicio.
       const programadasFallback = units.filter(d => {
         const est = normStr(d.ESTATUS || d.estatus);
-        const hasService = Boolean(d.RUTA || d.ruta || d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta);
-        return est.includes('OPERACI') || hasService;
+        const isOper = est.includes('OPERACI');
+        const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta);
+        return isOper || isMantoConRuta;
       }).length;
-      const programadas = hasSnapshot ? programadasInicio : (programadasFallback || total || unidadesOperacion.length);
+      const programadas = hasSnapshot ? programadasInicio : programadasFallback;
 
       return {
         ...mc,

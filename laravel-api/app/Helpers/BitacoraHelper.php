@@ -174,7 +174,7 @@ class BitacoraHelper
                                 $rowFiltered['ruta'] = $arrayReg['mantenimiento_ruta'];
                                 if (!empty($arrayReg['mantenimiento_conductor'])) $rowFiltered['nombre_conductor'] = $arrayReg['mantenimiento_conductor'];
                                 if (!empty($arrayReg['mantenimiento_tarjeton'])) $rowFiltered['numero_tarjeton'] = $arrayReg['mantenimiento_tarjeton'];
-                                if (!empty($arrayReg['mantenimiento_corrida'])) $rowFiltered['corridas'] = $arrayReg['mantenimiento_corrida'];
+                                if (!empty($arrayReg['mantenimiento_corrida'])) $rowFiltered['corridas'] = (int) preg_replace('/[^0-9]/', '', (string)$arrayReg['mantenimiento_corrida']);
                             }
                             $rowFiltered['created_at'] = Carbon::now();
                             $rowFiltered['updated_at'] = Carbon::now();

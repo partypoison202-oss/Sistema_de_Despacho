@@ -4350,17 +4350,17 @@ class DespachoController extends Controller
         BitacoraHelper::ensureInicioSnapshot();
 
         $hasProgInicial = Schema::hasTable('programacion_inicial');
-        $hasInfoOperativa = Schema::hasTable('informacion_operativa');
+        $hasProgCols = $hasProgInicial ? array_flip(Schema::getColumnListing('programacion_inicial')) : [];
 
         $columns = [
             'unidades.numero_eco',
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre) as tipo'),
-            DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . ($hasInfoOperativa ? 'informacion_operativa.mantenimiento_ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
-            DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . ($hasInfoOperativa ? 'informacion_operativa.mantenimiento_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as tarjeton'),
-            DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . ($hasInfoOperativa ? 'informacion_operativa.mantenimiento_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
-            DB::raw("COALESCE(" . ($hasProgInicial ? "programacion_inicial.estatus, " : "") . ($hasInfoOperativa ? "CASE WHEN informacion_operativa.mantenimiento_ruta IS NOT NULL AND TRIM(CAST(informacion_operativa.mantenimiento_ruta AS VARCHAR)) != '' THEN 'operacion' ELSE NULL END, " : "") . "historial_operativo.estatus, 'reserva') as estatus"),
+            DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
+            DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as tarjeton'),
+            DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
+            DB::raw("COALESCE(" . ($hasProgInicial ? "programacion_inicial.estatus, " : "") . "historial_operativo.estatus, 'reserva') as estatus"),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.falla, ' : '') . 'historial_operativo.falla) as falla'),
-            DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . ($hasInfoOperativa ? 'informacion_operativa.mantenimiento_corrida, ' : '') . 'historial_operativo.corridas) as corridas'),
+            DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . 'historial_operativo.corridas) as corridas'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ciclo, ' : '') . 'historial_operativo.ciclo) as ciclo'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo, ' : '') . 'historial_operativo.motivo) as motivo'),
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo_estatus, ' : '') . 'historial_operativo.motivo_estatus) as motivo_estatus'),
@@ -4374,46 +4374,46 @@ class DespachoController extends Controller
 
         $hasHoraSalidaPatio = Schema::hasColumn('historial_operativo', 'hora_salida_patio');
         if ($hasHoraSalidaPatio) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_salida_patio, ' : '') . 'historial_operativo.hora_salida_patio) as hora_salida_patio');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_salida_patio']) ? 'programacion_inicial.hora_salida_patio, ' : '') . 'historial_operativo.hora_salida_patio) as hora_salida_patio');
         }
 
         $hasAcople = Schema::hasColumn('historial_operativo', 'acople');
         if ($hasAcople) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.acople, ' : '') . 'historial_operativo.acople) as acople');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['acople']) ? 'programacion_inicial.acople, ' : '') . 'historial_operativo.acople) as acople');
         }
 
         $hasHoraRealSalida = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
         $hasHoraSalidaLegacy = Schema::hasColumn('historial_operativo', 'hora_salida');
         $hasHoraSalida = $hasHoraRealSalida || $hasHoraSalidaLegacy;
         if ($hasHoraRealSalida) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_real_salida_patio, ' : '') . 'historial_operativo.hora_real_salida_patio) as hora_real_salida_patio');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_real_salida_patio']) ? 'programacion_inicial.hora_real_salida_patio, ' : '') . 'historial_operativo.hora_real_salida_patio) as hora_real_salida_patio');
         } elseif ($hasHoraSalidaLegacy) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_real_salida_patio, ' : '') . 'historial_operativo.hora_salida) as hora_real_salida_patio');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_real_salida_patio']) ? 'programacion_inicial.hora_real_salida_patio, ' : '') . 'historial_operativo.hora_salida) as hora_real_salida_patio');
         }
 
         $hasPatioNorte = Schema::hasColumn('historial_operativo', 'patio_norte');
         if ($hasPatioNorte) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.patio_norte, ' : '') . 'historial_operativo.patio_norte) as patio_norte');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['patio_norte']) ? 'CAST(programacion_inicial.patio_norte AS VARCHAR), ' : '') . 'CAST(historial_operativo.patio_norte AS VARCHAR)) as patio_norte');
         }
 
         $hasItinerario = Schema::hasColumn('historial_operativo', 'itinerario');
         if ($hasItinerario) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.itinerario, ' : '') . 'historial_operativo.itinerario) as itinerario');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['itinerario']) ? 'CAST(programacion_inicial.itinerario AS VARCHAR), ' : '') . 'CAST(historial_operativo.itinerario AS VARCHAR)) as itinerario');
         }
 
         $hasHoraIncorp = Schema::hasColumn('historial_operativo', 'hora_incorporacion');
         if ($hasHoraIncorp) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_incorporacion, ' : '') . 'historial_operativo.hora_incorporacion) as hora_incorporacion');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_incorporacion']) ? 'programacion_inicial.hora_incorporacion, ' : '') . 'historial_operativo.hora_incorporacion) as hora_incorporacion');
         }
 
         $hasHoraDesinc = Schema::hasColumn('historial_operativo', 'hora_desincorporacion');
         if ($hasHoraDesinc) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_desincorporacion, ' : '') . 'historial_operativo.hora_desincorporacion) as hora_desincorporacion');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_desincorporacion']) ? 'programacion_inicial.hora_desincorporacion, ' : '') . 'historial_operativo.hora_desincorporacion) as hora_desincorporacion');
         }
 
         $hasHoraEncierro = Schema::hasColumn('historial_operativo', 'hora_encierro');
         if ($hasHoraEncierro) {
-            $columns[] = DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_encierro, ' : '') . 'historial_operativo.hora_encierro) as hora_encierro');
+            $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_encierro']) ? 'programacion_inicial.hora_encierro, ' : '') . 'historial_operativo.hora_encierro) as hora_encierro');
         }
 
         $query = DB::table('unidades')
@@ -4424,10 +4424,6 @@ class DespachoController extends Controller
                 $join->on('unidades.id', '=', 'programacion_inicial.unidad_id')
                     ->where('programacion_inicial.fecha', $fechaHoy);
             });
-        }
-
-        if ($hasInfoOperativa) {
-            $query->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id');
         }
 
         $query->leftJoin('historial_operativo', function ($join) use ($fechaHoy) {

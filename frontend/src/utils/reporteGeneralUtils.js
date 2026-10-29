@@ -39,7 +39,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null, catal
     });
 
     // Regla de inicio operativo (snapshot de cambio de día a las 00:00) o conteo de operación
-    let programadasCalculadas = unidades.length;
+    let programadasCalculadas = 0;
     if (listInicio && listInicio.length > 0) {
       const progInicio = listInicio.filter((u) => {
         const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));
@@ -51,12 +51,11 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null, catal
       const progFallback = list.filter((u) => {
         const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));
         const est = normStr(u.ESTATUS || u.estatus);
-        const hasService = Boolean(u.RUTA || u.ruta || u.MANTENIMIENTO_RUTA || u.mantenimiento_ruta);
-        return match && (est.includes('OPERACI') || hasService);
+        const isOper = est.includes('OPERACI');
+        const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(u.MANTENIMIENTO_RUTA || u.mantenimiento_ruta);
+        return match && (isOper || isMantoConRuta);
       }).length;
-      if (progFallback > 0) {
-        programadasCalculadas = progFallback;
-      }
+      programadasCalculadas = progFallback;
     }
 
     const enServicio = unidades.filter((u) => {
