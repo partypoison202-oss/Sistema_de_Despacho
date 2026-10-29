@@ -15,6 +15,7 @@ import ModalComparativaAlimentadoras from './ModalComparativaAlimentadoras';
 import ModalCiclos from './ModalCiclos';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
+import { getFechaActualLocal } from '../../utils/itinerarioUtils';
 
 // Campos que se editan juntos (si cambia uno del grupo, se considera cambiado todo el grupo).
 const GRUPOS_FILA = [
@@ -25,7 +26,7 @@ const GRUPOS_FILA = [
   ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'],
   ['TARJETON_MANIOBRISTA', 'NOMBRE_MANIOBRISTA'],
   ['HORA_DE_ACOPLE', 'HORA_SALIDA_PATIO', 'ACOPLE'],
-  ['HORA_ENCIERRO', 'hora_encierro'],
+  ['HORA_ENCIERRO', 'hora_encierro', 'HORA DE ENCIERRO'],
   ['PATIO_NORTE', 'TRANSPORTE_PATIO_NORTE'],
   ['ITINERARIO'],
   ['HORA_INCORPORACION'],
@@ -69,6 +70,10 @@ const normalizarFilaServidor = (item) => {
     row.TARJETON = row.TARJETON_TITULAR;
     row.NOMBRE_CONDUCTOR = row.CONDUCTOR_TITULAR || row.NOMBRE_CONDUCTOR || '';
   }
+  const encierroVal = row.HORA_ENCIERRO || row.hora_encierro || row['HORA DE ENCIERRO'] || '';
+  row.HORA_ENCIERRO = encierroVal;
+  row.hora_encierro = encierroVal;
+  row['HORA DE ENCIERRO'] = encierroVal;
   return row;
 };
 
@@ -194,7 +199,8 @@ export default function CargaExcel({ isPasteles = false }) {
     queryKey: ['despacho-datos', tabActiva],
     queryFn: fetchDatos,
     staleTime: 5000,
-    refetchInterval: hasChanges ? false : 15000,
+    refetchInterval: false, // Prevención de sobreescritura de tabla por Polling (15s)
+    refetchOnWindowFocus: false,
   });
 
 
@@ -232,75 +238,110 @@ export default function CargaExcel({ isPasteles = false }) {
   const registrosVisibles = previewData.map((fila, originalIndex) => ({ fila, originalIndex }));
 
 
+  const faltaEnProcesoRef = useRef(new Set());
+
   const solicitarFaltaSiAplica = async (originalTarjeton, originalName, ecoUnidad, rol = 'conductor') => {
+    // Si no estamos en la pestaña del día operativo (HOY), ej. DÍA SIGUIENTE (MANANA),
+    // no se debe registrar falta al operador reemplazado porque es planificación futura.
+    if (tabActiva !== 'HOY') return;
     if (!originalTarjeton) return;
     const origConductorObj = catalogConductores.find(
       c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(originalTarjeton)
     );
 
+    if (!origConductorObj) return;
+
+    const fechaHoy = getFechaActualLocal();
+    const lockKey = `${origConductorObj.id || originalTarjeton}_${fechaHoy}`;
+
+    // Si ya se está procesando una falta para este conductor o ya está en estatus de falta hoy, evitar duplicados
+    if (faltaEnProcesoRef.current.has(lockKey)) {
+      console.warn('Ya se está procesando la solicitud de falta para este conductor:', lockKey);
+      return;
+    }
+
+    if (origConductorObj.estado_servicio === 'falta') {
+      console.log('El operador ya se encuentra en estatus de falta, no se registrará duplicado.');
+      return;
+    }
+
+    faltaEnProcesoRef.current.add(lockKey);
     const labelRol = rol === 'relevo' ? 'relevo' : 'conductor';
-    const confirmFalta = await Swal.fire({
-      title: `¿Registrar falta al ${labelRol} anterior?`,
-      html: `
-        <div style="text-align: left; font-size: 0.9rem; color: #334155; line-height: 1.5;">
-          <p style="margin-bottom: 0.5rem;">Se ha retirado/reemplazado al ${labelRol} <strong>${originalName || originalTarjeton}</strong> (Tarjetón: <strong>${originalTarjeton}</strong>) de la unidad <strong>Eco #${ecoUnidad || 'N/A'}</strong>.</p>
-          <p style="color: #64748b;">¿Deseas registrar una <strong>falta no justificada</strong> a su expediente en el sistema?</p>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#475569',
-      confirmButtonText: 'Sí, registrar falta',
-      cancelButtonText: 'No, solo reemplazar',
-      reverseButtons: true
-    });
 
-    if (confirmFalta.isConfirmed && origConductorObj) {
-      try {
-        const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
-        const response = await fetch(`${API_BASE}/api/conductores/${origConductorObj.id}/agregar-falta`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            fecha: new Date().toISOString().split('T')[0],
-            motivo: `Inasistencia por reemplazo de tarjetón en Programación (Eco: ${ecoUnidad || 'N/A'})`
-          })
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-          origConductorObj.estado_servicio = 'falta';
-          origConductorObj.faltas = (origConductorObj.faltas || 0) + 1;
-
-          if (data.inhabilitado) {
-            origConductorObj.estatus = 'inhabilitado';
-            Swal.fire({
-              icon: 'warning',
-              title: 'Operador No Asignado',
-              html: `El operador <b>${origConductorObj.nombre}</b> ha quedado <b>NO ASIGNADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
-              confirmButtonColor: '#ef4444'
+    try {
+      const confirmFalta = await Swal.fire({
+        title: `¿Registrar falta al ${labelRol} anterior?`,
+        html: `
+          <div style="text-align: left; font-size: 0.9rem; color: #334155; line-height: 1.5;">
+            <p style="margin-bottom: 0.5rem;">Se ha retirado/reemplazado al ${labelRol} <strong>${originalName || originalTarjeton}</strong> (Tarjetón: <strong>${originalTarjeton}</strong>) de la unidad <strong>Eco #${ecoUnidad || 'N/A'}</strong>.</p>
+            <p style="color: #64748b;">¿Deseas registrar una <strong>falta no justificada</strong> a su expediente en el sistema?</p>
+          </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#475569',
+        confirmButtonText: 'Sí, registrar falta',
+        cancelButtonText: 'No, solo reemplazar',
+        reverseButtons: true,
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !Swal.isLoading(),
+        preConfirm: async () => {
+          try {
+            const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+            const response = await fetch(`${API_BASE}/api/conductores/${origConductorObj.id}/agregar-falta`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                fecha: fechaHoy,
+                motivo: `Inasistencia por reemplazo de tarjetón en Programación (Eco: ${ecoUnidad || 'N/A'})`
+              })
             });
-          } else {
-            Swal.fire({
-              icon: 'success',
-              title: 'Falta Registrada',
-              text: `Se ha registrado la falta en el expediente de ${origConductorObj.nombre}.`,
-              confirmButtonColor: '#10b981',
-              timer: 1800
-            });
+
+            const data = await response.json();
+            if (!response.ok) {
+              throw new Error(data.message || 'No se pudo registrar la falta.');
+            }
+            return data;
+          } catch (err) {
+            Swal.showValidationMessage(err.message || 'Error de conexión con el servidor');
+            return false;
           }
+        }
+      });
+
+      if (confirmFalta.isConfirmed && confirmFalta.value) {
+        const data = confirmFalta.value;
+        origConductorObj.estado_servicio = 'falta';
+
+        if (!data.duplicada_evitada && !data.ya_existia) {
+          origConductorObj.faltas = (origConductorObj.faltas || 0) + 1;
+        }
+
+        if (data.inhabilitado) {
+          origConductorObj.estatus = 'inhabilitado';
+          Swal.fire({
+            icon: 'warning',
+            title: 'Operador No Asignado',
+            html: `El operador <b>${origConductorObj.nombre}</b> ha quedado <b>NO ASIGNADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
+            confirmButtonColor: '#ef4444'
+          });
         } else {
           Swal.fire({
-            icon: 'error',
-            title: 'Error al registrar falta',
-            text: data.message || 'No se pudo registrar la falta.',
-            confirmButtonColor: '#6b1d33'
+            icon: 'success',
+            title: data.ya_existia || data.duplicada_evitada ? 'Falta Ya Registrada' : 'Falta Registrada',
+            text: data.message || `Se ha registrado la falta en el expediente de ${origConductorObj.nombre}.`,
+            confirmButtonColor: '#10b981',
+            timer: 1800
           });
         }
-      } catch (err) {
-        console.error('Error al solicitar falta:', err);
       }
+    } catch (err) {
+      console.error('Error al solicitar falta:', err);
+    } finally {
+      setTimeout(() => {
+        faltaEnProcesoRef.current.delete(lockKey);
+      }, 1000);
     }
   };
 
@@ -311,8 +352,8 @@ export default function CargaExcel({ isPasteles = false }) {
     const valStr = String(value ?? '').trim();
 
     if (field === 'ESTATUS') {
-      if (valStr === 'mantenimiento' || valStr === 'reserva') {
-        if (isPasteles && (valStr === 'mantenimiento' || valStr === 'reserva')) {
+      if (valStr === 'mantenimiento') {
+        if (isPasteles) {
           const currentEco = updatedData[index]?.ECONOMICO;
           const hasService = Boolean(
             updatedData[index]['RUTA'] ||
@@ -332,6 +373,9 @@ export default function CargaExcel({ isPasteles = false }) {
             return;
           }
         }
+      }
+
+      if (valStr === 'mantenimiento' || valStr === 'reserva') {
 
         updatedData[index]['ESTATUS'] = valStr;
         updatedData[index]['RUTA'] = '';
@@ -522,6 +566,10 @@ export default function CargaExcel({ isPasteles = false }) {
           updatedData[index]['ESTATUS'] = 'operacion';
         }
       }
+    } else if (field === 'HORA_ENCIERRO' || field === 'hora_encierro' || field === 'HORA DE ENCIERRO') {
+      updatedData[index]['HORA_ENCIERRO'] = value;
+      updatedData[index]['hora_encierro'] = value;
+      updatedData[index]['HORA DE ENCIERRO'] = value;
     } else {
       updatedData[index][field] = value;
       if ((field === 'RUTA' || field === 'CORRIDAS') && value) {
@@ -1415,6 +1463,7 @@ export default function CargaExcel({ isPasteles = false }) {
               'HORA DE ACOPLE': horaAcople,
               'HORA DE ENCIERRO': horaEncierro,
               'HORA_ENCIERRO': horaEncierro,
+              'hora_encierro': horaEncierro,
               'HORA ENTRADA T6': horaEntradaT6,
               'HORA DE DESINCORPORACION': horaDesinc,
               'HORA DE INCORPORACION': horaIncorp,
@@ -2037,6 +2086,12 @@ export default function CargaExcel({ isPasteles = false }) {
             HORA_DE_ACOPLE: outgoing.HORA_DE_ACOPLE || outgoing.HORA_SALIDA_PATIO || '',
             HORA_SALIDA_PATIO: outgoing.HORA_SALIDA_PATIO || outgoing.HORA_DE_ACOPLE || '',
             ACOPLE: outgoing.ACOPLE,
+            HORA_ENCIERRO: outgoing.HORA_ENCIERRO || outgoing.hora_encierro || outgoing['HORA DE ENCIERRO'] || '',
+            hora_encierro: outgoing.HORA_ENCIERRO || outgoing.hora_encierro || outgoing['HORA DE ENCIERRO'] || '',
+            'HORA DE ENCIERRO': outgoing.HORA_ENCIERRO || outgoing.hora_encierro || outgoing['HORA DE ENCIERRO'] || '',
+            ITINERARIO: outgoing.ITINERARIO ?? false,
+            HORA_INCORPORACION: outgoing.HORA_INCORPORACION || '',
+            HORA_DESINCORPORACION: outgoing.HORA_DESINCORPORACION || '',
             HORA_REAL_SALIDA_PATIO: fueDespachada ? outgoing.HORA_REAL_SALIDA_PATIO : '',
             PATIO_NORTE: outgoing.PATIO_NORTE,
             TARJETON_MANIOBRISTA: outgoing.TARJETON_MANIOBRISTA,

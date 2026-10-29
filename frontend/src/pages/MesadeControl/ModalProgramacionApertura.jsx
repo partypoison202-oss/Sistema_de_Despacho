@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
+import { compareRutas } from '../../utils/rutaUtils';
 import API_BASE from '../../config/api';
 import './ModalProgramacionApertura.css';
 
@@ -70,7 +71,7 @@ export default function ModalProgramacionApertura({
     unidades.forEach((u) => {
       if (u.ruta && u.ruta.trim() !== '') setRutas.add(u.ruta.trim());
     });
-    return Array.from(setRutas).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    return Array.from(setRutas).sort(compareRutas);
   }, [unidades]);
 
   // Filtrado reactivo de unidades

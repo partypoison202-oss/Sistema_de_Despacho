@@ -209,6 +209,7 @@ const FormularioBitacora = ({ onClose = () => {}, onSave = () => {} }) => {
                     <option value="2E-CETRAM TELLEZ - AMORES DE DON JUAN">2E-CETRAM TELLEZ - AMORES DE DON JUAN</option>
                     <option value="3-REAL DE TOLEDO - EFRÉN REBOLLEDO">3-REAL DE TOLEDO - EFRÉN REBOLLEDO</option>
                     <option value="4-FRACC. LOMAS DE PLATA - T. EDAD">4-FRACC. LOMAS DE PLATA - T. EDAD</option>
+                    <option value="4B-PASEOS DE LA PLATA - E. SAN ANTONIO">4B-PASEOS DE LA PLATA - E. SAN ANTONIO</option>
                     <option value="5- PARQUE URBANO - E.MEXICANO">5- PARQUE URBANO - E.MEXICANO</option>
                     <option value="6-HOGARES UNIÓN - E. MEXICANO">6-HOGARES UNIÓN - E. MEXICANO</option>
                     <option value="7-RANCHO LA COLONIA - E. F. ÁNGELES">7-RANCHO LA COLONIA - E. F. ÁNGELES</option>

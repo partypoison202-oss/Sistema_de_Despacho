@@ -66,33 +66,56 @@ export default function ResumenDespacho() {
 
         const aggregated = modelsConfig.map(mc => {
           const units = (Array.isArray(apiData) ? apiData : []).filter(d => normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id)));
-          
+
           // Regla de inicio operativo (snapshot de cambio de día a las 00:00)
           const hasSnapshot = Array.isArray(inicioData) && inicioData.length > 0;
           const progInicio = hasSnapshot
             ? inicioData.filter(d => {
-                const match = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
-                const est = normStr(d.ESTATUS || d.estatus);
-                return match && est.includes('OPERACI');
-              }).length
+              const match = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+              const est = normStr(d.ESTATUS || d.estatus);
+              return match && est.includes('OPERACI');
+            }).length
             : 0;
 
-          const progActual = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI')).length;
-          const prog = hasSnapshot ? progInicio : (progActual || units.length);
+          const progActual = units.filter(d => {
+            const est = normStr(d.ESTATUS || d.estatus);
+            const isOper = est.includes('OPERACI');
+            const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta);
+            return isOper || isMantoConRuta;
+          }).length;
+          const prog = hasSnapshot ? progInicio : progActual;
+
+          const isEncierroCumplido = (d) => {
+            if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+            const status = normStr(d.ESTATUS || d.estatus);
+            if (status.includes('MANTENIMIENTO') || status.includes('PERCANCE') || status.includes('TALLER')) return false;
+            const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+            const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
+            const esEncierroMotivo = motivo.includes('fin de turno') ||
+              motivo.includes('encierro programado') ||
+              motivo.includes('encierro regular') ||
+              motivo.includes('encierro') ||
+              motivo.includes('turno cumplido') ||
+              motivo.includes('cumplio turno') ||
+              motivo.includes('servicio concluido') ||
+              motivo.includes('fin de servicio') ||
+              motivo.includes('fin de jornada');
+            return isEncerrada || esEncierroMotivo;
+          };
 
           const oper = units.filter(d => {
             const status = normStr(d.ESTATUS || d.estatus);
             const isOper = status.includes('OPERACI');
             const isValidadaOMesa = !!(d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA) || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
-            return isOper && isValidadaOMesa;
+            return (isOper && isValidadaOMesa) || isEncierroCumplido(d);
           }).length;
           const mantUnits = units.filter(d => {
             const status = normStr(d.ESTATUS || d.estatus);
             return status.includes('MANTENIMIENTO');
           });
           const mant = mantUnits.length;
-          const efi = prog > 0 ? Math.round((oper / prog) * 100) : 0;
-          
+          const efi = prog > 0 ? Math.min(100, Math.round((oper / prog) * 100)) : 0;
+
           const fallasPorTipo = {};
           mantUnits.forEach(u => {
             let motivo = u.MOTIVO_ESTATUS ? u.MOTIVO_ESTATUS.trim() : (u.FALLA ? u.FALLA.trim() : '');
@@ -106,7 +129,7 @@ export default function ResumenDespacho() {
               }
             }
           });
-          
+
           const fallasFormatted = Object.entries(fallasPorTipo)
             .map(([falla, ecos]) => `${ecos.join(', ')} (${falla})`)
             .join('\n');
@@ -134,7 +157,7 @@ export default function ResumenDespacho() {
     operacion: acc.operacion + curr.operacion,
     mantenimiento: acc.mantenimiento + curr.mantenimiento
   }), { programadas: 0, operacion: 0, mantenimiento: 0 });
-  
+
   const eficienciaTotal = totales.programadas > 0 ? Math.round((totales.operacion / totales.programadas) * 100) : 0;
 
   const dataDona = modelData.map(m => ({
@@ -157,14 +180,14 @@ export default function ResumenDespacho() {
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-      
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
+
       const margin = 0; // Sin márgenes para usar toda la hoja
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
+
       let heightLeft = imgHeight;
       let position = 0;
 
@@ -216,9 +239,9 @@ export default function ResumenDespacho() {
       <main className="resumen-container">
 
         <div style={{ width: '100%', maxWidth: '816px', display: 'flex', justifyContent: 'flex-end', position: 'sticky', top: '10px', zIndex: 100, marginBottom: '10px' }}>
-          <button 
+          <button
             className="btn-pdf-top"
-            onClick={handleGeneratePDF} 
+            onClick={handleGeneratePDF}
             disabled={isGenerating}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--brand-gold-text)', color: 'var(--brand-maroon-text)', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
           >
@@ -232,187 +255,187 @@ export default function ResumenDespacho() {
         </div>
 
         <div className="table-responsive-wrapper" style={{ width: '100%', maxWidth: '816px', overflowX: 'auto', margin: '0 auto' }}>
-        <div className="resumen-pdf-wrapper" id="reporte-pdf">
-        
-        {/* ENCABEZADO TIPO BANNER */}
-        <div className="resumen-header-wrapper">
-          <div className="resumen-header-banner" style={{ position: 'relative', overflow: 'hidden' }}>
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }} viewBox="0 0 100 100" preserveAspectRatio="none">
-              {/* Franja dorada diagonal */}
-              <polygon points="45,0 60,0 50,100 35,100" fill="rgba(210, 180, 120, 0.4)" />
-              {/* Forma guinda derecha */}
-              <polygon points="78,0 100,0 100,100 70,100" fill="#601a2a" />
-            </svg>
-            <div className="banner-left" style={{ zIndex: 2, position: 'relative' }}>
-              <h1>RESUMEN DE DESPACHO</h1>
-              <h2>Sistema Integrado de Transporte Masivo de Hidalgo</h2>
-            </div>
-            <div className="banner-right" style={{ zIndex: 2, position: 'relative' }}>
-              <img src="/images/sistema_de_tm.webp" alt="Sistema de Transporte Metropolitano" className="logo-derecha" />
-            </div>
-          </div>
-          <div className="resumen-date">
-            {fechaFormateada}
-          </div>
-        </div>
+          <div className="resumen-pdf-wrapper" id="reporte-pdf">
 
-        {/* GRILLA SUPERIOR: Tabla y Barras */}
-        <div className="resumen-grid-top">
-          
-          {/* TABLA 1 */}
-          <div className="table-responsive">
-            <table className="resumen-table">
-              <thead>
-                <tr>
-                  <th>Modelo</th>
-                  <th>Unidades<br/>Programadas</th>
-                  <th>En Operación</th>
-                  <th>Porcentaje<br/>Eficiencia</th>
-                  <th className="gold-bg">Unidades en<br/>Mantenimiento</th>
-                  <th className="gold-bg">Tipo de Falla</th>
-                </tr>
-              </thead>
-              <tbody>
-                {modelData.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <div className="modelo-cell">
-                        <span>{row.label}</span>
-                        <img src={row.image} alt={row.label} />
-                      </div>
-                    </td>
-                    <td>{row.programadas}</td>
-                    <td>{row.operacion}</td>
-                    <td>{row.eficiencia}%</td>
-                    <td>{row.mantenimiento}</td>
-                    <td style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{row.fallasText}</td>
-                  </tr>
-                ))}
-                <tr className="totales-row">
-                  <td>TOTALES</td>
-                  <td className="gold-text">{totales.programadas}</td>
-                  <td className="gold-text">{totales.operacion}</td>
-                  <td className="gold-text">{eficienciaTotal}%</td>
-                  <td className="gold-text">{totales.mantenimiento}</td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* GRÁFICA DE BARRAS + LÍNEA */}
-          <div className="chart-container">
-            <div className="chart-header">Porcentaje de Eficiencia</div>
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={modelData} margin={{ top: 15, right: 15, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-                <YAxis hide={true} />
-                <Tooltip />
-                <Bar isAnimationActive={false} dataKey="programadas" fill="#601a2a" barSize={20} name="Unidades Programadas">
-                  <LabelList dataKey="programadas" position="top" style={{ fontSize: 10, fill: '#601a2a' }} />
-                </Bar>
-                <Bar isAnimationActive={false} dataKey="operacion" fill="#c5a059" barSize={20} name="En Operación">
-                  <LabelList dataKey="operacion" position="top" style={{ fontSize: 10, fill: '#c5a059' }} />
-                </Bar>
-                <Line isAnimationActive={false} type="monotone" dataKey="eficiencia" stroke="#fbbf24" strokeWidth={3} name="Porcentaje Eficiencia">
-                  <LabelList dataKey="eficiencia" position="bottom" formatter={(v) => `${v}%`} style={{ fontSize: 10, fill: '#fbbf24' }} />
-                </Line>
-              </ComposedChart>
-            </ResponsiveContainer>
-            <div className="custom-legend">
-              <div className="custom-legend-item">
-                <div className="legend-color-box" style={{ background: '#601a2a' }}></div>
-                <span>UNIDADES PROGRAMADAS</span>
-              </div>
-              <div className="custom-legend-item">
-                <div className="legend-color-box" style={{ background: '#c5a059' }}></div>
-                <span>EN OPERACIÓN</span>
-              </div>
-              <div className="custom-legend-item">
-                <div className="legend-color-box" style={{ background: '#fbbf24', height: '3px', marginTop: '3px' }}></div>
-                <span>PORCENTAJE EFICIENCIA</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* GRILLA INFERIOR: Tabla Falsa y Dona */}
-        <div className="resumen-grid-bottom">
-          
-          {/* TABLA 2 (PLACEHOLDER) */}
-          <div className="table-responsive">
-            <table className="resumen-table-bottom">
-              <thead>
-                <tr>
-                  <th colSpan="6">Corridas y Ciclos Faltantes</th>
-                </tr>
-                <tr>
-                  <th>No.</th>
-                  <th>Eco</th>
-                  <th>Ruta</th>
-                  <th>Corrida</th>
-                  <th>Ciclo</th>
-                  <th>Motivo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rawData.filter(d => d.CICLO !== null && d.CICLO !== undefined && d.CICLO !== '').map((item, index) => {
-                  let cicloFormatted = item.CICLO || '';
-                  return (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{item.ECONOMICO ? String(item.ECONOMICO).padStart(3, '0') : ''}</td>
-                      <td>{item.RUTA}</td>
-                      <td>{item.CORRIDAS}</td>
-                      <td>{cicloFormatted}</td>
-                      <td>{item.MOTIVO}</td>
-                    </tr>
-                  );
-                })}
-                {rawData.filter(d => d.CICLO !== null && d.CICLO !== undefined && d.CICLO !== '').length === 0 && (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', color: '#6b7280' }}>Sin registros</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* GRÁFICA DE DONA */}
-          <div className="chart-container">
-            <div className="chart-header">Porcentaje de Unidades en Mantenimiento</div>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart margin={{ top: 15, right: 15, bottom: 15, left: 15 }}>
-                <Pie
-                  isAnimationActive={false}
-                  data={dataDona}
-                  innerRadius={35}
-                  outerRadius={55}
-                  dataKey="value"
-                  label={({ name, percent, value }) => `${value}, ${(percent * 100).toFixed(0)}%`}
-                >
-                  {dataDona.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="custom-legend">
-              {modelData.map((m, i) => (
-                <div className="custom-legend-item" key={m.id}>
-                  <div className="legend-color-box" style={{ background: COLORS[i % COLORS.length] }}></div>
-                  <span>{m.label}</span>
+            {/* ENCABEZADO TIPO BANNER */}
+            <div className="resumen-header-wrapper">
+              <div className="resumen-header-banner" style={{ position: 'relative', overflow: 'hidden' }}>
+                <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }} viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Franja dorada diagonal */}
+                  <polygon points="45,0 60,0 50,100 35,100" fill="rgba(210, 180, 120, 0.4)" />
+                  {/* Forma guinda derecha */}
+                  <polygon points="78,0 100,0 100,100 70,100" fill="#601a2a" />
+                </svg>
+                <div className="banner-left" style={{ zIndex: 2, position: 'relative' }}>
+                  <h1>RESUMEN DE DESPACHO</h1>
+                  <h2>Sistema Integrado de Transporte Masivo de Hidalgo</h2>
                 </div>
-              ))}
+                <div className="banner-right" style={{ zIndex: 2, position: 'relative' }}>
+                  <img src="/images/sistema_de_tm.webp" alt="Sistema de Transporte Metropolitano" className="logo-derecha" />
+                </div>
+              </div>
+              <div className="resumen-date">
+                {fechaFormateada}
+              </div>
+            </div>
+
+            {/* GRILLA SUPERIOR: Tabla y Barras */}
+            <div className="resumen-grid-top">
+
+              {/* TABLA 1 */}
+              <div className="table-responsive">
+                <table className="resumen-table">
+                  <thead>
+                    <tr>
+                      <th>Modelo</th>
+                      <th>Unidades<br />Programadas</th>
+                      <th>En Operación</th>
+                      <th>Porcentaje<br />Eficiencia</th>
+                      <th className="gold-bg">Unidades en<br />Mantenimiento</th>
+                      <th className="gold-bg">Tipo de Falla</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modelData.map((row) => (
+                      <tr key={row.id}>
+                        <td>
+                          <div className="modelo-cell">
+                            <span>{row.label}</span>
+                            <img src={row.image} alt={row.label} />
+                          </div>
+                        </td>
+                        <td>{row.programadas}</td>
+                        <td>{row.operacion}</td>
+                        <td>{row.eficiencia}%</td>
+                        <td>{row.mantenimiento}</td>
+                        <td style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{row.fallasText}</td>
+                      </tr>
+                    ))}
+                    <tr className="totales-row">
+                      <td>TOTALES</td>
+                      <td className="gold-text">{totales.programadas}</td>
+                      <td className="gold-text">{totales.operacion}</td>
+                      <td className="gold-text">{eficienciaTotal}%</td>
+                      <td className="gold-text">{totales.mantenimiento}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* GRÁFICA DE BARRAS + LÍNEA */}
+              <div className="chart-container">
+                <div className="chart-header">Porcentaje de Eficiencia</div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <ComposedChart data={modelData} margin={{ top: 15, right: 15, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+                    <YAxis hide={true} />
+                    <Tooltip />
+                    <Bar isAnimationActive={false} dataKey="programadas" fill="#601a2a" barSize={20} name="Unidades Programadas">
+                      <LabelList dataKey="programadas" position="top" style={{ fontSize: 10, fill: '#601a2a' }} />
+                    </Bar>
+                    <Bar isAnimationActive={false} dataKey="operacion" fill="#c5a059" barSize={20} name="En Operación">
+                      <LabelList dataKey="operacion" position="top" style={{ fontSize: 10, fill: '#c5a059' }} />
+                    </Bar>
+                    <Line isAnimationActive={false} type="monotone" dataKey="eficiencia" stroke="#fbbf24" strokeWidth={3} name="Porcentaje Eficiencia">
+                      <LabelList dataKey="eficiencia" position="bottom" formatter={(v) => `${v}%`} style={{ fontSize: 10, fill: '#fbbf24' }} />
+                    </Line>
+                  </ComposedChart>
+                </ResponsiveContainer>
+                <div className="custom-legend">
+                  <div className="custom-legend-item">
+                    <div className="legend-color-box" style={{ background: '#601a2a' }}></div>
+                    <span>UNIDADES PROGRAMADAS</span>
+                  </div>
+                  <div className="custom-legend-item">
+                    <div className="legend-color-box" style={{ background: '#c5a059' }}></div>
+                    <span>EN OPERACIÓN</span>
+                  </div>
+                  <div className="custom-legend-item">
+                    <div className="legend-color-box" style={{ background: '#fbbf24', height: '3px', marginTop: '3px' }}></div>
+                    <span>PORCENTAJE EFICIENCIA</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* GRILLA INFERIOR: Tabla Falsa y Dona */}
+            <div className="resumen-grid-bottom">
+
+              {/* TABLA 2 (PLACEHOLDER) */}
+              <div className="table-responsive">
+                <table className="resumen-table-bottom">
+                  <thead>
+                    <tr>
+                      <th colSpan="6">Corridas y Ciclos Faltantes</th>
+                    </tr>
+                    <tr>
+                      <th>No.</th>
+                      <th>Eco</th>
+                      <th>Ruta</th>
+                      <th>Corrida</th>
+                      <th>Ciclo</th>
+                      <th>Motivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rawData.filter(d => d.CICLO !== null && d.CICLO !== undefined && d.CICLO !== '').map((item, index) => {
+                      let cicloFormatted = item.CICLO || '';
+                      return (
+                        <tr key={index}>
+                          <td>{index + 1}</td>
+                          <td>{item.ECONOMICO ? String(item.ECONOMICO).padStart(3, '0') : ''}</td>
+                          <td>{item.RUTA}</td>
+                          <td>{item.CORRIDAS}</td>
+                          <td>{cicloFormatted}</td>
+                          <td>{item.MOTIVO}</td>
+                        </tr>
+                      );
+                    })}
+                    {rawData.filter(d => d.CICLO !== null && d.CICLO !== undefined && d.CICLO !== '').length === 0 && (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: 'center', color: '#6b7280' }}>Sin registros</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* GRÁFICA DE DONA */}
+              <div className="chart-container">
+                <div className="chart-header">Porcentaje de Unidades en Mantenimiento</div>
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart margin={{ top: 15, right: 15, bottom: 15, left: 15 }}>
+                    <Pie
+                      isAnimationActive={false}
+                      data={dataDona}
+                      innerRadius={35}
+                      outerRadius={55}
+                      dataKey="value"
+                      label={({ name, percent, value }) => `${value}, ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {dataDona.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="custom-legend">
+                  {modelData.map((m, i) => (
+                    <div className="custom-legend-item" key={m.id}>
+                      <div className="legend-color-box" style={{ background: COLORS[i % COLORS.length] }}></div>
+                      <span>{m.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
           </div>
+        </div>
 
-        </div>
-        </div>
-      </div>
-      
 
 
       </main>

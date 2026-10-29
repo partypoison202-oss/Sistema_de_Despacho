@@ -13,7 +13,7 @@ class ReporteController extends Controller
         $mapeoRutas = [
             'T-01'  => 'T01', 'T-02'  => 'T02', 'T-04'  => 'T04', 'T-05'  => 'T05',
             'RA 2A' => '2A',  'RA 2B' => '2B',  '20B'   => '20B', 'RA 2D' => '2D', 
-            'RA 3'  => '03',  'RA 4'  => '04',  'RA 6'  => '06',  'RA 8'  => '08', 
+            'RA 3'  => '03',  'RA 4B' => '04B', 'RA 4'  => '04',  'RA 6'  => '06',  'RA 8'  => '08', 
             'RA 11' => '11',  'RA 14' => '14',  'RA 15A'=> '15A', 'RA 15B'=> '15B',
         ];
         
@@ -62,7 +62,16 @@ class ReporteController extends Controller
             $matched = false;
 
             foreach ($mapeoRutas as $nombreReporte => $prefijoExcel) {
-                if (str_contains($rutaExcel, $prefijoExcel) || str_contains($rutaExcel, $nombreReporte)) {
+                $isMatch = false;
+                if ($nombreReporte === 'RA 4B') {
+                    $isMatch = str_contains($rutaExcel, '04B') || str_contains($rutaExcel, '4B') || str_contains($rutaExcel, 'RA 4B') || str_contains($rutaExcel, 'RA-04B');
+                } elseif ($nombreReporte === 'RA 4') {
+                    $isMatch = !str_contains($rutaExcel, '4B') && !str_contains($rutaExcel, '04B') && (str_contains($rutaExcel, $prefijoExcel) || str_contains($rutaExcel, $nombreReporte) || str_contains($rutaExcel, '4A') || str_contains($rutaExcel, '04A'));
+                } else {
+                    $isMatch = str_contains($rutaExcel, $prefijoExcel) || str_contains($rutaExcel, $nombreReporte);
+                }
+
+                if ($isMatch) {
                     if ($isOper) $data[$nombreReporte]['en_operacion']++;
                     elseif ($isManto) $data[$nombreReporte]['en_mantenimiento']++;
                     $matched = true;

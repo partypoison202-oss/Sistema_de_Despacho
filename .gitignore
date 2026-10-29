@@ -6,5 +6,9 @@ frontend/dist/
 
 # Archivos temporales de exportación
 laravel-api/export.sql
-.env    
+.env
 .last_deployed_commit
+# Respaldos de base de datos
+backups_bd/
+*.sql
+*.sql.gz

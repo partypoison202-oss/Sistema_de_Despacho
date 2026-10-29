@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Asegurar que usamos el PHP de Laravel Herd (para que detecte el driver pgsql)
-if [ -d "$HOME/Library/Application Support/Herd/bin" ]; then
+# Asegurar que usamos el PHP de Laravel Herd o Homebrew (Apple Silicon)
+if [[ -d "$HOME/Library/Application Support/Herd/bin" ]]; then
     export PATH="$HOME/Library/Application Support/Herd/bin:$PATH"
+elif [ -d "/opt/homebrew/bin" ]; then
+    export PATH="/opt/homebrew/bin:$PATH"
 fi
 
 # Script para levantar todos los servicios de Sistema de Despacho en paralelo

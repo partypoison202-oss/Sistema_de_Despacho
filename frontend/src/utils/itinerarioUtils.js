@@ -68,3 +68,23 @@ export function estaDesincorporadaPorItinerario(unidad, horaActual = null) {
 
   return false;
 }
+
+/**
+ * Formatea un objeto Date al formato 'YYYY-MM-DD' utilizando la fecha del cliente/local,
+ * evitando que toISOString() convierta la hora a UTC y cambie de día en horario vespertino/nocturno.
+ */
+export function formatFechaLocal(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Obtiene la fecha actual en formato 'YYYY-MM-DD' en la zona horaria local de México / cliente.
+ */
+export function getFechaActualLocal() {
+  return formatFechaLocal(new Date());
+}

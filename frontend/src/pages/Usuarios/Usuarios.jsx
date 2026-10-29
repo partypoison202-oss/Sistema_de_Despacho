@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useMemo } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
@@ -13,6 +13,7 @@ export default function Usuarios() {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterActivity, setFilterActivity] = useState('TODOS'); // 'TODOS' | 'EN_LINEA' | 'SIN_CONEXION'
 
   // Form state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,6 +33,7 @@ export default function Usuarios() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingUserId, setTogglingUserId] = useState(null);
+  const [closingSessionUserId, setClosingSessionUserId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isOtroRol, setIsOtroRol] = useState(false);
   const [nuevoRolNombre, setNuevoRolNombre] = useState('');
@@ -117,9 +119,39 @@ export default function Usuarios() {
     }
   };
 
+  const fetchOnlineStatuses = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/users/status-online`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const statuses = await res.json();
+      setUsers((prevUsers) =>
+        prevUsers.map((u) => {
+          const info = statuses[u.id];
+          if (!info) return u;
+          return {
+            ...u,
+            is_online: Boolean(info.is_online),
+            last_seen: info.last_seen,
+            last_seen_text: info.last_seen_text || 'Sin conexión',
+          };
+        })
+      );
+    } catch (_err) {
+      // Silencioso
+    }
+  };
+
   useEffect(() => {
     fetchData();
-  }, []);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isModalOpen) {
+        fetchOnlineStatuses();
+      }
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [isModalOpen, token]);
 
   // Prevenir scroll de fondo cuando el modal está abierto
   useEffect(() => {
@@ -697,41 +729,151 @@ export default function Usuarios() {
     }
   };
 
-  // Filtrado y ordenamiento de usuarios
-  const filteredUsers = users
-    .filter(
-      (user) =>
-        (user.nombre_completo || user.usuario || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.role?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      const roleA = (a.role?.nombre || '').toLowerCase();
-      const roleB = (b.role?.nombre || '').toLowerCase();
+  // Expulsar / cerrar sesión forzada de un usuario
+  const handleCerrarSesion = async (userToKick) => {
+    if (!userToKick) return;
 
-      const isAdminA = roleA === 'administrador';
-      const isAdminB = roleB === 'administrador';
+    if (currentUser && userToKick.id === currentUser.id) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Tu propia sesión',
+        text: 'Para cerrar tu propia sesión utiliza la opción "Cerrar Sesión" en el menú principal.',
+        confirmButtonColor: '#6b1d33',
+      });
+      return;
+    }
 
-      // 1. Administradores siempre arriba
-      if (isAdminA && !isAdminB) return -1;
-      if (!isAdminA && isAdminB) return 1;
-
-      // 2. Ordenar alfabéticamente por Rol
-      if (roleA < roleB) return -1;
-      if (roleA > roleB) return 1;
-
-      // 3. Activos primero
-      if (a.activo && !b.activo) return -1;
-      if (!a.activo && b.activo) return 1;
-
-      // 4. Ordenar alfabéticamente por Nombre
-      const nameA = (a.nombre_completo || '').toLowerCase();
-      const nameB = (b.nombre_completo || '').toLowerCase();
-      if (nameA < nameB) return -1;
-      if (nameA > nameB) return 1;
-
-      return a.id - b.id;
+    const userName = userToKick.nombre_completo || userToKick.usuario;
+    const result = await Swal.fire({
+      title: '¿Cerrar sesión del usuario?',
+      html: `
+        <div style="text-align: left; font-size: 14px; color: #475569; line-height: 1.5;">
+          <p>Estás a punto de cerrar la sesión activa de <strong>${userName}</strong>.</p>
+          <p style="margin-top: 8px; font-size: 13px; color: #64748b;">En su pantalla se mostrará una notificación amigable de <em>"Sesión expirada"</em> y deberá iniciar sesión nuevamente.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar',
     });
+
+    if (!result.isConfirmed) return;
+
+    setClosingSessionUserId(userToKick.id);
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${userToKick.id}/cerrar-sesion`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Sesión finalizada',
+          text: data.message || `La sesión de ${userName} se cerró correctamente.`,
+          confirmButtonColor: '#c5a059',
+          timer: 2500,
+        });
+
+        // Actualizar el estado local inmediatamente a Sin conexión
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userToKick.id
+              ? { ...u, is_online: false, last_seen_text: 'Sin conexión' }
+              : u
+          )
+        );
+      } else {
+        Swal.fire('No se pudo cerrar sesión', data.message || 'Error desconocido', 'error');
+      }
+    } catch (_err) {
+      Swal.fire('Error', 'No se pudo comunicar con el servidor para cerrar la sesión', 'error');
+    } finally {
+      setClosingSessionUserId(null);
+    }
+  };
+
+  // Conteo de usuarios por actividad para las píldoras de filtro
+  const userActivityCounts = useMemo(() => {
+    let enLinea = 0;
+    let sinConexion = 0;
+
+    users.forEach((u) => {
+      const isOnline = Boolean(u.is_online);
+      const hasActivity = isOnline || (u.last_seen && u.last_seen_text && u.last_seen_text !== 'Desconectado' && u.last_seen_text !== 'Sin conexión');
+
+      if (isOnline) enLinea++;
+      else if (!hasActivity) sinConexion++;
+    });
+
+    return {
+      todos: users.length,
+      enLinea,
+      sinConexion,
+    };
+  }, [users]);
+
+  // Filtrado y ordenamiento de usuarios
+  const filteredUsers = useMemo(() => {
+    return users
+      .filter((user) => {
+        // 1. Filtro por texto de búsqueda
+        const term = searchTerm.toLowerCase();
+        const matchesSearch =
+          (user.nombre_completo || user.usuario || '').toLowerCase().includes(term) ||
+          user.usuario.toLowerCase().includes(term) ||
+          (user.role?.nombre || '').toLowerCase().includes(term);
+
+        if (!matchesSearch) return false;
+
+        // 2. Filtro por actividad de conexión
+        const isOnline = Boolean(user.is_online);
+        const hasActivity = isOnline || (user.last_seen && user.last_seen_text && user.last_seen_text !== 'Desconectado' && user.last_seen_text !== 'Sin conexión');
+
+        if (filterActivity === 'EN_LINEA') {
+          return isOnline;
+        }
+        if (filterActivity === 'SIN_CONEXION') {
+          return !hasActivity;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const roleA = (a.role?.nombre || '').toLowerCase();
+        const roleB = (b.role?.nombre || '').toLowerCase();
+
+        const isAdminA = roleA === 'administrador';
+        const isAdminB = roleB === 'administrador';
+
+        // 1. Administradores siempre arriba
+        if (isAdminA && !isAdminB) return -1;
+        if (!isAdminA && isAdminB) return 1;
+
+        // 2. Ordenar alfabéticamente por Rol (Jerarquía estándar)
+        if (roleA < roleB) return -1;
+        if (roleA > roleB) return 1;
+
+        // 4. Activos primero (estado de cuenta)
+        if (a.activo && !b.activo) return -1;
+        if (!a.activo && b.activo) return 1;
+
+        // 5. Ordenar alfabéticamente por Nombre
+        const nameA = (a.nombre_completo || '').toLowerCase();
+        const nameB = (b.nombre_completo || '').toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+
+        return a.id - b.id;
+      });
+  }, [users, searchTerm, filterActivity]);
 
   // Validación del formulario
   const isFormValid =
@@ -770,6 +912,36 @@ export default function Usuarios() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          {/* Filtro de actividad de usuarios */}
+          <div className="usuarios-filter-chips">
+            <button
+              type="button"
+              className={`filter-chip-btn ${filterActivity === 'TODOS' ? 'active' : ''}`}
+              onClick={() => setFilterActivity('TODOS')}
+            >
+              Todos <span className="filter-chip-count">{userActivityCounts.todos}</span>
+            </button>
+            <button
+              type="button"
+              className={`filter-chip-btn ${filterActivity === 'EN_LINEA' ? 'active' : ''}`}
+              onClick={() => setFilterActivity('EN_LINEA')}
+              title="Usuarios actualmente conectados"
+            >
+              <span className="chip-dot-online"></span>
+              En línea <span className="filter-chip-count">{userActivityCounts.enLinea}</span>
+            </button>
+            <button
+              type="button"
+              className={`filter-chip-btn ${filterActivity === 'SIN_CONEXION' ? 'active' : ''}`}
+              onClick={() => setFilterActivity('SIN_CONEXION')}
+              title="Usuarios sin registro de conexión"
+            >
+              <span className="chip-dot-offline"></span>
+              Sin conexión <span className="filter-chip-count">{userActivityCounts.sinConexion}</span>
+            </button>
+          </div>
+
           <div className="usuarios-actions" style={{ display: 'flex', gap: '0.75rem' }}>
             {currentUser && ['Jeanet García Chávez', 'Israel Moreno Gómez', 'Enrique Hernandez Hernandez'].includes(currentUser.nombre_completo) && (
               <button
@@ -825,9 +997,30 @@ export default function Usuarios() {
                   filteredUsers.map((user) => (
                     <tr key={user.id}>
                       <td>
-                        <UserAvatar fotoUrl={user.foto_url} nombre={user.nombre_completo || user.usuario} size={40} />
+                        <UserAvatar
+                          fotoUrl={user.foto_url}
+                          nombre={user.nombre_completo || user.usuario}
+                          size={42}
+                          isOnline={Boolean(user.is_online)}
+                          showStatus={true}
+                        />
                       </td>
-                      <td>{user.nombre_completo || user.usuario || 'Sin nombre'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: '600', color: '#1e293b' }}>
+                            {user.nombre_completo || user.usuario || 'Sin nombre'}
+                          </span>
+                          {user.is_online ? (
+                            <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }}></span> En línea
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#cbd5e1', display: 'inline-block' }}></span> {user.last_seen_text && user.last_seen_text !== 'Desconectado' && user.last_seen_text !== 'Sin conexión' ? `Últ. vez: ${user.last_seen_text}` : 'Sin conexión'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td>{user.usuario}</td>
                       <td>
                         <span className={`role-badge ${getRoleBadgeClass(user.role?.nombre)}`}>
@@ -860,6 +1053,34 @@ export default function Usuarios() {
                       </td>
                       <td>
                         <div className="actions-container">
+                          {/* Botón Expulsar / Cerrar sesión activa */}
+                          <button
+                            className="btn-icon-action btn-icon-kick"
+                            onClick={() => handleCerrarSesion(user)}
+                            title={user.is_online ? `Cerrar sesión activa de ${user.nombre_completo || user.usuario} (En línea)` : `Cerrar sesión activa de ${user.nombre_completo || user.usuario}`}
+                            disabled={closingSessionUserId === user.id || (currentUser && user.id === currentUser.id)}
+                          >
+                            {closingSessionUserId === user.id ? (
+                              <span
+                                className="spinner"
+                                style={{ width: '1rem', height: '1rem', borderWidth: '2px' }}
+                              ></span>
+                            ) : (
+                              <svg
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                />
+                              </svg>
+                            )}
+                          </button>
                           <button
                             className="btn-icon-action btn-icon-edit"
                             onClick={() => handleOpenModal(user)}

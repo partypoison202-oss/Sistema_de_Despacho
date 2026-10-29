@@ -20,7 +20,12 @@ BOLD='\033[1m'
 DIM='\033[2m'
 NC='\033[0m'
 
-BRANCH="${1:-main}"
+# Detectar automáticamente la rama activa del servidor (o usar argumento $1 si se proporciona)
+CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "despliegue-hoy")
+if [ "$CURRENT_GIT_BRANCH" = "HEAD" ] || [ -z "$CURRENT_GIT_BRANCH" ]; then
+    CURRENT_GIT_BRANCH="despliegue-hoy"
+fi
+BRANCH="${1:-$CURRENT_GIT_BRANCH}"
 
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}${BOLD}🔍 VERIFICACIÓN Y DIAGNÓSTICO PREVIO AL DESPLIEGUE (ACOTMA)${NC}"
@@ -266,6 +271,40 @@ echo -e "\n${BLUE}🧹 4. Limpiando y optimizando caché de Laravel...${NC}"
 # Paso 5: Asignación de permisos en storage y bootstrap/cache ANTES de ejecutar artisan
 echo -e "\n${BLUE}🔐 5. Asignando permisos críticos a storage y bootstrap/cache...${NC}"
 chmod -R 777 storage bootstrap/cache
+
+# Paso 5.4: Respaldo preventivo automático de base de datos (PostgreSQL)
+echo -e "\n${BLUE}💾 5.4. Generando respaldo preventivo automático de base de datos...${NC}"
+BACKUP_DIR="${SCRIPT_DIR}/backups_bd"
+mkdir -p "$BACKUP_DIR"
+DB_HOST=$(grep -E '^DB_HOST=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+DB_PORT=$(grep -E '^DB_PORT=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+DB_NAME=$(grep -E '^DB_DATABASE=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+DB_USER=$(grep -E '^DB_USERNAME=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+DB_PASS=$(grep -E '^DB_PASSWORD=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+BACKUP_FILE="${BACKUP_DIR}/respaldo_${DB_NAME:-bd}_$(date +%F_%H%M%S).sql.gz"
+
+PG_DUMP_BIN=""
+for candidate in "$(which pg_dump 2>/dev/null)" "/usr/bin/pg_dump" "/usr/local/bin/pg_dump"; do
+    if [ -x "$candidate" ]; then
+        PG_DUMP_BIN="$candidate"
+        break
+    fi
+done
+
+if [ -n "$PG_DUMP_BIN" ] && [ -n "$DB_NAME" ]; then
+    if PGPASSWORD="$DB_PASS" "$PG_DUMP_BIN" -h "${DB_HOST:-127.0.0.1}" -p "${DB_PORT:-5432}" -U "$DB_USER" "$DB_NAME" 2>/dev/null | gzip > "$BACKUP_FILE" && [ -s "$BACKUP_FILE" ]; then
+        echo -e "${GREEN}✔ Respaldo preventivo guardado con éxito:${NC} ${BACKUP_FILE}"
+        ls -1t "${BACKUP_DIR}"/respaldo_*.sql.gz 2>/dev/null | tail -n +8 | xargs -r rm -f 2>/dev/null || true
+    elif sudo -u postgres pg_dump "$DB_NAME" 2>/dev/null | gzip > "$BACKUP_FILE" && [ -s "$BACKUP_FILE" ]; then
+        echo -e "${GREEN}✔ Respaldo preventivo guardado con éxito (vía postgres local):${NC} ${BACKUP_FILE}"
+        ls -1t "${BACKUP_DIR}"/respaldo_*.sql.gz 2>/dev/null | tail -n +8 | xargs -r rm -f 2>/dev/null || true
+    else
+        rm -f "$BACKUP_FILE" 2>/dev/null || true
+        echo -e "${YELLOW}ℹ️  Aviso: pg_dump no pudo generar el archivo automáticamente; continuando despliegue.${NC}"
+    fi
+else
+    echo -e "${YELLOW}ℹ️  pg_dump no disponible; continuando con el despliegue...${NC}"
+fi
 
 # Paso 5.5: Corregir permisos estructurales y columnas de mantenimiento
 echo -e "\n${BLUE}🛠️ 5.5. Ejecutando reparador interno de base de datos...${NC}"

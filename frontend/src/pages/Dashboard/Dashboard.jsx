@@ -6,6 +6,7 @@ import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
 import './Dashboard.css';
 import { descargarReportesGeneralesConAlerta, descargarProgramacionOperativaDespachoConAlerta } from '../../utils/reporteGeneralUtils';
+import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
 import API_BASE from '../../config/api';
@@ -13,6 +14,7 @@ import API_BASE from '../../config/api';
 export default function Dashboard() {
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingStats, setIsGeneratingStats] = useState(false);
   const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const [isGeneratingProgramacion, setIsGeneratingProgramacion] = useState(false);
   const [busquedaEco, setBusquedaEco] = useState('');
@@ -125,6 +127,34 @@ export default function Dashboard() {
     }
   };
 
+  const handleGenerarReporteEstadisticas = async () => {
+    setIsGeneratingStats(true);
+    try {
+      await generarPDFEstadisticasCentro();
+
+      Swal.fire({
+        icon: 'success',
+        title: '¡Reporte Generado!',
+        text: 'El reporte de estadísticas se ha descargado correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    } catch (error) {
+      console.error('Error al generar estadísticas:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ocurrió un error al generar el reporte de estadísticas.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setIsGeneratingStats(false);
+    }
+  };
+
   const handleGenerarResumenExcel = async () => {
     setIsGeneratingExcel(true);
     try {
@@ -227,6 +257,29 @@ export default function Dashboard() {
                       <path d="M16 18v-6"></path>
                     </svg>
                     <span>Reporte General</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleGenerarReporteEstadisticas}
+                disabled={isGeneratingStats}
+                className="btn-capsula btn-capsula--estadistico"
+              >
+                {isGeneratingStats ? (
+                  <>
+                    <span className="spinner"></span>
+                    <span>Generando...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 3v18h18"></path>
+                      <path d="M18 17V9"></path>
+                      <path d="M13 17V5"></path>
+                      <path d="M8 17v-3"></path>
+                    </svg>
+                    <span>Reporte Estadístico</span>
                   </>
                 )}
               </button>

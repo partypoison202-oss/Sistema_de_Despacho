@@ -3,6 +3,7 @@ import API_BASE from '../config/api';
 import { generarPDFReporteGeneral } from './generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from './generarPDFReporteUnidades';
 import { generarPDFProgramacionOperativa } from './generarPDFProgramacionOperativa';
+import { compareRutas } from './rutaUtils';
 
 const MODELOS_CONFIG = [
   { id: 'URBANUS' },
@@ -18,7 +19,7 @@ const MAPA_RUTAS = {
   'RA 11': '11', 'RA 14': '14', 'RA 15A': '15A', 'RA 15B': '15B',
 };
 
-export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
+export const procesarDatosReportesGenerales = (apiData, inicioData = null, catalogoRutas = null) => {
   const list = Array.isArray(apiData) ? apiData : [];
   const listInicio = Array.isArray(inicioData) ? inicioData : null;
 
@@ -38,7 +39,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     });
 
     // Regla de inicio operativo (snapshot de cambio de día a las 00:00) o conteo de operación
-    let programadasCalculadas = unidades.length;
+    let programadasCalculadas = 0;
     if (listInicio && listInicio.length > 0) {
       const progInicio = listInicio.filter((u) => {
         const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));
@@ -46,6 +47,15 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
         return match && est.includes('OPERACI');
       }).length;
       programadasCalculadas = progInicio;
+    } else {
+      const progFallback = list.filter((u) => {
+        const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));
+        const est = normStr(u.ESTATUS || u.estatus);
+        const isOper = est.includes('OPERACI');
+        const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(u.MANTENIMIENTO_RUTA || u.mantenimiento_ruta);
+        return match && (isOper || isMantoConRuta);
+      }).length;
+      programadasCalculadas = progFallback;
     }
 
     const enServicio = unidades.filter((u) => {
@@ -67,7 +77,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     en_servicio: acc.en_servicio + t.en_servicio,
   }), { programadas: 0, en_servicio: 0 });
 
-  // Función normalizadora de rutas basada en Monitoreo Operativo
+  // Función normalizadora de rutas para Reporte General de Operaciones
   const normalizarRutaReporte = (rawRuta, tipoUnidad) => {
     const tipoNorm = normStr(tipoUnidad);
     const isTroncal = tipoNorm.includes('URBANU');
@@ -80,49 +90,98 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     let clean = rutaStr.toUpperCase().trim();
 
     // Troncal explícita: T01, T-01, T 01, T1
-    const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)/i);
+    const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)([A-Z]*)/i);
     if (tMatch) {
-      return 'T-' + tMatch[1].padStart(2, '0');
+      return 'T-' + tMatch[1].padStart(2, '0') + (tMatch[2] ? tMatch[2].toUpperCase() : '');
     }
 
     // Troncal por tipo de unidad si sólo viene el número
     if (isTroncal) {
-      const numMatch = clean.match(/^0*(\d+)/);
+      const numMatch = clean.match(/^0*(\d+)([A-Z]*)/);
       if (numMatch) {
-        return 'T-' + numMatch[1].padStart(2, '0');
+        return 'T-' + numMatch[1].padStart(2, '0') + (numMatch[2] ? numMatch[2].toUpperCase() : '');
       }
       return 'T-SIN ASIGNAR';
     }
 
-    // Alimentadoras
-    clean = clean.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '').trim();
-    if (clean === '4A') clean = '4';
-    if (clean === '20B') clean = '2B';
+    // Alimentadoras: Limpiar prefijos comunes como RA, ALIMENTADORA, RUTA
+    clean = clean.replace(/^(?:RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '').trim();
 
-    const m = clean.match(/^0*(\d+[A-Z]*)/i);
-    const rutaKey = m ? 'RA ' + m[1].toUpperCase() : 'RA ' + clean;
+    // Extraer número y letra (ej. 1A, 2A, 4A, 4B, 18, 20C, 21A)
+    const m = clean.match(/^0*(\d+\s*[A-Z]*)/i);
+    if (m) {
+      const formatted = m[1].replace(/\s+/g, '').toUpperCase();
+      return 'RA ' + formatted;
+    }
 
-    const RUTAS_OFICIALES = [
-      'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 
+    // Si tiene otro identificador alfanumérico
+    if (clean) {
+      return 'RA ' + clean;
+    }
+
+    return null;
+  };
+
+  const catalogoList = Array.isArray(catalogoRutas)
+    ? catalogoRutas
+    : (Array.isArray(catalogoRutas?.data) ? catalogoRutas.data : []);
+
+  // Extraer Troncales del Catálogo dinámico
+  const troncalesDelCatalogo = catalogoList
+    .filter((r) => (r.tipo || '').toLowerCase() === 'troncal')
+    .map((r) => normalizarRutaReporte(r.ruta, 'URBANUS'))
+    .filter((r) => r && !r.toUpperCase().includes('SIN ASIGNAR'));
+
+  const RUTAS_TRONCAL_DEFAULT = troncalesDelCatalogo.length > 0 
+    ? [...new Set(troncalesDelCatalogo)]
+    : ['T-01', 'T-02', 'T-04', 'T-05'];
+
+  // Extraer Alimentadoras del Catálogo dinámico
+  const alimentadorasDelCatalogo = catalogoList
+    .filter((r) => (r.tipo || '').toLowerCase() === 'alimentadora')
+    .map((r) => normalizarRutaReporte(r.ruta, 'ZAFIRO'))
+    .filter((r) => r && !r.toUpperCase().includes('SIN ASIGNAR'));
+
+  const RUTAS_ALIMENTADORA_DEFAULT = alimentadorasDelCatalogo.length > 0
+    ? [...new Set(alimentadorasDelCatalogo)]
+    : [
+      'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 'RA 4B',
       'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B'
     ];
 
-    if (RUTAS_OFICIALES.includes(rutaKey)) {
-      return rutaKey;
-    }
-    return 'RA-SIN ASIGNAR';
-  };
+  // Set de rutas válidas en el catálogo (para excluir del reporte rutas eliminadas)
+  const rutasValidasSet = new Set();
+  if (catalogoList.length > 0) {
+    catalogoList.forEach((r) => {
+      const normCodigo = normStr(r.ruta);
+      const cleanNum = normCodigo.replace(/^(?:RA|T|ALIMENTADORA|TRONCAL|RUTA)\s*[-_]?\s*/i, '').trim();
+      const normReporte = normalizarRutaReporte(r.ruta, r.tipo === 'troncal' ? 'URBANUS' : 'ZAFIRO');
 
-  const RUTAS_TRONCAL_DEFAULT = ['T-01', 'T-02', 'T-04', 'T-05'];
-  const RUTAS_ALIMENTADORA_DEFAULT = [
-    'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 
-    'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B',
-    'RA-SIN ASIGNAR'
-  ];
+      if (normCodigo) rutasValidasSet.add(normCodigo);
+      if (cleanNum) rutasValidasSet.add(cleanNum);
+      if (normReporte) rutasValidasSet.add(normReporte);
+    });
+  }
 
   const contadoresRutas = {};
-  [...RUTAS_TRONCAL_DEFAULT, ...RUTAS_ALIMENTADORA_DEFAULT].forEach((r) => {
-    contadoresRutas[r] = { en_operacion: 0, en_mantenimiento: 0 };
+  // Inicializar siempre todas las Troncales oficiales del catálogo
+  RUTAS_TRONCAL_DEFAULT.forEach((r) => {
+    contadoresRutas[r] = {
+      ruta: r,
+      tipo: 'troncal',
+      en_operacion: 0,
+      en_mantenimiento: 0
+    };
+  });
+
+  // Inicializar siempre todas las Alimentadoras oficiales del catálogo (incluso si tienen 0 unidades)
+  RUTAS_ALIMENTADORA_DEFAULT.forEach((r) => {
+    contadoresRutas[r] = {
+      ruta: r,
+      tipo: 'alimentadora',
+      en_operacion: 0,
+      en_mantenimiento: 0
+    };
   });
 
   let troncalMantenimientoTotal = 0;
@@ -147,28 +206,49 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       const rutaRaw = reg.RUTA ?? reg.ruta ?? reg.NOMBRE_RUTA ?? reg.no_ruta ?? '';
       const rutaKey = normalizarRutaReporte(rutaRaw, tipo);
 
-      if (contadoresRutas[rutaKey]) {
-        contadoresRutas[rutaKey].en_operacion++;
-      } else {
-        const fallback = isTroncal ? 'T-01' : 'RA-SIN ASIGNAR';
-        if (contadoresRutas[fallback]) {
-          contadoresRutas[fallback].en_operacion++;
+      // Si no tiene ruta asignada o es SIN ASIGNAR, no se contabiliza en el reporte
+      if (!rutaKey || rutaKey.toUpperCase().includes('SIN ASIGNAR')) return;
+
+      // Si tenemos catálogo de rutas, verificar que no haya sido eliminada
+      if (catalogoList.length > 0) {
+        const rawNorm = normStr(rutaRaw);
+        const cleanNum = rawNorm.replace(/^(?:RA|T|ALIMENTADORA|TRONCAL|RUTA)\s*[-_]?\s*/i, '').trim();
+        const esValida = rutasValidasSet.has(rutaKey) || rutasValidasSet.has(rawNorm) || rutasValidasSet.has(cleanNum);
+        if (!esValida) {
+          return;
         }
       }
+
+      if (!contadoresRutas[rutaKey]) {
+        const isTroncalRuta = rutaKey.startsWith('T-');
+        contadoresRutas[rutaKey] = {
+          ruta: rutaKey,
+          tipo: isTroncalRuta ? 'troncal' : 'alimentadora',
+          en_operacion: 0,
+          en_mantenimiento: 0
+        };
+      }
+      contadoresRutas[rutaKey].en_operacion++;
     }
   });
 
+  // Troncales ordenadas: todos los servicios oficiales del catálogo (sin T-SIN ASIGNAR)
+  const troncalesList = Object.values(contadoresRutas)
+    .filter((r) => r.tipo === 'troncal' && !r.ruta.toUpperCase().includes('SIN ASIGNAR'))
+    .sort((a, b) => compareRutas(a.ruta, b.ruta));
+
+  // Alimentadoras ordenadas: todas las rutas del catálogo oficial (sin RA-SIN ASIGNAR)
+  const alimentadorasList = Object.values(contadoresRutas)
+    .filter((r) => r.tipo === 'alimentadora' && !r.ruta.toUpperCase().includes('SIN ASIGNAR'))
+    .sort((a, b) => compareRutas(a.ruta, b.ruta));
+
   const dataRutas = [
-    ...RUTAS_TRONCAL_DEFAULT.map((r, i) => ({
-      ruta: r,
-      tipo: 'troncal',
-      en_operacion: contadoresRutas[r]?.en_operacion || 0,
+    ...troncalesList.map((r, i) => ({
+      ...r,
       en_mantenimiento: i === 0 ? troncalMantenimientoTotal : 0,
     })),
-    ...RUTAS_ALIMENTADORA_DEFAULT.map((r, i) => ({
-      ruta: r,
-      tipo: 'alimentadora',
-      en_operacion: contadoresRutas[r]?.en_operacion || 0,
+    ...alimentadorasList.map((r, i) => ({
+      ...r,
       en_mantenimiento: i === 0 ? alimMantenimientoTotal : 0,
     })),
   ];
@@ -184,38 +264,56 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
 export const descargarReportesGeneralesConAlerta = async (setLoading, queryClient = null) => {
   setLoading(true);
   try {
-    let data = queryClient?.getQueryData ? queryClient.getQueryData(['despacho-hoy']) : null;
-    let inicioData = queryClient?.getQueryData ? queryClient.getQueryData(['despacho-inicio-hoy']) : null;
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const authHeaders = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    };
+
+    let data = null;
+    let inicioData = null;
+    let catalogoRutas = null;
+
+    try {
+      const [resHoy, resInicio, resRutas] = await Promise.all([
+        fetch(`${API_BASE}/api/despacho/hoy`, { headers: authHeaders }),
+        fetch(`${API_BASE}/api/despacho/inicio-hoy`, { headers: authHeaders }).catch(() => null),
+        fetch(`${API_BASE}/api/rutas`, { headers: authHeaders }).catch(() => null),
+      ]);
+
+      if (resHoy && resHoy.ok) {
+        data = await resHoy.json();
+        if (queryClient?.setQueryData) {
+          queryClient.setQueryData(['despacho-hoy'], data);
+        }
+      }
+
+      if (resInicio && resInicio.ok) {
+        inicioData = await resInicio.json();
+        if (queryClient?.setQueryData) {
+          queryClient.setQueryData(['despacho-inicio-hoy'], inicioData);
+        }
+      }
+
+      if (resRutas && resRutas.ok) {
+        const rutasJson = await resRutas.json();
+        catalogoRutas = rutasJson?.data || rutasJson || [];
+        if (queryClient?.setQueryData) {
+          queryClient.setQueryData(['catalogo-rutas-admin'], rutasJson);
+        }
+      }
+    } catch (fetchErr) {
+      console.warn('Error al consultar datos frescos para reportes:', fetchErr);
+    }
 
     if (!data || !Array.isArray(data) || data.length === 0) {
-      const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      });
-      if (!res.ok) throw new Error('Error al consultar datos');
-      data = await res.json();
-      if (queryClient?.setQueryData) {
-        queryClient.setQueryData(['despacho-hoy'], data);
-      }
+      data = queryClient?.getQueryData ? queryClient.getQueryData(['despacho-hoy']) : [];
+    }
+    if (!catalogoRutas) {
+      catalogoRutas = queryClient?.getQueryData ? queryClient.getQueryData(['catalogo-rutas-admin']) : [];
     }
 
-    if (!inicioData || !Array.isArray(inicioData) || inicioData.length === 0) {
-      try {
-        const resInicio = await fetch(`${API_BASE}/api/despacho/inicio-hoy`, {
-          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-        });
-        if (resInicio.ok) {
-          inicioData = await resInicio.json();
-          if (queryClient?.setQueryData) {
-            queryClient.setQueryData(['despacho-inicio-hoy'], inicioData);
-          }
-        }
-      } catch (e) {
-        inicioData = null;
-      }
-    }
-
-    const { dataUnidades, dataRutas, totalsRutas } = procesarDatosReportesGenerales(data, inicioData);
+    const { dataUnidades, dataRutas, totalsRutas } = procesarDatosReportesGenerales(data, inicioData, catalogoRutas);
     await generarPDFReporteGeneral(dataRutas, totalsRutas);
     await generarPDFReporteUnidades(dataUnidades);
     Swal.fire({

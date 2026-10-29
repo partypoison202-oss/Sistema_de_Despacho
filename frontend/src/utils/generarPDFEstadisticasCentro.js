@@ -1,10 +1,146 @@
 ﻿import jsPDF from 'jspdf';
 import API_BASE from '../config/api';
+import { estaDesincorporadaPorItinerario } from './itinerarioUtils';
+
+const DEFAULT_MODELS_CONFIG = [
+    { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanussfrenterealista.webp', color: 'maroon' },
+    { id: 'ZAFIRO', label: 'ZAFIRO', image: '/images/zafirofrenterealista.webp', color: 'gold' },
+    { id: 'VAGONETA', label: 'VAGONETA', image: '/images/vagoneta frente.webp', color: 'green' },
+    { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.webp', color: 'blue' },
+];
+
+function calcularMetricasDesdeDatos(apiData = [], inicioData = []) {
+    const normStr = (str) =>
+        (str || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .trim();
+
+    const computedModelData = DEFAULT_MODELS_CONFIG.map((mc) => {
+        const units = (Array.isArray(apiData) ? apiData : []).filter((d) => {
+            const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+            const est = normStr(d.ESTATUS || d.estatus);
+            const isNoProgramada = est === 'NO_PROGRAMADA' || est === 'NO PROGRAMADA';
+            return matchesModel && !isNoProgramada;
+        });
+        const getEstatus = (d) => normStr(d.ESTATUS || d.estatus);
+
+        const unidadesDesincItinerario = units.filter((d) => estaDesincorporadaPorItinerario(d));
+        const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d));
+        const unidadesCirculando = units.filter((d) => {
+            const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
+            const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+            return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
+        });
+        const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
+        const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
+        const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
+
+        const unidadesEncerradasProgramadas = units.filter((d) => {
+            if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+            const est = getEstatus(d);
+            if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
+            const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+            const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
+            const esFallaOPercance = motivo.includes('falla') ||
+                motivo.includes('averia') ||
+                motivo.includes('siniestro') ||
+                motivo.includes('taller') ||
+                motivo.includes('mantenimiento') ||
+                motivo.includes('percance');
+            if (esFallaOPercance) return false;
+            const esEncierroMotivo = motivo.includes('fin de turno') ||
+                motivo.includes('encierro programado') ||
+                motivo.includes('encierro regular') ||
+                motivo.includes('encierro') ||
+                motivo.includes('turno cumplido') ||
+                motivo.includes('cumplio turno') ||
+                motivo.includes('cumplió turno') ||
+                motivo.includes('cumplimiento') ||
+                motivo.includes('termino de turno') ||
+                motivo.includes('término de turno') ||
+                motivo.includes('servicio concluido') ||
+                motivo.includes('fin de servicio') ||
+                motivo.includes('concluyo servicio') ||
+                motivo.includes('concluyó servicio') ||
+                motivo.includes('fin de jornada');
+            return isEncerrada || esEncierroMotivo;
+        });
+
+        const total = units.length;
+        const operacion = unidadesOperacion.length;
+        const desincItinerario = unidadesDesincItinerario.length;
+        const circulando = unidadesCirculando.length;
+        const encerradasProgramadas = unidadesEncerradasProgramadas.length;
+        const mantenimiento = unidadesMantenimiento.length;
+        const reserva = unidadesReserva.length;
+        const percance = unidadesPercance.length;
+
+        const hasSnapshot = Array.isArray(inicioData) && inicioData.length > 0;
+        const programadasInicio = hasSnapshot
+            ? inicioData.filter(d => {
+                const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+                const estatusNorm = normStr(d.ESTATUS || d.estatus);
+                return matchesModel && estatusNorm.includes('OPERACI');
+            }).length
+            : 0;
+        const progFallback = units.filter(d => {
+            const est = normStr(d.ESTATUS || d.estatus);
+            const isOper = est.includes('OPERACI');
+            const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta);
+            return isOper || isMantoConRuta;
+        }).length;
+        const programadas = hasSnapshot ? programadasInicio : progFallback;
+
+        return {
+            ...mc,
+            total,
+            programadas,
+            operacion,
+            desincItinerario,
+            circulando,
+            encerradasProgramadas,
+            reserva,
+            mantenimiento,
+            percance,
+            otros: 0,
+            units,
+        };
+    });
+
+    const computedTotales = computedModelData.reduce(
+        (acc, m) => ({
+            total: (acc.total || 0) + (m.total || 0),
+            programadas: acc.programadas + m.programadas,
+            operacion: acc.operacion + m.operacion,
+            desincItinerario: (acc.desincItinerario || 0) + (m.desincItinerario || 0),
+            encerradasProgramadas: (acc.encerradasProgramadas || 0) + (m.encerradasProgramadas || 0),
+            circulando: (acc.circulando || 0) + (m.circulando || 0),
+            reserva: acc.reserva + m.reserva,
+            mantenimiento: acc.mantenimiento + m.mantenimiento,
+            percance: (acc.percance || 0) + (m.percance || 0),
+        }),
+        { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, encerradasProgramadas: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
+    );
+
+    const computedEficiencia = computedTotales.programadas > 0
+        ? Math.min(100, Math.round(((computedTotales.circulando + (computedTotales.desincItinerario || 0) + (computedTotales.encerradasProgramadas || 0)) / computedTotales.programadas) * 100))
+        : 0;
+
+    return {
+        totales: computedTotales,
+        modelData: computedModelData,
+        eficienciaGlobal: computedEficiencia,
+    };
+}
 
 const COLOR_GUINDA      = [96, 26, 42]; 
 const COLOR_WHITE       = [255, 255, 255];
 const COLOR_GREEN       = [22, 163, 74];
 const COLOR_GOLD        = [180, 83, 9];
+const COLOR_AMBER       = [217, 119, 6];
 const COLOR_RED         = [220, 38, 38];
 const COLOR_ROSE        = [225, 29, 72];
 const COLOR_BLUE        = [37, 99, 235];
@@ -66,7 +202,7 @@ function toTitleCase(str) {
 
 
 
-function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg) {
+function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho = '--:--', horaTerminoDespacho = '--:--') {
     // 1. Banner swoosh decorativo en la esquina superior izquierda
     if (bannerImg && (bannerImg.naturalWidth > 0 || bannerImg.width > 0)) {
         try {
@@ -117,19 +253,25 @@ function drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg) {
     // 4. Textos institucionales superiores a la derecha
     const rightLimit = pw - 26;
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(11);
+    pdf.setFontSize(10.5);
     pdf.setTextColor(31, 41, 55); // #1f2937
-    pdf.text('PLATAFORMA ACOTMA', rightLimit, 7.5, { align: 'right' });
+    pdf.text('PLATAFORMA ACOTMA', rightLimit, 5.2, { align: 'right' });
 
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(16);
+    pdf.setFontSize(15.5);
     pdf.setTextColor(...COLOR_GUINDA);
-    pdf.text('DESPACHO DEL SERVICIO', rightLimit, 14.5, { align: 'right' });
+    pdf.text('DESPACHO DEL SERVICIO', rightLimit, 10.6, { align: 'right' });
 
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9.5);
+    pdf.setFontSize(9);
     pdf.setTextColor(55, 65, 81); // #374151
-    pdf.text(fecha, rightLimit, 20.5, { align: 'right' });
+    pdf.text(fecha, rightLimit, 15.0, { align: 'right' });
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...COLOR_GUINDA);
+    pdf.text(`INICIO DE DESPACHO: ${horaInicioDespacho}`, rightLimit, 18.8, { align: 'right' });
+    pdf.text(`TÉRMINO DE DESPACHO: ${horaTerminoDespacho}`, rightLimit, 22.3, { align: 'right' });
 }
 
 function drawFooter(pdf, pw, ph, pageNum, totalPages = 3) {
@@ -139,11 +281,7 @@ function drawFooter(pdf, pw, ph, pageNum, totalPages = 3) {
     pdf.text(`PÁG. ${pageNum} de ${totalPages}`, pw - 10, ph - 6, { align: 'right' });
 }
 
-export const generarPDFEstadisticasCentro = async (totales, modelData, eficienciaGlobal, apiDataParam = null) => {
-    if (!totales || !modelData) {
-        throw new Error("No hay datos para generar el reporte.");
-    }
-
+export const generarPDFEstadisticasCentro = async (totales = null, modelData = null, eficienciaGlobal = null, apiDataParam = null) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const authHeaders = {
         'Content-Type': 'application/json',
@@ -162,9 +300,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     const [
         resDespacho,
         resReservasHoy,
-        resReservasManana,
         resReservasLocal,
-        resReservasTodas,
         resConductores,
         resMonitoreo,
         resCiclosHoy,
@@ -172,9 +308,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     ] = await Promise.all([
         apiDataParam ? Promise.resolve(null) : fetch(`${API_BASE}/api/despacho/hoy`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/reservas/autorizadas?fecha=HOY`, { headers: authHeaders }).catch(() => null),
-        fetch(`${API_BASE}/api/reservas/autorizadas?fecha=MANANA`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/reservas/autorizadas?fecha=${todayLocalStr}`, { headers: authHeaders }).catch(() => null),
-        fetch(`${API_BASE}/api/reservas/autorizadas?fecha=TODAS`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/conductores?incluir_bajas=true`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/despacho/monitoreo-conductores/todos`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/despacho/ciclos?fecha=HOY`, { headers: authHeaders }).catch(() => null),
@@ -193,7 +327,18 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     }
     if (!Array.isArray(listaInicio)) listaInicio = [];
 
-    // Extraer tarjetones autorizados de reservas (HOY, fecha actual, MANANA o TODAS)
+    // Si se invoca desde otro módulo (ej. Despacho de Unidades) sin pre-calcular totales y modelData,
+    // se calculan automáticamente con la misma fórmula que Centro de Control.
+    if (!totales || !modelData || eficienciaGlobal === null || eficienciaGlobal === undefined) {
+        const calculadas = calcularMetricasDesdeDatos(listaUnidades, listaInicio);
+        if (!totales) totales = calculadas.totales;
+        if (!modelData) modelData = calculadas.modelData;
+        if (eficienciaGlobal === null || eficienciaGlobal === undefined) {
+            eficienciaGlobal = calculadas.eficienciaGlobal;
+        }
+    }
+
+    // Extraer tarjetones autorizados de reservas exclusivamente para HOY
     let listaReservasTarjeton = [];
     const parseTarjetones = async (res) => {
         if (!res?.ok) return [];
@@ -205,19 +350,15 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         }
     };
 
-    const [tarjHoy, tarjLocal, tarjManana, tarjTodas] = await Promise.all([
+    const [tarjHoy, tarjLocal] = await Promise.all([
         parseTarjetones(resReservasHoy),
-        parseTarjetones(resReservasLocal),
-        parseTarjetones(resReservasManana),
-        parseTarjetones(resReservasTodas)
+        parseTarjetones(resReservasLocal)
     ]);
 
-    // Combinar TODOS los tarjetones de reserva de cualquier pestaña/fecha operativa
+    // Combinar únicamente los tarjetones de reserva autorizados para HOY
     listaReservasTarjeton = Array.from(new Set([
-        ...tarjTodas,
         ...tarjHoy,
-        ...tarjLocal,
-        ...tarjManana
+        ...tarjLocal
     ]));
 
     const normalizeTarjetonKey = (t) => {
@@ -260,22 +401,27 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         } catch {}
     }
 
-    const dTomorrow = new Date(nowLocal);
-    dTomorrow.setDate(dTomorrow.getDate() + 1);
-    const tomorrowLocalStr = `${dTomorrow.getFullYear()}-${String(dTomorrow.getMonth() + 1).padStart(2, '0')}-${String(dTomorrow.getDate()).padStart(2, '0')}`;
-
-    const dYesterday = new Date(nowLocal);
-    dYesterday.setDate(dYesterday.getDate() - 1);
-    const yesterdayLocalStr = `${dYesterday.getFullYear()}-${String(dYesterday.getMonth() + 1).padStart(2, '0')}-${String(dYesterday.getDate()).padStart(2, '0')}`;
-
     // =========================================================================
     // PROCESAMIENTO DE FALTAS DEL DÍA (CONDUCTORES NORMALES Y EN RESERVA)
     // =========================================================================
     const conductoresConFalta = [];
     const tarjetonesFaltaSet = new Set();
 
-    // 1. Integrar faltas identificadas por Mesa de Control (monitoreo-conductores: plataforma_movimientos, kardex, etc.)
+    // 1. Integrar faltas identificadas por Mesa de Control (monitoreo-conductores: estrictamente faltas/inasistencias de hoy)
     conductoresFaltaMonitoreo.forEach(cm => {
+        const estadoMon = String(cm.estado_servicio || cm.estado || '').toLowerCase().trim();
+        const observaciones = String(cm.observaciones || cm.motivo || '').toLowerCase().trim();
+
+        // Excluir descansos, vacaciones, permutas, permisos e incapacidades (NO son faltas injustificadas)
+        const esInasistenciaNoFalta = estadoMon === 'descanso' || estadoMon === 'vacaciones' || 
+                                      estadoMon === 'permiso' || estadoMon === 'incapacidad' || 
+                                      estadoMon === 'permuta';
+        if (esInasistenciaNoFalta) return;
+
+        const esFaltaDirecta = estadoMon === 'falta' || estadoMon === 'inasistencia' || 
+                               observaciones.includes('falta') || observaciones.includes('inasistencia');
+        if (!esFaltaDirecta) return;
+
         const tKey = normalizeTarjetonKey(cm.tarjeton);
         if (tKey && !tarjetonesFaltaSet.has(tKey)) {
             tarjetonesFaltaSet.add(tKey);
@@ -293,10 +439,8 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         }
     });
 
-    // 2. Integrar faltas registradas en catálogo (tanto conductores en reserva como normales)
+    // 2. Integrar faltas registradas en catálogo estrictamente para la fecha de HOY
     listaConductores.forEach(c => {
-        const estado = String(c.estado_servicio || '').toLowerCase();
-        
         let faltas = [];
         const raw = c.faltas_detalle;
         if (Array.isArray(raw)) faltas = raw;
@@ -313,41 +457,19 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
         const tieneFaltaHoy = faltas.some(f => {
             const fDate = String(f.fecha || '').slice(0, 10);
-            const esFechaCoincidente = (
-                fDate === todayLocalStr || 
-                fDate === todayIsoStr || 
-                fDate === tomorrowLocalStr ||
-                fDate === yesterdayLocalStr
-            );
-            
-            // Si la falta fue registrada en las últimas 36 horas
-            let esReciente = false;
-            if (f.id && typeof f.id === 'string' && f.id.startsWith('falta_')) {
-                const ts = Number.parseInt(f.id.split('_')[1], 10);
-                if (!Number.isNaN(ts) && (Date.now() / 1000 - ts) < 129600 && (Date.now() / 1000 - ts) >= -3600) {
-                    esReciente = true;
-                }
-            }
-
+            const esFechaCoincidente = (fDate === todayLocalStr || fDate === todayIsoStr);
             const noJustificada = !f.justificada && f.estado !== 'justificada' && f.estado !== 'retardo';
-            return (esFechaCoincidente || esReciente) && noJustificada;
+            return esFechaCoincidente && noJustificada;
         });
 
         const tieneAsistenciaFalta = asistencias.some(a => {
             const aDate = String(a.fecha || '').slice(0, 10);
-            const esFecha = (
-                aDate === todayLocalStr || 
-                aDate === todayIsoStr || 
-                aDate === tomorrowLocalStr || 
-                aDate === yesterdayLocalStr
-            );
+            const esFecha = (aDate === todayLocalStr || aDate === todayIsoStr);
             const esFalta = String(a.estado || '').toLowerCase() === 'falta' || String(a.estado || '').toLowerCase() === 'inasistencia';
             return esFecha && esFalta;
         });
 
-        const esEstadoFalta = estado === 'falta' || estado === 'inasistencia';
-
-        if (tieneFaltaHoy || tieneAsistenciaFalta || esEstadoFalta) {
+        if (tieneFaltaHoy || tieneAsistenciaFalta) {
             const tKey = normalizeTarjetonKey(c.tarjeton) || String(c.id);
             if (tKey && !tarjetonesFaltaSet.has(tKey)) {
                 tarjetonesFaltaSet.add(tKey);
@@ -356,17 +478,17 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         }
     });
 
-    // 3. Detectar si en las unidades operativas se reportó falta de conductor
+    // 3. Detectar si en las unidades operativas se reportó falta específica de conductor (no falla mecánica)
     listaUnidades.forEach(u => {
         const textoMotivo = [
-            u.MOTIVO_ESTATUS, u.CAMBIO_MOTIVO, u.FALLA, u.MOTIVO, u.MOTIVO_FALTANTE, u.FALLA_REPORTADA, u.ESTATUS
+            u.MOTIVO_ESTATUS, u.CAMBIO_MOTIVO, u.FALLA, u.MOTIVO, u.MOTIVO_FALTANTE, u.FALLA_REPORTADA
         ].map(m => String(m || '').toLowerCase()).join(' ');
 
-        const esFaltaReportada = /\bfalta\b/i.test(textoMotivo) || 
-                                 /\binasistencia\b/i.test(textoMotivo) ||
-                                 /\bno se present[oó]\b/i.test(textoMotivo);
+        const esFaltaConductor = /\bfalta\s+de\s+(?:conductor|operador)\b/i.test(textoMotivo) || 
+                                 /\binasistencia\s+de\s+(?:conductor|operador)\b/i.test(textoMotivo) ||
+                                 /\b(?:conductor|operador)\s+no\s+se\s+present[oó]\b/i.test(textoMotivo);
 
-        if (esFaltaReportada) {
+        if (esFaltaConductor) {
             const tarj = String(u.TARJETON || u.tarjeton || u.numero_tarjeton || u.CAMBIO_DESDE || '').trim();
             const tKey = normalizeTarjetonKey(tarj);
             if (tKey && !tarjetonesFaltaSet.has(tKey)) {
@@ -390,89 +512,85 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // =========================================================================
     // PROCESAMIENTO DE CONDUCTORES EN RESERVA (PROGRAMACIÓN Y LOGÍSTICA)
     // =========================================================================
-    // Conductores autorizados desde Programación y Logística (ModalReservaT6)
-    // o con estado_servicio marcado como reserva, excluyendo aquellos con falta no justificada hoy.
-    const conductoresEnReserva = [];
+    const conductoresEnReservaTotal = [];
     const tarjetonesReservaSet = new Set();
 
-    listaConductores.forEach(c => {
-        const tKey = normalizeTarjetonKey(c.tarjeton);
-        const estado = String(c.estado_servicio || '').toLowerCase();
-        const isAuth = tKey !== '' && setReservasAutorizadas.has(tKey);
-        const isReservaEstado = estado === 'reserva' || estado === 'en_reserva';
-        const tieneFaltaHoy = tKey !== '' && tarjetonesFaltaSet.has(tKey);
-
-        if ((isAuth || isReservaEstado) && !tieneFaltaHoy) {
-            if (tKey && !tarjetonesReservaSet.has(tKey)) {
+    // 1. Tomar los conductores autorizados exclusivamente para la jornada de HOY
+    if (setReservasAutorizadas.size > 0) {
+        setReservasAutorizadas.forEach(tKey => {
+            if (!tarjetonesReservaSet.has(tKey) && !tarjetonesFaltaSet.has(tKey)) {
                 tarjetonesReservaSet.add(tKey);
-                conductoresEnReserva.push(c);
+                const enCatalogo = listaConductores.find(c => normalizeTarjetonKey(c.tarjeton) === tKey);
+                if (enCatalogo) {
+                    conductoresEnReservaTotal.push(enCatalogo);
+                } else {
+                    conductoresEnReservaTotal.push({
+                        tarjeton: tKey,
+                        nombre: `Operador Tarjetón ${formatFolio(tKey)}`,
+                        tipo_conductor: 'C',
+                        estado_servicio: 'reserva'
+                    });
+                }
             }
-        }
-    });
+        });
+    } else {
+        // Fallback si no existieran registros en reservas_autorizadas para hoy
+        listaConductores.forEach(c => {
+            const tKey = normalizeTarjetonKey(c.tarjeton);
+            const estado = String(c.estado_servicio || '').toLowerCase();
+            const isReservaEstado = estado === 'reserva' || estado === 'en_reserva';
+            const tieneFaltaHoy = tKey !== '' && tarjetonesFaltaSet.has(tKey);
 
-    // Si algún tarjetón de reservas_autorizadas no estaba en listaConductores activos
-    setReservasAutorizadas.forEach(tKey => {
-        if (!tarjetonesReservaSet.has(tKey) && !tarjetonesFaltaSet.has(tKey)) {
-            const enCatalogo = listaConductores.find(c => normalizeTarjetonKey(c.tarjeton) === tKey);
-            if (enCatalogo) {
-                tarjetonesReservaSet.add(tKey);
-                conductoresEnReserva.push(enCatalogo);
-            } else {
-                tarjetonesReservaSet.add(tKey);
-                conductoresEnReserva.push({
-                    tarjeton: tKey,
-                    nombre: `Operador Tarjetón ${formatFolio(tKey)}`,
-                    tipo_conductor: 'C',
-                    estado_servicio: 'reserva'
-                });
+            if (isReservaEstado && !tieneFaltaHoy) {
+                if (tKey && !tarjetonesReservaSet.has(tKey)) {
+                    tarjetonesReservaSet.add(tKey);
+                    conductoresEnReservaTotal.push(c);
+                }
             }
-        }
-    });
+        });
+    }
 
-    // Incluir también si en la lista operativa actual de despacho alguna unidad tiene estatus reserva con conductor asignado (y sin falta)
+    // 2. Identificar qué conductores ya están asignados a unidades en servicio/operación o relevo
+    const tarjetonesEnServicioSet = new Set();
+    const nombresEnServicioSet = new Set();
+
     listaUnidades.forEach(u => {
         const est = String(u.ESTATUS || u.estatus || '').toLowerCase().trim();
-        const isUnitReserva = est === 'reserva' || est.includes('reserva') || est === 'en_reserva';
-        if (!isUnitReserva) return;
+        const isOperacion = est === 'operacion' || est.includes('operacion') || est === 'circulando' || est === 'itinerario';
+        if (isOperacion) {
+            const tarj = normalizeTarjetonKey(u.TARJETON || u.tarjeton || u.numero_tarjeton);
+            const tarjRelevo = normalizeTarjetonKey(u.RELEVO_TARJETON || u.relevo_tarjeton);
+            const nom = String(u.NOMBRE_CONDUCTOR || u.nombre_conductor || u.CONDUCTOR || u.conductor || '').trim().toLowerCase();
+            const nomRelevo = String(u.RELEVO_CONDUCTOR || u.relevo_conductor || '').trim().toLowerCase();
 
-        const tarj = String(u.TARJETON || u.tarjeton || u.numero_tarjeton || u.NUMERO_TARJETON || '').trim();
-        const nom = String(u.NOMBRE_CONDUCTOR || u.nombre_conductor || u.CONDUCTOR || u.conductor || '').trim();
-        const tKey = normalizeTarjetonKey(tarj);
-
-        if (tKey && !tarjetonesReservaSet.has(tKey) && !tarjetonesFaltaSet.has(tKey)) {
-            tarjetonesReservaSet.add(tKey);
-            const enCatalogo = listaConductores.find(c => normalizeTarjetonKey(c.tarjeton) === tKey);
-            if (enCatalogo) {
-                conductoresEnReserva.push(enCatalogo);
-            } else {
-                conductoresEnReserva.push({
-                    tarjeton: tarj,
-                    nombre: nom || `Operador Tarjetón ${formatFolio(tarj)}`,
-                    tipo_conductor: u.TIPO_DE_UNIDAD || u.tipo || 'C',
-                    estado_servicio: 'reserva'
-                });
-            }
-        } else if (!tKey && nom) {
-            const enCatalogo = listaConductores.find(c => {
-                const cNom = String(c.nombre || `${c.nombres || ''} ${c.apellidos || ''}`).toLowerCase().trim();
-                return cNom && (cNom === nom.toLowerCase() || cNom.includes(nom.toLowerCase()) || nom.toLowerCase().includes(cNom));
-            });
-            if (enCatalogo) {
-                const cKey = normalizeTarjetonKey(enCatalogo.tarjeton);
-                if (cKey && !tarjetonesReservaSet.has(cKey) && !tarjetonesFaltaSet.has(cKey)) {
-                    tarjetonesReservaSet.add(cKey);
-                    conductoresEnReserva.push(enCatalogo);
-                }
-            } else {
-                conductoresEnReserva.push({
-                    tarjeton: '',
-                    nombre: nom,
-                    tipo_conductor: u.TIPO_DE_UNIDAD || u.tipo || 'C',
-                    estado_servicio: 'reserva'
-                });
-            }
+            if (tarj) tarjetonesEnServicioSet.add(tarj);
+            if (tarjRelevo) tarjetonesEnServicioSet.add(tarjRelevo);
+            if (nom) nombresEnServicioSet.add(nom);
+            if (nomRelevo) nombresEnServicioSet.add(nomRelevo);
         }
     });
+
+    listaConductores.forEach(c => {
+        const estado = String(c.estado_servicio || '').toLowerCase().trim();
+        if (estado === 'en_servicio') {
+            const tKey = normalizeTarjetonKey(c.tarjeton);
+            if (tKey) tarjetonesEnServicioSet.add(tKey);
+            const cNom = String(c.nombre || `${c.nombres || ''} ${c.apellidos || ''}`).toLowerCase().trim();
+            if (cNom) nombresEnServicioSet.add(cNom);
+        }
+    });
+
+    const isEnServicio = (c) => {
+        const tKey = normalizeTarjetonKey(c.tarjeton);
+        if (tKey && tarjetonesEnServicioSet.has(tKey)) return true;
+        const nom = String(c.nombre || c.nombre_completo || `${c.nombres || ''} ${c.apellidos || ''}`).toLowerCase().trim();
+        if (nom && nombresEnServicioSet.has(nom)) return true;
+        return false;
+    };
+
+    // Filtrar: los conductores disponibles son aquellos de reserva que aún NO han entrado a servicio
+    const conductoresEnReservaDisponibles = conductoresEnReservaTotal.filter(c => !isEnServicio(c));
+    const conductoresEnReserva = conductoresEnReservaDisponibles;
 
     // Procesamiento de corridas faltantes
     const parseCiclo = (val) => {
@@ -598,18 +716,32 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         };
     };
 
-    // Mapa de apoyo con inicio-hoy (snapshot de apertura) por económico
+    // Minutos actuales en que se generó el reporte (hora exacta del clic)
+    const clickMinutes = nowLocal.getHours() * 60 + nowLocal.getMinutes();
+
+    const normEcoKey = (val) => {
+        const s = String(val ?? '').trim();
+        if (!s) return '';
+        const n = Number.parseInt(s, 10);
+        return (!Number.isNaN(n) && n > 0) ? String(n).padStart(3, '0') : s.toUpperCase();
+    };
+
+    // Mapa de apoyo con inicio-hoy (snapshot de apertura) por económico normalizado
     const mapaInicioPorEco = new Map();
     listaInicio.forEach(u => {
-        const eco = String(u.ECONOMICO || u.numero_eco || '').trim();
-        if (eco) mapaInicioPorEco.set(eco, u);
+        const ecoKey = normEcoKey(u.ECONOMICO || u.numero_eco);
+        if (ecoKey) mapaInicioPorEco.set(ecoKey, u);
     });
 
     // Combinar unidades operativas con inicio para no perder programaciones iniciales
     const universoUnidades = [...listaUnidades];
+    const ecosEnUniverso = new Set(
+        universoUnidades.map(u => normEcoKey(u.ECONOMICO || u.numero_eco)).filter(Boolean)
+    );
     listaInicio.forEach(uIni => {
-        const ecoIni = String(uIni.ECONOMICO || uIni.numero_eco || '').trim();
-        if (ecoIni && !universoUnidades.some(u => String(u.ECONOMICO || u.numero_eco || '').trim() === ecoIni)) {
+        const ecoKey = normEcoKey(uIni.ECONOMICO || uIni.numero_eco);
+        if (ecoKey && !ecosEnUniverso.has(ecoKey)) {
+            ecosEnUniverso.add(ecoKey);
             universoUnidades.push(uIni);
         }
     });
@@ -617,36 +749,54 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     const todasLasCorridas = [];
     universoUnidades.forEach(u => {
         const rawEco = String(u.ECONOMICO || u.numero_eco || '').trim();
-        const fallbackIni = mapaInicioPorEco.get(rawEco) || {};
-        const ecoDef = rawEco || String(fallbackIni.ECONOMICO || fallbackIni.numero_eco || '').trim();
-        const ecoNum = Number.parseInt(ecoDef, 10);
-        const eco = (!Number.isNaN(ecoNum) && ecoNum > 0) ? String(ecoNum).padStart(3, '0') : ecoDef;
+        const ecoKey = normEcoKey(rawEco);
+        const fallbackIni = mapaInicioPorEco.get(ecoKey) || {};
+        const eco = ecoKey || normEcoKey(fallbackIni.ECONOMICO || fallbackIni.numero_eco);
 
-        const rutaRaw = String(u.RUTA || u.ruta || fallbackIni.RUTA || fallbackIni.ruta || '').trim();
+        const rutaRaw = String(
+            u.RUTA || u.ruta || fallbackIni.RUTA || fallbackIni.ruta ||
+            u.MANTENIMIENTO_RUTA || u.mantenimiento_ruta || ''
+        ).trim();
         const corridaRaw = String(
             u.CORRIDAS ?? u.CORRIDA ?? u.corrida ?? u.corridas ??
-            fallbackIni.CORRIDAS ?? fallbackIni.CORRIDA ?? fallbackIni.corrida ?? fallbackIni.corridas ?? ''
+            fallbackIni.CORRIDAS ?? fallbackIni.CORRIDA ?? fallbackIni.corrida ?? fallbackIni.corridas ??
+            u.MANTENIMIENTO_CORRIDA ?? u.mantenimiento_corrida ?? ''
         ).trim();
 
-        // Hora programada de salida de patio (no real)
-        const rawSalidaProg = String(
-            u.HORA_PROGRAMADA || u.hora_salida_patio || u.HORA_SALIDA_PATIO || u.hora_programada || u.HORA_DE_ACOPLE || u.hora_de_acople ||
-            fallbackIni.HORA_PROGRAMADA || fallbackIni.hora_salida_patio || fallbackIni.HORA_SALIDA_PATIO || fallbackIni.hora_programada || fallbackIni.HORA_DE_ACOPLE || fallbackIni.hora_de_acople ||
+        // Hora de la columna "hora de salida de patio"
+        const rawSalidaPatio = String(
+            u.hora_salida_patio || u.HORA_SALIDA_PATIO || u['HORA DE SALIDA DE PATIO'] ||
+            u.hora_salida_programada || u.hora_programada || u.HORA_PROGRAMADA ||
+            fallbackIni.hora_salida_patio || fallbackIni.HORA_SALIDA_PATIO || fallbackIni['HORA DE SALIDA DE PATIO'] ||
+            fallbackIni.hora_salida_programada || fallbackIni.hora_programada || fallbackIni.HORA_PROGRAMADA ||
+            u.HORA_DE_ACOPLE || u.hora_de_acople || fallbackIni.HORA_DE_ACOPLE || fallbackIni.hora_de_acople ||
             ''
         ).trim();
 
-        // Hora de acople
+        // Hora de acople (como fallback si no estuviera registrada hora de salida de patio)
         const rawAcople = String(u.ACOPLE || u.acople || fallbackIni.ACOPLE || fallbackIni.acople || '').trim();
 
-        const objSalidaProg = extraerMinutosYHora(rawSalidaProg);
+        const objSalidaPatio = extraerMinutosYHora(rawSalidaPatio);
         const objAcople = extraerMinutosYHora(rawAcople);
 
-        // Hora de referencia: hora de salida programada de patio (si no existe, acople)
-        const timeRef = objSalidaProg || objAcople;
-        if (!timeRef) return;
+        // Se jala estrictamente la hora de la columna "hora de salida de patio" (o acople como fallback).
+        // NO se toma la hora de incorporación, ya que esa hora corresponde a itinerario.
+        let displayHora = null;
+        let refMinutes = null;
 
-        // Hora para desplegar en el reporte: acople si existe, o salida programada
-        const displayHora = objAcople ? objAcople.formatted : objSalidaProg.formatted;
+        const salidaPendiente = objSalidaPatio && objSalidaPatio.minutes > clickMinutes;
+        const acoplePendiente = !objSalidaPatio && objAcople && objAcople.minutes > clickMinutes;
+
+        if (salidaPendiente) {
+            displayHora = objSalidaPatio.formatted;
+            refMinutes = objSalidaPatio.minutes;
+        } else if (acoplePendiente) {
+            displayHora = objAcople.formatted;
+            refMinutes = objAcople.minutes;
+        }
+
+        if (!displayHora || refMinutes === null) return;
+
         const rutaFormateada = rutaRaw ? rutaRaw.toUpperCase().replace(/^T(\d{2})$/, 'T-$1') : '';
 
         const tieneRuta = rutaFormateada && rutaFormateada !== 'SIN RUTA';
@@ -669,34 +819,54 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
             corrida: corridaRaw,
             etiqueta: textoEtiqueta,
             acople: displayHora,
-            minutes: timeRef.minutes
+            minutes: refMinutes
         });
     });
 
-    // Minutos actuales en que se generó el reporte (hora exacta del clic)
-    const clickMinutes = nowLocal.getHours() * 60 + nowLocal.getMinutes();
-
-    // Filtrar aquellas cuya salida programada sea estrictamente posterior a la hora en que se generó el reporte
-    // (Ej. a las 6:30 una salida 7:10 aparece aunque esté despachada; a las 7:25 ya no se muestra)
-    const pendientes = todasLasCorridas.filter(c => c.minutes > clickMinutes);
-
-    // Deduplicar por ruta + corrida o por número de económico, y ordenar cronológicamente
+    // Deduplicar por unidad (económico) para no descartar unidades distintas que compartan ruta o número de corrida
     const corridasMap = new Map();
-    pendientes.forEach((item, idx) => {
-        const key = (item.corrida && item.ruta && item.ruta !== 'SIN RUTA')
-            ? `${item.ruta}_${item.corrida}`
-            : (item.eco ? `eco_${item.eco}` : `item_${idx}`);
+    todasLasCorridas.forEach((item, idx) => {
+        const key = item.eco ? `eco_${item.eco}` : `item_${idx}`;
         if (!corridasMap.has(key) || item.minutes < corridasMap.get(key).minutes) {
             corridasMap.set(key, item);
         }
     });
 
     const corridasPendientes = Array.from(corridasMap.values())
-        .sort((a, b) => a.minutes - b.minutes || (a.ruta || '').localeCompare(b.ruta || '', undefined, { numeric: true }));
+        .sort((a, b) =>
+            a.minutes - b.minutes ||
+            (a.ruta || '').localeCompare(b.ruta || '', undefined, { numeric: true }) ||
+            (a.eco || '').localeCompare(b.eco || '', undefined, { numeric: true })
+        );
 
     const fecha = new Date().toLocaleDateString('es-MX', {
         day: '2-digit', month: 'long', year: 'numeric'
     }).toUpperCase();
+
+    // Calcular la hora en que inició el despacho (hora real de salida de la primera unidad despachada)
+    const salidasDespachadas = [];
+    universoUnidades.forEach(u => {
+        const rawReal = String(
+            u.HORA_REAL_SALIDA_PATIO || u.hora_real_salida_patio || u.HORA_SALIDA || u.hora_salida || ''
+        ).trim();
+        if (!rawReal || rawReal === '--:--' || rawReal === '-' || rawReal.toLowerCase() === 'null') return;
+        const m = /(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(rawReal);
+        if (!m) return;
+        const hh = Number.parseInt(m[1], 10);
+        const mm = Number.parseInt(m[2], 10);
+        const ss = m[3] !== undefined ? Number.parseInt(m[3], 10) : 0;
+        if (Number.isNaN(hh) || Number.isNaN(mm) || Number.isNaN(ss)) return;
+        if (hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59) return;
+        const totalSeconds = hh * 3600 + mm * 60 + ss;
+        if (totalSeconds <= 0) return; // Ignorar 00:00 o 00:00:00
+        salidasDespachadas.push({
+            totalSeconds,
+            formatted: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} HRS`
+        });
+    });
+    salidasDespachadas.sort((a, b) => a.totalSeconds - b.totalSeconds);
+    const horaInicioDespacho = salidasDespachadas.length > 0 ? salidasDespachadas[0].formatted : 'SIN INICIAR';
+    const horaTerminoDespacho = salidasDespachadas.length > 0 ? salidasDespachadas[salidasDespachadas.length - 1].formatted : 'SIN INICIAR';
 
     // Formato exacto 4:3 (254mm x 190.5mm = 720pt x 540pt)
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [254, 190.5] });
@@ -717,15 +887,15 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // ==========================================
     // PÁGINA 1: KPIs Y DESGLOSE POR TIPO
     // ==========================================
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho, horaTerminoDespacho);
     drawFooter(pdf, pw, ph, 1, 3);
 
-    // 6 Cajas de KPIs
+    // 7 Cajas de KPIs
     let currentY = 26;
     const marginX = 10;
     const totalW = pw - marginX * 2;
-    const gap = 3;
-    const boxWidth = (totalW - (gap * 5)) / 6;
+    const gap = 2.4;
+    const boxWidth = (totalW - (gap * 6)) / 7;
     const boxHeight = 21;
 
     const kpis = [
@@ -734,6 +904,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         { label: 'EN RESERVA', value: totales.reserva, color: COLOR_GOLD },
         { label: 'EN MANTENIMIENTO', value: totales.mantenimiento, color: COLOR_RED },
         { label: 'EN PERCANCE', value: totales.percance ?? 0, color: COLOR_ROSE },
+        { label: 'DESINCORPORADAS\nPOR ITINERARIO', lines: ['DESINCORPORADAS', 'POR ITINERARIO'], value: totales.desincItinerario ?? 0, color: COLOR_AMBER },
         { label: 'EFICIENCIA OPERATIVA', value: `${eficienciaGlobal}%`, color: COLOR_GOLD, bg: [254, 243, 199] }
     ];
 
@@ -750,18 +921,24 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         
         // Valor
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(18);
+        pdf.setFontSize(17);
         pdf.setTextColor(...kpi.color);
-        pdf.text(String(kpi.value), x + (boxWidth / 2) + 1, currentY + 10, { align: 'center' });
+        pdf.text(String(kpi.value), x + (boxWidth / 2) + 0.8, currentY + 9.5, { align: 'center' });
 
         // Etiqueta
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(5.2);
         pdf.setTextColor(...(kpi.bg ? kpi.color : COLOR_GRAY));
-        pdf.text(kpi.label, x + (boxWidth / 2) + 1, currentY + 16, { align: 'center' });
+        if (kpi.lines) {
+            pdf.setFontSize(4.4);
+            pdf.text(kpi.lines[0], x + (boxWidth / 2) + 0.8, currentY + 14.3, { align: 'center' });
+            pdf.text(kpi.lines[1], x + (boxWidth / 2) + 0.8, currentY + 17.5, { align: 'center' });
+        } else {
+            pdf.setFontSize(4.7);
+            pdf.text(kpi.label, x + (boxWidth / 2) + 0.8, currentY + 16, { align: 'center' });
+        }
     });
 
-    currentY += 26;
+    currentY += 25.5;
 
     // Título de sección
     pdf.setFont('helvetica', 'bold');
@@ -775,9 +952,9 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
     // Grid 2x2 para las 4 tecnologías
     const cardGapX = 6;
-    const cardGapY = 5;
+    const cardGapY = 4.5;
     const cardWidth = (totalW - cardGapX) / 2;
-    const cardHeight = 54;
+    const cardHeight = 57;
 
     modelData.forEach((m, idx) => {
         const col = idx % 2;
@@ -843,11 +1020,12 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         let currentBarX = barX;
         const activeSegments = [];
         if (m.operacion > 0) activeSegments.push({ val: m.operacion, color: COLOR_GREEN });
+        if ((m.desincItinerario || 0) > 0) activeSegments.push({ val: m.desincItinerario, color: COLOR_AMBER });
         if (m.reserva > 0) activeSegments.push({ val: m.reserva, color: COLOR_GOLD });
         if (m.mantenimiento > 0) activeSegments.push({ val: m.mantenimiento, color: COLOR_RED });
         if ((m.percance || 0) > 0) activeSegments.push({ val: m.percance, color: COLOR_ROSE });
 
-        const divisor = (m.total || m.programadas) > 0 ? (m.total || m.programadas) : (m.operacion + m.reserva + m.mantenimiento + (m.percance || 0));
+        const divisor = (m.total || m.programadas) > 0 ? (m.total || m.programadas) : (m.operacion + (m.desincItinerario || 0) + m.reserva + m.mantenimiento + (m.percance || 0));
 
         activeSegments.forEach((seg, i) => {
             const segW = divisor > 0 ? (seg.val / divisor) * barW : 0;
@@ -864,51 +1042,54 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
         // Filas de desglose
         const pct = (val) => (m.total || m.programadas) > 0 ? Math.round((val / (m.total || m.programadas)) * 100) : 0;
-        const eficiencia = (m.operacion || m.programadas) > 0 ? Math.min(100, Math.round(((m.circulando || 0) / (m.operacion || m.programadas)) * 100)) : 0;
+        const eficiencia = (m.programadas || m.total || m.operacion) > 0 
+            ? Math.min(100, Math.round((((m.circulando || 0) + (m.desincItinerario || 0) + (m.encerradasProgramadas || 0)) / (m.programadas || m.total || m.operacion)) * 100)) 
+            : 0;
 
         const rows = [
             { label: 'Operación', val: m.operacion, p: pct(m.operacion), color: COLOR_GREEN, bg: [220, 252, 231] },
-            { label: 'Reserva', val: m.reserva, p: pct(m.reserva), color: COLOR_GOLD, bg: [254, 243, 199] },
-            { label: 'Mantenimiento', val: m.mantenimiento, p: pct(m.mantenimiento), color: COLOR_RED, bg: [254, 226, 226] },
-            { label: 'Percance', val: m.percance || 0, p: pct(m.percance || 0), color: COLOR_ROSE, bg: [255, 228, 230] },
-            { label: 'Eficiencia', val: null, p: eficiencia, color: COLOR_GOLD, bg: [254, 243, 199], isEficiencia: true }
+            { label: 'Desinc. Itinerario', val: m.desincItinerario || 0, p: pct(m.desincItinerario || 0), color: COLOR_AMBER, badgeColor: COLOR_GOLD, bg: [254, 243, 199] },
+            { label: 'Reserva', val: m.reserva, p: pct(m.reserva), color: COLOR_GOLD, badgeColor: COLOR_GOLD, bg: [254, 243, 199] },
+            { label: 'Mantenimiento', val: m.mantenimiento, p: pct(m.mantenimiento), color: COLOR_RED, badgeColor: COLOR_RED, bg: [254, 226, 226] },
+            { label: 'Percance', val: m.percance || 0, p: pct(m.percance || 0), color: COLOR_ROSE, badgeColor: COLOR_ROSE, bg: [255, 228, 230] },
+            { label: 'Eficiencia', val: null, p: eficiencia, color: COLOR_GOLD, badgeColor: COLOR_GOLD, bg: [254, 243, 199], isEficiencia: true }
         ];
 
-        let rowY = y + 23.5;
+        let rowY = y + 22.8;
         rows.forEach(r => {
             pdf.setDrawColor(243, 244, 246);
-            pdf.line(x + 6, rowY - 2.8, x + cardWidth - 6, rowY - 2.8);
+            pdf.line(x + 6, rowY - 2.5, x + cardWidth - 6, rowY - 2.5);
 
             // Viñeta punto
             pdf.setFillColor(...r.color);
-            pdf.circle(x + 8, rowY - 0.8, 1.1, 'F');
+            pdf.circle(x + 8, rowY - 0.7, 1.05, 'F');
 
             // Etiqueta
             pdf.setFont('helvetica', r.isEficiencia ? 'bold' : 'normal');
-            pdf.setFontSize(6.8);
+            pdf.setFontSize(6.5);
             pdf.setTextColor(...(r.isEficiencia ? r.color : COLOR_GRAY));
             pdf.text(r.label, x + 12, rowY);
 
             // Badge %
             const badgeW = 9;
-            const badgeH = 3.6;
+            const badgeH = 3.5;
             pdf.setFillColor(...r.bg);
-            pdf.roundedRect(x + cardWidth - 25, rowY - 2.8, badgeW, badgeH, 1.8, 1.8, 'F');
+            pdf.roundedRect(x + cardWidth - 25, rowY - 2.6, badgeW, badgeH, 1.7, 1.7, 'F');
             
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(5.5);
-            pdf.setTextColor(...r.color);
-            pdf.text(`${r.p}%`, x + cardWidth - 20.5, rowY - 0.4, { align: 'center' });
+            pdf.setFontSize(5.4);
+            pdf.setTextColor(...(r.badgeColor || r.color));
+            pdf.text(`${r.p}%`, x + cardWidth - 20.5, rowY - 0.3, { align: 'center' });
 
             // Valor numérico
             if (r.val !== null) {
                 pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(7.5);
+                pdf.setFontSize(7.3);
                 pdf.setTextColor(17, 24, 39);
                 pdf.text(String(r.val), x + cardWidth - 8, rowY, { align: 'right' });
             }
 
-            rowY += 6;
+            rowY += 5.3;
         });
     });
 
@@ -916,7 +1097,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // PÁGINA 2: PERSONAS CONDUCTORAS
     // ==========================================
     pdf.addPage([254, 190.5], 'landscape');
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho, horaTerminoDespacho);
     drawFooter(pdf, pw, ph, 2, 3);
 
     // Tarjeta beige contenedora principal
@@ -957,7 +1138,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
     // Filas Resumen
     const pcRows = [
-        { label: 'Reservas programadas', val: conductoresEnReserva.length },
+        { label: 'Reservas programadas', val: conductoresEnReservaTotal.length },
         { label: 'Reservas por corridas faltantes', val: 0 },
         { label: 'Faltas de conductor', val: conductoresConFalta.length }
     ];
@@ -1097,7 +1278,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // PÁGINA 3: CORRIDAS FALTANTES Y OBSERVACIONES
     // ==========================================
     pdf.addPage([254, 190.5], 'landscape');
-    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg);
+    drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg, horaInicioDespacho, horaTerminoDespacho);
     drawFooter(pdf, pw, ph, 3, 3);
 
     const p3X = 10;
@@ -1227,28 +1408,59 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         ? ciclosFinal.toLocaleString('es-MX')
         : formatCiclo(ciclosFinal);
 
+    const totalPendientes = corridasPendientes.length;
+    const isCompactObs = totalPendientes > 5;
+
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(18);
+    pdf.setFontSize(isCompactObs ? 16 : 18);
     pdf.setTextColor(...COLOR_GUINDA);
-    pdf.text(`${ciclosTexto} ciclos programados`, p3X + p3W / 2, p3CursorY + 22, { align: 'center' });
+    pdf.text(`${ciclosTexto} ciclos programados`, p3X + p3W / 2, p3CursorY + (isCompactObs ? 11.5 : 22), { align: 'center' });
 
     // Corridas pendientes por programación
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10.5);
+    pdf.setFontSize(isCompactObs ? 10 : 10.5);
     pdf.setTextColor(17, 24, 39);
-    pdf.text('Corridas pendientes por programación:', p3X + p3W / 2, p3CursorY + 38, { align: 'center' });
+    pdf.text('Corridas pendientes por programación:', p3X + p3W / 2, p3CursorY + (isCompactObs ? 19.5 : 38), { align: 'center' });
 
-    let pendY = p3CursorY + 46;
+    let pendY = p3CursorY + (isCompactObs ? 26 : 46);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9.5);
     pdf.setTextColor(31, 41, 55);
 
-    if (corridasPendientes.length > 0) {
-        corridasPendientes.slice(0, 5).forEach(cp => {
-            const linea = `${cp.etiqueta} acopla: ${cp.acople}`;
-            pdf.text(linea, p3X + p3W / 2, pendY, { align: 'center' });
-            pendY += 5.5;
-        });
+    if (totalPendientes > 0) {
+        if (totalPendientes <= 5) {
+            corridasPendientes.forEach(cp => {
+                const linea = `${cp.etiqueta} acopla: ${cp.acople}`;
+                pdf.text(linea, p3X + p3W / 2, pendY, { align: 'center' });
+                pendY += 5.5;
+            });
+        } else {
+            const availH = Math.max(20, (p3CursorY + obsHeight - 3.5) - pendY);
+            let numCols = 2;
+            if (totalPendientes > 48) numCols = 5;
+            else if (totalPendientes > 27) numCols = 4;
+            else if (totalPendientes > 12) numCols = 3;
+
+            const rowsPerCol = Math.ceil(totalPendientes / numCols);
+            const defaultRowH = numCols === 2 ? 5.0 : (numCols === 3 ? 4.5 : (numCols === 4 ? 3.8 : 3.4));
+            const rowH = Math.min(defaultRowH, availH / rowsPerCol);
+            const defaultFont = numCols === 2 ? 9.0 : (numCols === 3 ? 8.3 : (numCols === 4 ? 7.4 : 6.6));
+            const fontSize = Math.max(5.8, Math.min(defaultFont, rowH * 1.85));
+
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(fontSize);
+            pdf.setTextColor(31, 41, 55);
+
+            const colW = p3W / numCols;
+            corridasPendientes.forEach((cp, idx) => {
+                const colIdx = Math.floor(idx / rowsPerCol);
+                const rowIdx = idx % rowsPerCol;
+                const xCenter = p3X + colIdx * colW + colW / 2;
+                const yPos = pendY + rowIdx * rowH;
+                const linea = `${cp.etiqueta} acopla: ${cp.acople}`;
+                pdf.text(linea, xCenter, yPos, { align: 'center' });
+            });
+        }
     } else {
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(9);

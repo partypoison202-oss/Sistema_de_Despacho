@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 use App\Models\User;
 
 class AuthController extends Controller
@@ -30,7 +32,29 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = null;
+        for ($i = 0; $i < 3; $i++) {
+            try {
+                $token = $user->createToken('auth_token')->plainTextToken;
+                break;
+            } catch (\Throwable $e) {
+                if ($i === 2) {
+                    \Illuminate\Support\Facades\Log::error("Error crítico generando token para {$user->usuario}: " . $e->getMessage());
+                    throw $e;
+                }
+                usleep(150000); // 150ms
+            }
+        }
+
+        // Registrar presencia en línea y última conexión
+        $tz = config('app.timezone', 'America/Mexico_City');
+        Cache::put('user_online_' . $user->id, true, now()->addMinutes(5));
+        Cache::put('user_last_seen_' . $user->id, Carbon::now($tz)->toIso8601String(), now()->addDays(7));
+        try {
+            $user->forceFill(['ultima_conexion' => now()])->save();
+        } catch (\Throwable $e) {
+            // Silencioso si la columna aún no ha sido migrada en la base de datos de producción
+        }
 
         // Cargar módulos del usuario (con fallback por rol si no tiene registros)
         $modulos = $this->resolverModulosUsuario($user);
@@ -44,10 +68,57 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user() ?: $request->user('sanctum');
+        if ($user) {
+            Cache::forget('user_online_' . $user->id);
+            try {
+                $user->forceFill(['ultima_conexion' => now()])->save();
+            } catch (\Throwable $e) {
+                // Silencioso si no existe la columna
+            }
+            $token = $user->currentAccessToken();
+            if ($token) {
+                $token->delete();
+            }
+        }
 
         return response()->json([
             'message' => 'Sesión cerrada exitosamente'
+        ]);
+    }
+
+    public function heartbeat(Request $request)
+    {
+        $user = $request->user() ?: $request->user('sanctum');
+        if ($user) {
+            $tz = config('app.timezone', 'America/Mexico_City');
+            Cache::put('user_online_' . $user->id, true, now()->addMinutes(5));
+            Cache::put('user_last_seen_' . $user->id, Carbon::now($tz)->toIso8601String(), now()->addDays(7));
+
+            // Optimización: evitar escrituras intensivas en base de datos. Solo sincronizar DB cada 60s.
+            if (!Cache::has('user_db_sync_' . $user->id)) {
+                Cache::put('user_db_sync_' . $user->id, true, now()->addSeconds(60));
+
+                $token = $user->currentAccessToken();
+                if ($token && method_exists($token, 'forceFill')) {
+                    try {
+                        $token->forceFill(['last_used_at' => now()])->save();
+                    } catch (\Throwable $e) {
+                    }
+                }
+
+                try {
+                    $user->forceFill(['ultima_conexion' => now()])->save();
+                } catch (\Throwable $e) {
+                    // Silencioso si la columna aún no existe
+                }
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'is_online' => true,
+            'timestamp' => now()->timestamp,
         ]);
     }
 

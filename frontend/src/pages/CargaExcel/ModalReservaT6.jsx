@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 // URL de la API
 import API_BASE from '../../config/api';
+import { getFechaActualLocal } from '../../utils/itinerarioUtils';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -50,10 +51,10 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
         const tarjetonesNormalizados = (Array.isArray(data) ? data : [])
           .map(t => String(t || '').trim().padStart(4, '0'))
           .filter(t => t !== '0000' && t !== '');
-          
+
         const setAutorizados = new Set(tarjetonesNormalizados);
         setAutorizadosList(setAutorizados);
-        
+
         if (isPasteles) {
           setSeleccionados(new Set());
           setFiltroVista('TODOS');
@@ -92,7 +93,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
       .filter(c => {
         const est = String(c.estatus || 'activo').toLowerCase();
         if (est !== 'activo') return false;
-        
+
         if (isPasteles) {
           const raw = String(c.tarjeton || '').trim();
           const pad = raw.padStart(4, '0');
@@ -101,7 +102,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
           const estado = getEstadoOperador(c);
           return isAuth || estado === 'falta' || c.estado_servicio === 'falta';
         }
-        
+
         return true;
       })
       .sort((a, b) => {
@@ -212,7 +213,17 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
   const marcarInasistencias = async () => {
     try {
       if (seleccionados.size === 0) return;
-      
+
+      if (tabActiva && tabActiva !== 'HOY') {
+        Swal.fire({
+          icon: 'info',
+          title: 'Acción no permitida en días futuros',
+          text: 'No es posible registrar inasistencias o faltas para días posteriores. Las inasistencias solo aplican para la operación del día de hoy.',
+          confirmButtonColor: '#6b1d33'
+        });
+        return;
+      }
+
       const confirm = await Swal.fire({
         title: '¿Mandar a Falta?',
         html: `¿Estás seguro de registrar inasistencia a los <b>${seleccionados.size}</b> operador(es) seleccionado(s)?<br/><br/>Esta acción afectará inmediatamente su kardex en Control de Personas Conductoras y su estado cambiará a FALTA.`,
@@ -223,29 +234,12 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
         confirmButtonText: 'Sí, mandar a falta',
         cancelButtonText: 'Cancelar'
       });
-      
+
       if (!confirm.isConfirmed) return;
 
       setGuardando(true);
-      
-      // Determinar la fecha real para la falta en formato local YYYY-MM-DD
-      const today = new Date();
-      if (tabActiva === 'MANANA') today.setDate(today.getDate() + 1);
-      else if (tabActiva === 'SABADO') {
-        const diff = (6 - today.getDay() + 7) % 7;
-        today.setDate(today.getDate() + (diff === 0 ? 7 : diff));
-      } else if (tabActiva === 'DOMINGO') {
-        const diff = (7 - today.getDay() + 7) % 7;
-        today.setDate(today.getDate() + (diff === 0 ? 7 : diff));
-      } else if (tabActiva === 'LUNES') {
-        const diff = (1 - today.getDay() + 7) % 7;
-        today.setDate(today.getDate() + (diff === 0 ? 7 : diff));
-      } else if (tabActiva === 'FESTIVO') today.setDate(today.getDate() + 1);
-      
-      const ano = today.getFullYear();
-      const mes = String(today.getMonth() + 1).padStart(2, '0');
-      const dia = String(today.getDate()).padStart(2, '0');
-      const fechaFalta = `${ano}-${mes}-${dia}`;
+
+      const fechaFalta = getFechaActualLocal();
 
       const conductoresAMarcar = todosOperadores.filter(c => isTarjetonSelected(c.tarjeton));
 
@@ -420,7 +414,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
               Guardar Reservas T6
             </h2>
           </div>
-          <button 
+          <button
             onClick={onClose}
             style={{
               border: 'none', background: 'transparent', color: '#94a3b8',
@@ -443,8 +437,8 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
             </span>
-            <input 
-              type="text" 
+            <input
+              type="text"
               autoFocus
               placeholder="Buscar por Nombre o Tarjetón..."
               value={busqueda}
@@ -456,7 +450,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
               }}
             />
             {busqueda && (
-              <button 
+              <button
                 onClick={() => setBusqueda('')}
                 style={{
                   position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
@@ -521,20 +515,20 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
             Mostrando <strong>{filtrados.length}</strong> operador(es)
           </div>
         </div>
-        
+
         {/* Lista de Operadores */}
-        <div style={{ 
+        <div style={{
           background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px',
           overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: '320px'
         }}>
           {/* Encabezado de la tabla */}
-          <div style={{ 
-            display: 'flex', padding: '0.65rem 1rem', background: '#f1f5f9', 
+          <div style={{
+            display: 'flex', padding: '0.65rem 1rem', background: '#f1f5f9',
             borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', fontSize: '0.8rem', color: '#475569', alignItems: 'center'
           }}>
             <div style={{ width: '40px', display: 'flex', alignItems: 'center' }}>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={filtrados.length > 0 && filtrados.every(c => isTarjetonSelected(c.tarjeton))}
                 onChange={toggleTodos}
                 style={{ width: '17px', height: '17px', cursor: 'pointer', accentColor: '#6b1d33' }}
@@ -546,7 +540,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
             <div style={{ width: '120px', textAlign: 'center' }}>ESTADO ACTUAL</div>
             <div style={{ width: '80px', textAlign: 'right' }}>TARJETÓN</div>
           </div>
-          
+
           <ul style={{ overflowY: 'auto', listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
             {cargando ? (
               <li style={{ padding: '3rem', color: '#94a3b8', textAlign: 'center' }}>
@@ -592,8 +586,8 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
                 }
 
                 return (
-                  <li 
-                    key={c.id || c.tarjeton || idx} 
+                  <li
+                    key={c.id || c.tarjeton || idx}
                     onClick={() => toggleSeleccion(c.tarjeton)}
                     style={{
                       padding: '0.65rem 1rem', fontSize: '0.88rem', color: '#1e293b',
@@ -603,17 +597,17 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
                     }}
                   >
                     <div style={{ width: '40px', display: 'flex', alignItems: 'center' }}>
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={isSelected}
-                        onChange={() => {}} // Manejado por li onClick
+                        onChange={() => { }} // Manejado por li onClick
                         style={{ width: '17px', height: '17px', cursor: 'pointer', accentColor: '#6b1d33' }}
                       />
                     </div>
-                    
+
                     {/* Nombre */}
-                    <div style={{ 
-                      flex: 3, fontWeight: isSelected ? '700' : '500', 
+                    <div style={{
+                      flex: 3, fontWeight: isSelected ? '700' : '500',
                       color: isSelected ? '#854d0e' : '#1e293b',
                       display: 'flex', alignItems: 'center', gap: '0.5rem'
                     }}>
@@ -647,8 +641,8 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
                     </div>
 
                     {/* Tarjetón */}
-                    <div style={{ 
-                      width: '80px', textAlign: 'right', fontWeight: 'bold', 
+                    <div style={{
+                      width: '80px', textAlign: 'right', fontWeight: 'bold',
                       color: isSelected ? '#854d0e' : '#334155', fontFamily: 'monospace', fontSize: '0.95rem'
                     }}>
                       {String(c.tarjeton || '').padStart(4, '0')}
@@ -659,10 +653,10 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
             )}
           </ul>
         </div>
-        
+
         {/* Footer */}
-        <div style={{ 
-          marginTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
+        <div style={{
+          marginTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ color: '#334155', fontSize: '0.92rem' }}>
@@ -683,7 +677,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button 
+            <button
               type="button"
               onClick={onClose}
               style={{
@@ -695,7 +689,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
               Cancelar
             </button>
             {isPasteles && (
-              <button 
+              <button
                 type="button"
                 onClick={marcarInasistencias}
                 disabled={guardando || cargando || seleccionados.size === 0}
@@ -716,7 +710,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
               </button>
             )}
             {!isPasteles && (
-              <button 
+              <button
                 type="button"
                 onClick={guardarAutorizados}
                 disabled={guardando || cargando}

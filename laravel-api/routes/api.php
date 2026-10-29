@@ -16,6 +16,7 @@ use App\Http\Controllers\API\ReservaController;
 use App\Http\Controllers\API\HistorialOperativoController;
 use App\Http\Controllers\API\BitacoraController;
 use App\Http\Controllers\API\InfraccionController;
+use App\Http\Controllers\API\RutaController;
 use App\Http\Controllers\ObservacionCatalogoController;
 
 use Illuminate\Support\Facades\Schema;
@@ -227,13 +228,22 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/heartbeat', [AuthController::class, 'heartbeat']);
 
     // Gestión de Usuarios
     Route::get('/users/roles', [UserController::class, 'roles']);
+    Route::get('/users/status-online', [UserController::class, 'onlineStatuses']);
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::post('/users/{id}/cerrar-sesion', [UserController::class, 'cerrarSesion']);
+
+    // Gestión del Catálogo de Rutas
+    Route::get('/rutas', [RutaController::class, 'index']);
+    Route::post('/rutas', [RutaController::class, 'store']);
+    Route::put('/rutas/{id}', [RutaController::class, 'update']);
+    Route::delete('/rutas/{id}', [RutaController::class, 'destroy']);
 
     // Gestión de Despacho
     Route::get('/reservas/autorizadas', [ReservaController::class, 'getReservasPorFecha']);
@@ -275,6 +285,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gestión de Conductores
     Route::get('/conductores', [ConductorController::class, 'index']);
     Route::get('/conductores/resumen-inasistencias', [ConductorController::class, 'resumenInasistencias']);
+    Route::post('/conductores/limpiar-faltas-futuras', [ConductorController::class, 'limpiarFaltasFuturasRoute']);
+    Route::get('/conductores/verificar-tarjeton/{tarjeton}', [ConductorController::class, 'verificarTarjeton']);
     Route::get('/conductores/{id}', [ConductorController::class, 'show']);
     Route::get('/conductores/{id}/historial-completo', [ConductorController::class, 'getHistorialCompleto']);
     Route::post('/conductores', [ConductorController::class, 'store']);
@@ -286,6 +298,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores/{id}/marcar-retardo', [ConductorController::class, 'marcarRetardo']);
     Route::post('/conductores/{id}/agregar-falta', [ConductorController::class, 'agregarFalta']);
     Route::post('/conductores/{id}/eliminar-falta', [ConductorController::class, 'eliminarFalta']);
+    Route::post('/conductores/{id}/limpiar-duplicados', [ConductorController::class, 'limpiarFaltasDuplicadas']);
+    Route::post('/conductores/limpiar-faltas-duplicadas', [ConductorController::class, 'limpiarTodasFaltasDuplicadas']);
 
     // Itinerario de Asistencias
     Route::get('/operadores/itinerario', [\App\Http\Controllers\API\ItinerarioController::class, 'getItinerario']);
@@ -331,6 +345,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/combustible/{fecha}', [HistorialOperativoController::class, 'getHistorialCombustible']);
     Route::post('/historial-operativo/editar-carga', [HistorialOperativoController::class, 'editarCargaCombustible']);
     Route::get('/historial-operativo/conductores', [HistorialOperativoController::class, 'getHistorialConductores']);
+    Route::get('/historial-operativo/unidades', [HistorialOperativoController::class, 'getHistorialUnidades']);
+    Route::get('/historial/unidades', [HistorialOperativoController::class, 'getHistorialUnidades']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
     Route::get('/historial-operativo/alimentadoras-ayer', [HistorialOperativoController::class, 'getHistorialAlimentadorasAyer']);
     Route::get('/bitacoras-diarias', [\App\Http\Controllers\API\BitacorasCentroController::class, 'getBitacoras']);

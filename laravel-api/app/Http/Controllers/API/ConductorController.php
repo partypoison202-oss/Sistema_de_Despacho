@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Str;
 
 class ConductorController extends Controller
 {
@@ -52,6 +53,11 @@ class ConductorController extends Controller
                         $table->json('asistencias_detalle')->nullable();
                     });
                 }
+                if (!Schema::hasColumn('conductores', 'fecha_reingreso')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->date('fecha_reingreso')->nullable()->after('fecha_ingreso');
+                    });
+                }
             }
             \Illuminate\Support\Facades\Cache::put('conductores_cols_verified', true, 86400);
         } catch (\Throwable $e) {
@@ -59,11 +65,109 @@ class ConductorController extends Controller
         }
     }
 
+    /**
+     * Limpia de forma segura faltas erróneas registradas con fecha futura y sincroniza
+     * la columna numérica 'faltas' con los registros reales pendientes de 'faltas_detalle'.
+     */
+    public static function limpiarFaltasFuturasErroneas()
+    {
+        $hoyMexico = \Carbon\Carbon::today('America/Mexico_City')->toDateString();
+        $corregidos = 0;
+
+        try {
+            // 1. Conductores con detalle de faltas: limpiar fechas futuras y recalcular
+            $conductoresConDetalle = Conductor::whereNotNull('faltas_detalle')->get();
+            foreach ($conductoresConDetalle as $c) {
+                $raw = $c->faltas_detalle;
+                $items = is_string($raw) ? json_decode($raw, true) : (is_array($raw) ? $raw : []);
+                if (!is_array($items)) continue;
+
+                $cambiado = false;
+                $itemsFiltrados = [];
+                foreach ($items as $f) {
+                    if (!is_array($f)) continue;
+                    $fechaStr = substr((string)($f['fecha'] ?? ''), 0, 10);
+                    if ($fechaStr && $fechaStr > $hoyMexico) {
+                        $cambiado = true; // Falta futura detectada y descartada
+                    } else {
+                        $itemsFiltrados[] = $f;
+                    }
+                }
+
+                $pendientesCount = 0;
+                foreach ($itemsFiltrados as $f) {
+                    $esJust = (!empty($f['justificada'])) || (isset($f['estado']) && $f['estado'] === 'justificada');
+                    if (!$esJust && (!isset($f['estado']) || $f['estado'] !== 'retardo')) {
+                        $pendientesCount++;
+                    }
+                }
+
+                if ($cambiado || (int)$c->faltas !== $pendientesCount) {
+                    $c->faltas_detalle = array_values($itemsFiltrados);
+                    $c->faltas = $pendientesCount;
+                    if ($c->faltas === 0 && $c->estado_servicio === 'falta') {
+                        $c->estado_servicio = 'disponible';
+                    }
+                    $eval = $c->evaluarInhabilitacionFaltas();
+                    if ($c->estatus === 'inhabilitado' && empty($eval['inhabilitado'])) {
+                        $c->estatus = 'activo';
+                    }
+                    $c->save();
+                    $corregidos++;
+                }
+            }
+
+            // 2. Conductores donde faltas_detalle es NULL o vacío pero faltas > 0 (ej. Operador 0383)
+            $conductoresDesfasados = Conductor::where(function ($q) {
+                $q->whereNull('faltas_detalle')
+                  ->orWhere('faltas_detalle', '')
+                  ->orWhere('faltas_detalle', '[]')
+                  ->orWhere('faltas_detalle', 'null');
+            })->where('faltas', '>', 0)->get();
+
+            foreach ($conductoresDesfasados as $c) {
+                $c->faltas = 0;
+                if ($c->estado_servicio === 'falta') {
+                    $c->estado_servicio = 'disponible';
+                }
+                if ($c->estatus === 'inhabilitado') {
+                    $c->estatus = 'activo';
+                }
+                $c->save();
+                $corregidos++;
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Error en limpiarFaltasFuturasErroneas: ' . $e->getMessage());
+        }
+
+        return $corregidos;
+    }
+
+    /**
+     * Endpoint API para limpiar faltas erróneas con fecha futura y sincronizar contadores.
+     */
+    public function limpiarFaltasFuturasRoute(Request $request)
+    {
+        $corregidos = self::limpiarFaltasFuturasErroneas();
+        return response()->json([
+            'status' => 'success',
+            'message' => "Proceso completado. Se sincronizaron y corrigieron {$corregidos} conductores.",
+            'conductores_corregidos' => $corregidos
+        ]);
+    }
+
     public function index(Request $request)
     {
         @ini_set('memory_limit', '512M');
         try {
             $this->ensureColumnsExist();
+
+            // Auto-sincronizar faltas desfasadas de manera transparente
+            try {
+                self::limpiarFaltasFuturasErroneas();
+            } catch (\Throwable $e) {
+                // Silencioso
+            }
 
             $query = Conductor::query();
 
@@ -82,7 +186,7 @@ class ConductorController extends Controller
                     'ultima_capacitacion', 'proxima_capacitacion', 'accidentes_siniestros', 'faltas', 'retardos',
                     'amonestaciones', 'reconocimientos', 'condicionamientos_juridicos', 'condicionamientos_medicos',
                     'permutas', 'permisos', 'evaluacion', 'observaciones', 'vigencia_licencia', 'sexo',
-                    'fecha_nacimiento', 'telefono', 'referencia_1', 'referencia_2', 'fecha_ingreso',
+                    'fecha_nacimiento', 'telefono', 'referencia_1', 'referencia_2', 'fecha_ingreso', 'fecha_reingreso',
                     'amonestaciones_detalle', 'reconocimientos_detalle', 'permisos_detalle', 'permutas_detalle',
                     'accidentes_siniestros_detalle', 'faltas_detalle', 'retardos_detalle', 'descansos_detalle',
                     'vacaciones_detalle', 'incapacidades_detalle', 'created_at', 'updated_at',
@@ -167,6 +271,9 @@ class ConductorController extends Controller
         $conductor = Conductor::findOrFail($id);
 
         try {
+            $this->limpiarDuplicadosConductor($conductor);
+            $conductor = $conductor->fresh();
+
             $eval = $conductor->evaluarInhabilitacionFaltas();
             if (!empty($eval['inhabilitado']) && $conductor->estatus !== 'inhabilitado') {
                 $conductor->estatus = 'inhabilitado';
@@ -213,6 +320,78 @@ class ConductorController extends Controller
         return response()->json($conductor);
     }
 
+    /**
+     * Endpoint API para verificar disponibilidad de un número de tarjetón.
+     * Permite reingreso si el operador previo está dado de baja.
+     */
+    public function verificarTarjeton($tarjeton)
+    {
+        $this->ensureColumnsExist();
+
+        // Estricto: Sólo dígitos numéricos
+        $tarjetonRaw = preg_replace('/\D/', '', trim((string)$tarjeton));
+        if ($tarjetonRaw === '') {
+            return response()->json([
+                'disponible' => true,
+                'es_baja' => false,
+                'mensaje' => 'Si deja el campo vacío, se generará un número automáticamente.'
+            ]);
+        }
+
+        // Si es puramente numérico, normalizar rellenando ceros a la izquierda a mínimo 4 dígitos (ej: "184" -> "0184")
+        $tarjetonNormalizado = str_pad($tarjetonRaw, 4, '0', STR_PAD_LEFT);
+
+        $conductor = Conductor::where('tarjeton', $tarjetonNormalizado)
+            ->orWhere('tarjeton', $tarjetonRaw)
+            ->first();
+
+        if (!$conductor) {
+            return response()->json([
+                'disponible' => true,
+                'es_baja' => false,
+                'tarjeton' => $tarjetonNormalizado,
+                'mensaje' => "El tarjetón {$tarjetonNormalizado} está disponible para nuevo registro."
+            ]);
+        }
+
+        if ($conductor->estatus === 'baja') {
+            return response()->json([
+                'disponible' => true,
+                'es_baja' => true,
+                'tarjeton' => $conductor->tarjeton,
+                'conductor' => [
+                    'id' => $conductor->id,
+                    'nombres' => mb_strtoupper((string)$conductor->nombres, 'UTF-8'),
+                    'apellidos' => mb_strtoupper((string)$conductor->apellidos, 'UTF-8'),
+                    'tipo_tarjeton' => $conductor->tipo_tarjeton,
+                    'sexo' => $conductor->sexo,
+                    'telefono' => $conductor->telefono,
+                    'vigencia_licencia' => $conductor->vigencia_licencia,
+                    'fecha_nacimiento' => $conductor->fecha_nacimiento,
+                    'fecha_ingreso' => $conductor->fecha_ingreso,
+                    'fecha_reingreso' => $conductor->fecha_reingreso,
+                    'referencia_1' => $conductor->referencia_1 ? mb_strtoupper((string)$conductor->referencia_1, 'UTF-8') : null,
+                    'referencia_2' => $conductor->referencia_2 ? mb_strtoupper((string)$conductor->referencia_2, 'UTF-8') : null,
+                ],
+                'mensaje' => "El tarjetón {$conductor->tarjeton} perteneció a {$conductor->nombres} {$conductor->apellidos} (dado de baja). Al guardar, se reactivará su expediente."
+            ]);
+        }
+
+        // Operador activo o inhabilitado
+        return response()->json([
+            'disponible' => false,
+            'es_baja' => false,
+            'tarjeton' => $conductor->tarjeton,
+            'conductor' => [
+                'id' => $conductor->id,
+                'nombres' => mb_strtoupper((string)$conductor->nombres, 'UTF-8'),
+                'apellidos' => mb_strtoupper((string)$conductor->apellidos, 'UTF-8'),
+                'estatus' => $conductor->estatus,
+            ],
+            'mensaje' => "El tarjetón {$conductor->tarjeton} ya está asignado al operador activo {$conductor->nombres} {$conductor->apellidos}."
+        ]);
+    }
+
     public function store(Request $request)
     {
         $this->ensureColumnsExist();
@@ -220,38 +399,128 @@ class ConductorController extends Controller
         $request->validate([
             'nombres' => 'required|string|max:100',
             'apellidos' => 'required|string|max:100',
+            'tarjeton' => 'nullable|string|max:50',
             'tipo_tarjeton' => 'required|string|max:50',
             'telefono' => 'nullable|string|digits:10',
             'sexo' => 'required|string|in:Masculino,Femenino'
         ]);
 
-        // Generar tarjetón de forma automática
-        $maxNum = 0;
-        $existingTarjetones = DB::table('conductores')->pluck('tarjeton');
-        foreach ($existingTarjetones as $t) {
-            preg_match_all('/\d+/', (string)$t, $matches);
-            if (!empty($matches[0])) {
-                foreach ($matches[0] as $numStr) {
-                    $n = (int)$numStr;
-                    if ($n > $maxNum) {
-                        $maxNum = $n;
+        $nombres = mb_strtoupper(trim($request->nombres), 'UTF-8');
+        $apellidos = mb_strtoupper(trim($request->apellidos), 'UTF-8');
+        $tarjetonInput = preg_replace('/\D/', '', trim((string)$request->tarjeton));
+        $ref1 = $request->referencia_1 ? mb_strtoupper(trim($request->referencia_1), 'UTF-8') : null;
+        $ref2 = $request->referencia_2 ? mb_strtoupper(trim($request->referencia_2), 'UTF-8') : null;
+
+        if (!empty($tarjetonInput)) {
+            // Normalizar a mínimo 4 dígitos si es puramente numérico
+            $tarjetonFinal = str_pad($tarjetonInput, 4, '0', STR_PAD_LEFT);
+
+            // Buscar si ya existe ese tarjetón
+            $conductorExistente = Conductor::where('tarjeton', $tarjetonFinal)
+                ->orWhere('tarjeton', $tarjetonInput)
+                ->first();
+
+            if ($conductorExistente) {
+                if ($conductorExistente->estatus !== 'baja') {
+                    return response()->json([
+                        'message' => "El tarjetón {$conductorExistente->tarjeton} ya se encuentra asignado al operador activo {$conductorExistente->nombres} {$conductorExistente->apellidos}. No se permiten duplicados.",
+                        'errors' => [
+                            'tarjeton' => ["El tarjetón {$conductorExistente->tarjeton} ya pertenece a un operador activo."]
+                        ]
+                    ], 422);
+                }
+
+                // Es un operador dado de baja: HACER REINGRESO reactivando el registro existente
+                $conductor = $conductorExistente;
+                $conductor->nombres = $nombres;
+                $conductor->apellidos = $apellidos;
+                $conductor->tarjeton = $tarjetonFinal;
+                $conductor->tipo_tarjeton = trim($request->tipo_tarjeton);
+                $conductor->estado_servicio = 'disponible';
+                $conductor->estatus = 'activo';
+                $conductor->vigencia_licencia = $request->vigencia_licencia ?? $conductor->vigencia_licencia;
+                $conductor->sexo = $request->sexo ?? $conductor->sexo;
+                $conductor->fecha_nacimiento = $request->fecha_nacimiento ?? $conductor->fecha_nacimiento;
+                $conductor->telefono = $request->telefono ?? $conductor->telefono;
+                $conductor->referencia_1 = $ref1 ?? $conductor->referencia_1;
+                $conductor->referencia_2 = $ref2 ?? $conductor->referencia_2;
+                
+                // Conservar la fecha de ingreso original y registrar la nueva fecha como fecha de reingreso
+                if (empty($conductor->fecha_ingreso)) {
+                    $conductor->fecha_ingreso = $request->fecha_ingreso ?? date('Y-m-d');
+                }
+                $conductor->fecha_reingreso = $request->fecha_reingreso ?? $request->fecha_ingreso ?? date('Y-m-d');
+
+                $conductor->faltas = 0;
+                $conductor->retardos = 0;
+                $conductor->accidentes_siniestros = 0;
+                $conductor->amonestaciones = 0;
+                $conductor->reconocimientos = 0;
+                $conductor->permutas = 0;
+                $conductor->permisos = 0;
+                $conductor->faltas_detalle = [];
+                $conductor->retardos_detalle = [];
+                $conductor->amonestaciones_detalle = [];
+                $conductor->reconocimientos_detalle = [];
+                $conductor->permisos_detalle = [];
+                $conductor->permutas_detalle = [];
+                $conductor->accidentes_siniestros_detalle = [];
+                $conductor->descansos_detalle = [];
+                $conductor->vacaciones_detalle = [];
+                $conductor->incapacidades_detalle = [];
+                $conductor->condicionamientos_medicos = null;
+                $conductor->condicionamientos_juridicos = null;
+                $conductor->observaciones = null;
+                $conductor->evaluacion = null;
+                $conductor->save();
+
+                BitacoraConductorHelper::registrarAccion(
+                    $conductor->id,
+                    $conductor->tarjeton,
+                    $conductor->nombres . ' ' . $conductor->apellidos,
+                    'REINGRESO',
+                    "Reingreso de operador con Tarjetón {$conductor->tarjeton} ({$conductor->tipo_tarjeton})",
+                    $request
+                );
+
+                return response()->json([
+                    'message' => 'Operador reingresado correctamente',
+                    'conductor' => $conductor,
+                    'es_reingreso' => true
+                ], 200);
+            }
+
+            // Tarjetón manual nuevo (no existía en base de datos)
+            $tarjetonGenerado = $tarjetonFinal;
+        } else {
+            // Generar tarjetón de forma automática
+            $maxNum = 0;
+            $existingTarjetones = DB::table('conductores')->pluck('tarjeton');
+            foreach ($existingTarjetones as $t) {
+                preg_match_all('/\d+/', (string)$t, $matches);
+                if (!empty($matches[0])) {
+                    foreach ($matches[0] as $numStr) {
+                        $n = (int)$numStr;
+                        if ($n > $maxNum) {
+                            $maxNum = $n;
+                        }
                     }
                 }
             }
-        }
-        
-        $nuevoNumero = $maxNum > 0 ? $maxNum + 1 : 1;
-        $tarjetonGenerado = str_pad($nuevoNumero, 4, '0', STR_PAD_LEFT);
-
-        // Asegurar unicidad si por algún motivo existe
-        while (DB::table('conductores')->where('tarjeton', $tarjetonGenerado)->exists()) {
-            $nuevoNumero++;
+            
+            $nuevoNumero = $maxNum > 0 ? $maxNum + 1 : 1;
             $tarjetonGenerado = str_pad($nuevoNumero, 4, '0', STR_PAD_LEFT);
+
+            // Asegurar unicidad si por algún motivo existe
+            while (DB::table('conductores')->where('tarjeton', $tarjetonGenerado)->exists()) {
+                $nuevoNumero++;
+                $tarjetonGenerado = str_pad($nuevoNumero, 4, '0', STR_PAD_LEFT);
+            }
         }
 
         $conductor = Conductor::create([
-            'nombres' => trim($request->nombres),
-            'apellidos' => trim($request->apellidos),
+            'nombres' => $nombres,
+            'apellidos' => $apellidos,
             'tarjeton' => $tarjetonGenerado,
             'tipo_tarjeton' => trim($request->tipo_tarjeton),
             'estado_servicio' => 'disponible',
@@ -260,8 +529,8 @@ class ConductorController extends Controller
             'sexo' => $request->sexo ?? null,
             'fecha_nacimiento' => $request->fecha_nacimiento ?? null,
             'telefono' => $request->telefono ?? null,
-            'referencia_1' => $request->referencia_1 ?? null,
-            'referencia_2' => $request->referencia_2 ?? null,
+            'referencia_1' => $ref1,
+            'referencia_2' => $ref2,
             'fecha_ingreso' => $request->fecha_ingreso ?? null,
             'amonestaciones_detalle' => [],
             'reconocimientos_detalle' => [],
@@ -279,7 +548,8 @@ class ConductorController extends Controller
 
         return response()->json([
             'message' => 'Operador registrado correctamente',
-            'conductor' => $conductor
+            'conductor' => $conductor,
+            'es_reingreso' => false
         ], 201);
     }
 
@@ -314,6 +584,7 @@ class ConductorController extends Controller
             'referencia_1' => 'sometimes|nullable|string|max:200',
             'referencia_2' => 'sometimes|nullable|string|max:200',
             'fecha_ingreso' => 'sometimes|nullable|date',
+            'fecha_reingreso' => 'sometimes|nullable|date',
             'amonestaciones_detalle' => 'sometimes|array',
             'reconocimientos_detalle' => 'sometimes|array',
             'permisos_detalle' => 'sometimes|array',
@@ -323,11 +594,11 @@ class ConductorController extends Controller
         ]);
 
         if ($request->has('nombres')) {
-            $conductor->nombres = trim($request->nombres);
+            $conductor->nombres = mb_strtoupper(trim($request->nombres), 'UTF-8');
         }
 
         if ($request->has('apellidos')) {
-            $conductor->apellidos = trim($request->apellidos);
+            $conductor->apellidos = mb_strtoupper(trim($request->apellidos), 'UTF-8');
         }
 
         if ($request->has('tipo_tarjeton')) {
@@ -407,6 +678,7 @@ class ConductorController extends Controller
             'referencia_1',
             'referencia_2',
             'fecha_ingreso',
+            'fecha_reingreso',
             'condicionamientos_medicos',
             'amonestaciones_detalle',
             'reconocimientos_detalle',
@@ -418,7 +690,11 @@ class ConductorController extends Controller
 
         foreach ($kardexFields as $field) {
             if ($request->has($field)) {
-                $conductor->$field = $request->$field;
+                $val = $request->$field;
+                if (in_array($field, ['referencia_1', 'referencia_2']) && is_string($val)) {
+                    $val = mb_strtoupper(trim($val), 'UTF-8');
+                }
+                $conductor->$field = $val;
             }
         }
 
@@ -514,11 +790,6 @@ class ConductorController extends Controller
     public function darDeBaja(Request $request, $id)
     {
         $this->ensureColumnsExist();
-
-        // El rol de Programación no puede dar de baja a operadores
-        if ($request->user() && $request->user()->role && $request->user()->role->codigo === 'PROGRAMACION') {
-            return response()->json(['message' => 'El rol de Programación no tiene permiso para dar de baja operadores.'], 403);
-        }
 
         $conductor = Conductor::findOrFail($id);
         $conductor->estatus = 'baja';
@@ -936,6 +1207,14 @@ class ConductorController extends Controller
             'motivo' => 'nullable|string|max:255',
         ]);
 
+        $fechaInput = substr((string)$request->input('fecha'), 0, 10);
+        $hoyMexico = \Carbon\Carbon::today('America/Mexico_City')->toDateString();
+        if ($fechaInput > $hoyMexico) {
+            return response()->json([
+                'message' => 'No es posible registrar una falta con fecha futura (' . $fechaInput . '). Solo se permiten inasistencias de hoy o días anteriores.'
+            ], 422);
+        }
+
         $conductor = is_numeric($id) ? Conductor::find($id) : null;
         if (!$conductor) {
             $conductor = Conductor::where('tarjeton', $id)
@@ -953,17 +1232,62 @@ class ConductorController extends Controller
             if (is_array($parsed)) $detalle = $parsed;
         }
 
+        // Sanitizar duplicados existentes si los hubiera
+        $this->limpiarDuplicadosConductor($conductor);
+        $rawDetalle = $conductor->fresh()->faltas_detalle;
+        $detalle = is_array($rawDetalle) ? $rawDetalle : (json_decode($rawDetalle, true) ?: []);
+
+        $fechaLimpia = substr((string)$request->input('fecha'), 0, 10);
+        $motivoInput = trim((string)($request->input('motivo') ?: 'Inasistencia no justificada'));
+
+        // Verificar si ya existe una falta para la misma fecha
+        $faltaDuplicada = null;
+        foreach ($detalle as $item) {
+            if (!is_array($item)) continue;
+            $fFecha = isset($item['fecha']) ? substr((string)$item['fecha'], 0, 10) : '';
+            if ($fFecha === $fechaLimpia) {
+                $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+                $esRetardo = isset($item['estado']) && $item['estado'] === 'retardo';
+                if (!$esJust && !$esRetardo) {
+                    $faltaDuplicada = $item;
+                    break;
+                }
+            }
+        }
+
+        if ($faltaDuplicada !== null) {
+            // Ya cuenta con una falta no justificada para este día: no duplicar en el expediente
+            return response()->json([
+                'message' => 'El operador ya cuenta con una falta registrada para la fecha ' . $fechaLimpia . '.',
+                'falta' => $faltaDuplicada,
+                'faltas' => $conductor->faltas,
+                'inhabilitado' => $conductor->estatus === 'inhabilitado',
+                'duplicada_evitada' => true
+            ], 200);
+        }
+
         $nuevaFalta = [
             'id' => 'falta_' . time() . '_' . random_int(1000, 9999),
             'fecha' => $request->input('fecha'),
-            'motivo' => $request->input('motivo') ?: 'Inasistencia no justificada',
+            'motivo' => $motivoInput,
             'estado' => 'pendiente',
             'justificada' => false,
         ];
 
         $detalle[] = $nuevaFalta;
         $conductor->faltas_detalle = $detalle;
-        $conductor->faltas = ((int)($conductor->faltas ?? 0)) + 1;
+
+        // Recalcular conteo exacto de faltas pendientes no justificadas
+        $pendientesCount = 0;
+        foreach ($detalle as $item) {
+            if (is_array($item)) {
+                $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+                if (!$esJust && (!isset($item['estado']) || $item['estado'] !== 'retardo')) {
+                    $pendientesCount++;
+                }
+            }
+        }
+        $conductor->faltas = $pendientesCount;
 
         // Evaluar regla de 4 faltas en 30 días
         $eval = $conductor->evaluarInhabilitacionFaltas();
@@ -2289,5 +2613,113 @@ class ConductorController extends Controller
                 'error' => 'Error al obtener el historial completo del conductor: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Limpia faltas duplicadas de un conductor (misma fecha no justificada).
+     */
+    public function limpiarDuplicadosConductor($conductor)
+    {
+        if (!$conductor) return false;
+
+        $rawDetalle = $conductor->faltas_detalle;
+        $detalle = [];
+        if (is_array($rawDetalle)) {
+            $detalle = $rawDetalle;
+        } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+            $parsed = json_decode($rawDetalle, true);
+            if (is_array($parsed)) $detalle = $parsed;
+        }
+
+        if (empty($detalle)) return false;
+
+        $fechasNoJustificadasVistas = [];
+        $nuevoDetalle = [];
+        $huboCambios = false;
+
+        foreach ($detalle as $item) {
+            if (!is_array($item)) continue;
+            $fecha = isset($item['fecha']) ? substr((string)$item['fecha'], 0, 10) : '';
+            $estado = $item['estado'] ?? 'pendiente';
+            $esJust = (!empty($item['justificada'])) || $estado === 'justificada';
+            $esRetardo = $estado === 'retardo';
+
+            if (!$esJust && !$esRetardo && !empty($fecha)) {
+                if (isset($fechasNoJustificadasVistas[$fecha])) {
+                    // Es un duplicado de falta no justificada para la misma fecha laboral
+                    $huboCambios = true;
+                    continue;
+                }
+                $fechasNoJustificadasVistas[$fecha] = true;
+            }
+
+            $nuevoDetalle[] = $item;
+        }
+
+        if ($huboCambios) {
+            $conductor->faltas_detalle = $nuevoDetalle;
+
+            $pendientesCount = 0;
+            foreach ($nuevoDetalle as $item) {
+                if (is_array($item)) {
+                    $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+                    if (!$esJust && (!isset($item['estado']) || $item['estado'] !== 'retardo')) {
+                        $pendientesCount++;
+                    }
+                }
+            }
+            $conductor->faltas = $pendientesCount;
+
+            $eval = $conductor->evaluarInhabilitacionFaltas();
+            if (!$eval['inhabilitado'] && $conductor->estatus === 'inhabilitado') {
+                $conductor->estatus = 'activo';
+            }
+            $conductor->save();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Endpoint API para limpiar faltas duplicadas de un conductor específico.
+     */
+    public function limpiarFaltasDuplicadas(Request $request, $id)
+    {
+        $conductor = is_numeric($id) ? Conductor::find($id) : null;
+        if (!$conductor) {
+            $conductor = Conductor::where('tarjeton', $id)
+                ->orWhere('tarjeton', str_pad((string)$id, 4, '0', STR_PAD_LEFT))
+                ->orWhere('tarjeton', ltrim((string)$id, '0'))
+                ->firstOrFail();
+        }
+
+        $limpiado = $this->limpiarDuplicadosConductor($conductor);
+
+        return response()->json([
+            'message' => $limpiado ? 'Faltas duplicadas eliminadas exitosamente.' : 'El expediente no contenía faltas duplicadas.',
+            'faltas_actuales' => $conductor->fresh()->faltas,
+            'conductor' => $conductor->fresh()
+        ]);
+    }
+
+    /**
+     * Endpoint API para limpiar faltas duplicadas de todos los conductores del sistema.
+     */
+    public function limpiarTodasFaltasDuplicadas(Request $request)
+    {
+        $conductores = Conductor::whereNotNull('faltas_detalle')->get();
+        $totalLimpiados = 0;
+
+        foreach ($conductores as $c) {
+            if ($this->limpiarDuplicadosConductor($c)) {
+                $totalLimpiados++;
+            }
+        }
+
+        return response()->json([
+            'message' => "Proceso completado. Se limpiaron faltas duplicadas en {$totalLimpiados} conductor(es).",
+            'total_limpiados' => $totalLimpiados
+        ]);
     }
 }
