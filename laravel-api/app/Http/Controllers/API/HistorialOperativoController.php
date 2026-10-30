@@ -40,6 +40,10 @@ class HistorialOperativoController extends Controller
      */
     private function tipoUnidadRaw($tableColumn = 'historial_operativo.tipo', $alias = 'tipo')
     {
+        if ($tableColumn instanceof \Illuminate\Contracts\Database\Query\Expression || (is_object($tableColumn) && method_exists($tableColumn, 'getValue'))) {
+            $tableColumn = $tableColumn->getValue(DB::connection()->getQueryGrammar());
+        }
+
         return DB::raw("CASE 
             WHEN {$tableColumn} IS NOT NULL AND TRIM(CAST({$tableColumn} AS VARCHAR)) != '' AND UPPER(TRIM(CAST({$tableColumn} AS VARCHAR))) != 'DESCONOCIDO' 
             THEN (CASE WHEN UPPER(TRIM(CAST({$tableColumn} AS VARCHAR))) = 'URBANUS' THEN 'URBANUSS' ELSE UPPER(TRIM(CAST({$tableColumn} AS VARCHAR))) END) 
@@ -808,174 +812,239 @@ class HistorialOperativoController extends Controller
      */
     public function getHistorialProgramacion($fecha)
     {
-        $hasRelevoHist = Schema::hasColumn('historial_operativo', 'relevo_tarjeton');
-        $hasRelevoInfo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
-        $hasSalidaPatioHist = Schema::hasColumn('historial_operativo', 'hora_salida_patio');
-        $hasSalidaPatioInfo = Schema::hasColumn('informacion_operativa', 'hora_salida_patio');
-        $hasAcopleHist = Schema::hasColumn('historial_operativo', 'acople');
-        $hasAcopleInfo = Schema::hasColumn('informacion_operativa', 'acople');
+        try {
+            $hasRelevoHist = Schema::hasColumn('historial_operativo', 'relevo_tarjeton');
+            $hasRelevoInfo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
+            $hasSalidaPatioHist = Schema::hasColumn('historial_operativo', 'hora_salida_patio');
+            $hasSalidaPatioInfo = Schema::hasColumn('informacion_operativa', 'hora_salida_patio');
+            $hasAcopleHist = Schema::hasColumn('historial_operativo', 'acople');
+            $hasAcopleInfo = Schema::hasColumn('informacion_operativa', 'acople');
 
-        $hasProgInicial = Schema::hasTable('programacion_inicial');
-        $progInicialCount = $hasProgInicial 
-            ? DB::table('programacion_inicial')->where('fecha', $fecha)->count() 
-            : 0;
+            $hasProgInicial = Schema::hasTable('programacion_inicial');
+            $progInicialCount = $hasProgInicial 
+                ? DB::table('programacion_inicial')->where('fecha', $fecha)->count() 
+                : 0;
 
-        $estatusExpr = $progInicialCount > 0
-            ? "CASE WHEN programacion_inicial.id IS NOT NULL THEN COALESCE(programacion_inicial.estatus, 'operacion') ELSE 'reserva' END"
-            : "COALESCE(historial_operativo.estatus, 'reserva')";
+            $hasInicioHist = DB::table('historial_operativo')
+                ->where('fecha_historial', $fecha)
+                ->where('momento', 'INICIO')
+                ->exists();
 
-        $queryProg = DB::table('unidades')
-            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id');
+            $isToday = ($fecha === Carbon::today()->toDateString() || $fecha === Carbon::now('America/Mexico_City')->toDateString());
 
-        if ($hasProgInicial) {
-            $queryProg->leftJoin('programacion_inicial', function ($join) use ($fecha) {
-                $join->on('unidades.id', '=', 'programacion_inicial.unidad_id')
-                    ->where('programacion_inicial.fecha', $fecha);
-            });
-        }
-
-        $queryProg->leftJoin('historial_operativo', function ($join) use ($fecha) {
-            $join->on('unidades.id', '=', 'historial_operativo.unidad_id')
-                ->where('historial_operativo.fecha_historial', $fecha)
-                ->where('historial_operativo.momento', 'INICIO');
-        });
-
-        $programacion = $queryProg
-            ->select(
-                'unidades.numero_eco as economico',
-                $this->tipoUnidadRaw(DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre)'), 'tipo'),
-                $this->tipoUnidadRaw(DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre)'), 'tipo_unidad'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as numero_tarjeton'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
-                DB::raw($estatusExpr . ' as estatus'),
-                $hasSalidaPatioHist ? DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.hora_salida_patio, ' : '') . 'historial_operativo.hora_salida_patio) as hora_salida') : DB::raw('NULL as hora_salida'),
-                $hasAcopleHist ? DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.acople, ' : '') . 'historial_operativo.acople) as acople') : DB::raw('NULL as acople'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . 'historial_operativo.corridas) as corridas'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ciclo, ' : '') . 'historial_operativo.ciclo) as ciclo'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo, ' : '') . 'historial_operativo.motivo) as motivo'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.falla, ' : '') . 'historial_operativo.falla) as falla'),
-                DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo_estatus, ' : '') . 'historial_operativo.motivo_estatus) as motivo_estatus'),
-                $hasRelevoHist ? 'historial_operativo.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
-                $hasRelevoHist ? 'historial_operativo.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
-                $hasRelevoHist ? 'historial_operativo.relevo_hora' : DB::raw('NULL as relevo_hora')
-            )
-            ->orderBy('unidades.numero_eco')
-            ->get();
-
-        // Calcular resumen logístico
-        $totalProgramadas = 0;
-        $operacionCount = 0;
-        $reservaCount = 0;
-        $mantenimientoCount = 0;
-        $percanceCount = 0;
-        $conConductorCount = 0;
-        $sinConductorCount = 0;
-
-        $porTipoMap = [];
-        $porRutaMap = [];
-
-        foreach ($programacion as $row) {
-            $est = strtolower(trim($row->estatus ?? ''));
-            if ($est === 'operacion' || $est === 'operación') {
-                $operacionCount++;
-                $totalProgramadas++;
-            } elseif ($est === 'reserva') {
-                $reservaCount++;
-            } elseif ($est === 'mantenimiento') {
-                $mantenimientoCount++;
-            } elseif ($est === 'percance') {
-                $percanceCount++;
-            }
-
-            if (!empty($row->numero_tarjeton) || !empty($row->nombre_conductor)) {
-                $conConductorCount++;
+            if ($progInicialCount === 0 && !$hasInicioHist && $isToday && Schema::hasTable('informacion_operativa')) {
+                // Fallback para hoy si aún no hay corte de inicio ni registros en programacion_inicial
+                $programacion = DB::table('unidades')
+                    ->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                    ->select(
+                        'unidades.numero_eco as economico',
+                        $this->tipoUnidadRaw('COALESCE(informacion_operativa.tipo, transportes.nombre)', 'tipo'),
+                        $this->tipoUnidadRaw('COALESCE(informacion_operativa.tipo, transportes.nombre)', 'tipo_unidad'),
+                        'informacion_operativa.ruta',
+                        'informacion_operativa.numero_tarjeton',
+                        'informacion_operativa.nombre_conductor',
+                        DB::raw("COALESCE(informacion_operativa.estatus, 'reserva') as estatus"),
+                        $hasSalidaPatioInfo ? 'informacion_operativa.hora_salida_patio as hora_salida' : DB::raw('NULL as hora_salida'),
+                        $hasAcopleInfo ? 'informacion_operativa.acople' : DB::raw('NULL as acople'),
+                        'informacion_operativa.corridas',
+                        'informacion_operativa.ciclo',
+                        'informacion_operativa.motivo',
+                        'informacion_operativa.falla',
+                        'informacion_operativa.motivo_estatus',
+                        $hasRelevoInfo ? 'informacion_operativa.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                        $hasRelevoInfo ? 'informacion_operativa.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                        $hasRelevoInfo ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora')
+                    )
+                    ->orderBy('unidades.numero_eco')
+                    ->get();
             } else {
-                $sinConductorCount++;
+                $estatusExpr = $progInicialCount > 0
+                    ? "CASE WHEN programacion_inicial.id IS NOT NULL THEN COALESCE(programacion_inicial.estatus, 'operacion') ELSE 'reserva' END"
+                    : "COALESCE(historial_operativo.estatus, 'reserva')";
+
+                $queryProg = DB::table('unidades')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id');
+
+                if ($hasProgInicial) {
+                    $queryProg->leftJoin('programacion_inicial', function ($join) use ($fecha) {
+                        $join->on('unidades.id', '=', 'programacion_inicial.unidad_id')
+                            ->where('programacion_inicial.fecha', $fecha);
+                    });
+                }
+
+                $queryProg->leftJoin('historial_operativo', function ($join) use ($fecha) {
+                    $join->on('unidades.id', '=', 'historial_operativo.unidad_id')
+                        ->where('historial_operativo.fecha_historial', $fecha)
+                        ->where('historial_operativo.momento', 'INICIO');
+                });
+
+                $colTipo = 'COALESCE(' . ($hasProgInicial ? 'programacion_inicial.tipo, ' : '') . 'historial_operativo.tipo, transportes.nombre)';
+
+                $horaSalidaParts = [];
+                if ($hasProgInicial) $horaSalidaParts[] = 'programacion_inicial.hora_salida_patio';
+                if ($hasSalidaPatioHist) $horaSalidaParts[] = 'historial_operativo.hora_salida_patio';
+                $horaSalidaSelect = !empty($horaSalidaParts)
+                    ? DB::raw('COALESCE(' . implode(', ', $horaSalidaParts) . ') as hora_salida')
+                    : DB::raw('NULL as hora_salida');
+
+                $acopleParts = [];
+                if ($hasProgInicial) $acopleParts[] = 'programacion_inicial.acople';
+                if ($hasAcopleHist) $acopleParts[] = 'historial_operativo.acople';
+                $acopleSelect = !empty($acopleParts)
+                    ? DB::raw('COALESCE(' . implode(', ', $acopleParts) . ') as acople')
+                    : DB::raw('NULL as acople');
+
+                $programacion = $queryProg
+                    ->select(
+                        'unidades.numero_eco as economico',
+                        $this->tipoUnidadRaw($colTipo, 'tipo'),
+                        $this->tipoUnidadRaw($colTipo, 'tipo_unidad'),
+                        DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ruta, ' : '') . 'historial_operativo.ruta) as ruta'),
+                        DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.numero_tarjeton, ' : '') . 'historial_operativo.numero_tarjeton) as numero_tarjeton'),
+                        DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.nombre_conductor, ' : '') . 'historial_operativo.nombre_conductor) as nombre_conductor'),
+                        DB::raw($estatusExpr . ' as estatus'),
+                        $horaSalidaSelect,
+                        $acopleSelect,
+                        DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.corridas, ' : '') . 'historial_operativo.corridas) as corridas'),
+                        DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.ciclo, ' : '') . 'historial_operativo.ciclo) as ciclo'),
+                        DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo, ' : '') . 'historial_operativo.motivo) as motivo'),
+                        DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.falla, ' : '') . 'historial_operativo.falla) as falla'),
+                        DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo_estatus, ' : '') . 'historial_operativo.motivo_estatus) as motivo_estatus'),
+                        $hasRelevoHist ? 'historial_operativo.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                        $hasRelevoHist ? 'historial_operativo.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                        $hasRelevoHist ? 'historial_operativo.relevo_hora' : DB::raw('NULL as relevo_hora')
+                    )
+                    ->orderBy('unidades.numero_eco')
+                    ->get();
             }
 
-            $tipoRaw = !empty($row->tipo) ? $row->tipo : (!empty($row->tipo_unidad) ? $row->tipo_unidad : 'DESCONOCIDO');
-            $tipoKey = strtoupper(trim($tipoRaw));
-            if ($tipoKey === 'URBANUS') $tipoKey = 'URBANUSS';
-            if (!isset($porTipoMap[$tipoKey])) {
-                $porTipoMap[$tipoKey] = [
-                    'tipo' => $tipoKey,
-                    'total' => 0,
-                    'programadas' => 0,
-                    'operacion' => 0,
-                    'reserva' => 0,
-                    'mantenimiento' => 0,
-                    'percance' => 0
-                ];
-            }
-            $porTipoMap[$tipoKey]['total']++;
-            if ($est === 'operacion' || $est === 'operación') {
-                $porTipoMap[$tipoKey]['programadas']++;
-                $porTipoMap[$tipoKey]['operacion']++;
-            }
-            elseif ($est === 'reserva') $porTipoMap[$tipoKey]['reserva']++;
-            elseif ($est === 'mantenimiento') $porTipoMap[$tipoKey]['mantenimiento']++;
-            elseif ($est === 'percance') $porTipoMap[$tipoKey]['percance']++;
+            // Calcular resumen logístico
+            $totalProgramadas = 0;
+            $operacionCount = 0;
+            $reservaCount = 0;
+            $mantenimientoCount = 0;
+            $percanceCount = 0;
+            $conConductorCount = 0;
+            $sinConductorCount = 0;
 
-            $rutaKey = trim($row->ruta ?? '');
-            if ($rutaKey !== '') {
-                if (!isset($porRutaMap[$rutaKey])) {
-                    $porRutaMap[$rutaKey] = [
-                        'ruta' => $rutaKey,
+            $porTipoMap = [];
+            $porRutaMap = [];
+
+            foreach ($programacion as $row) {
+                $est = strtolower(trim($row->estatus ?? ''));
+                if ($est === 'operacion' || $est === 'operación') {
+                    $operacionCount++;
+                    $totalProgramadas++;
+                } elseif ($est === 'reserva') {
+                    $reservaCount++;
+                } elseif ($est === 'mantenimiento') {
+                    $mantenimientoCount++;
+                } elseif ($est === 'percance') {
+                    $percanceCount++;
+                }
+
+                if (!empty($row->numero_tarjeton) || !empty($row->nombre_conductor)) {
+                    $conConductorCount++;
+                } else {
+                    $sinConductorCount++;
+                }
+
+                $tipoRaw = !empty($row->tipo) ? $row->tipo : (!empty($row->tipo_unidad) ? $row->tipo_unidad : 'DESCONOCIDO');
+                $tipoKey = strtoupper(trim($tipoRaw));
+                if ($tipoKey === 'URBANUS') $tipoKey = 'URBANUSS';
+                if (!isset($porTipoMap[$tipoKey])) {
+                    $porTipoMap[$tipoKey] = [
+                        'tipo' => $tipoKey,
                         'total' => 0,
-                        'unidades' => []
+                        'programadas' => 0,
+                        'operacion' => 0,
+                        'reserva' => 0,
+                        'mantenimiento' => 0,
+                        'percance' => 0
                     ];
                 }
-                $porRutaMap[$rutaKey]['total']++;
-                $porRutaMap[$rutaKey]['unidades'][] = [
-                    'economico' => $row->economico,
-                    'tarjeton' => $row->numero_tarjeton,
-                    'conductor' => $row->nombre_conductor,
-                    'estatus' => $row->estatus
-                ];
+                $porTipoMap[$tipoKey]['total']++;
+                if ($est === 'operacion' || $est === 'operación') {
+                    $porTipoMap[$tipoKey]['programadas']++;
+                    $porTipoMap[$tipoKey]['operacion']++;
+                }
+                elseif ($est === 'reserva') $porTipoMap[$tipoKey]['reserva']++;
+                elseif ($est === 'mantenimiento') $porTipoMap[$tipoKey]['mantenimiento']++;
+                elseif ($est === 'percance') $porTipoMap[$tipoKey]['percance']++;
+
+                $rutaKey = trim($row->ruta ?? '');
+                if ($rutaKey !== '') {
+                    if (!isset($porRutaMap[$rutaKey])) {
+                        $porRutaMap[$rutaKey] = [
+                            'ruta' => $rutaKey,
+                            'total' => 0,
+                            'unidades' => []
+                        ];
+                    }
+                    $porRutaMap[$rutaKey]['total']++;
+                    $porRutaMap[$rutaKey]['unidades'][] = [
+                        'economico' => $row->economico,
+                        'tarjeton' => $row->numero_tarjeton,
+                        'conductor' => $row->nombre_conductor,
+                        'estatus' => $row->estatus
+                    ];
+                }
             }
+
+            // Obtener la bitácora de cambios y movimientos registrados para esta fecha
+            $cambios = collect();
+            if (Schema::hasTable('bitacora_cambios_unidades')) {
+                $cambios = DB::table('bitacora_cambios_unidades')
+                    ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                    ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+                    ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
+                    ->where('bitacora_cambios_unidades.fecha', $fecha)
+                    ->select(
+                        'bitacora_cambios_unidades.id',
+                        'unidades.numero_eco as economico',
+                        $this->tipoUnidadFromUnidadesRaw('tipo'),
+                        $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
+                        'usuarios.nombre_completo as usuario_nombre',
+                        'roles.nombre as usuario_rol',
+                        'bitacora_cambios_unidades.tipo_accion',
+                        'bitacora_cambios_unidades.estatus_anterior',
+                        'bitacora_cambios_unidades.estatus_nuevo',
+                        'bitacora_cambios_unidades.detalles',
+                        'bitacora_cambios_unidades.created_at as hora'
+                    )
+                    ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+                    ->get();
+            }
+
+            return response()->json([
+                'fecha' => $fecha,
+                'programacion' => $programacion,
+                'cambios' => $cambios,
+                'resumen' => [
+                    'total_programadas' => $totalProgramadas,
+                    'operacion' => $operacionCount,
+                    'reserva' => $reservaCount,
+                    'mantenimiento' => $mantenimientoCount,
+                    'percance' => $percanceCount,
+                    'con_conductor' => $conConductorCount,
+                    'sin_conductor' => $sinConductorCount,
+                    'total_cambios' => $cambios->count(),
+                    'por_tipo' => array_values($porTipoMap),
+                    'por_ruta' => array_values($porRutaMap)
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('[getHistorialProgramacion] Error: ' . $e->getMessage(), [
+                'fecha' => $fecha,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Error al consultar la programación histórica',
+                'message' => $e->getMessage()
+            ], 500);
         }
-
-        // Obtener la bitácora de cambios y movimientos registrados para esta fecha
-        $cambios = DB::table('bitacora_cambios_unidades')
-            ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
-            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
-            ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
-            ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
-            ->where('bitacora_cambios_unidades.fecha', $fecha)
-            ->select(
-                'bitacora_cambios_unidades.id',
-                'unidades.numero_eco as economico',
-                $this->tipoUnidadFromUnidadesRaw('tipo'),
-                $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
-                'usuarios.nombre_completo as usuario_nombre',
-                'roles.nombre as usuario_rol',
-                'bitacora_cambios_unidades.tipo_accion',
-                'bitacora_cambios_unidades.estatus_anterior',
-                'bitacora_cambios_unidades.estatus_nuevo',
-                'bitacora_cambios_unidades.detalles',
-                'bitacora_cambios_unidades.created_at as hora'
-            )
-            ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'fecha' => $fecha,
-            'programacion' => $programacion,
-            'cambios' => $cambios,
-            'resumen' => [
-                'total_programadas' => $totalProgramadas,
-                'operacion' => $operacionCount,
-                'reserva' => $reservaCount,
-                'mantenimiento' => $mantenimientoCount,
-                'percance' => $percanceCount,
-                'con_conductor' => $conConductorCount,
-                'sin_conductor' => $sinConductorCount,
-                'total_cambios' => $cambios->count(),
-                'por_tipo' => array_values($porTipoMap),
-                'por_ruta' => array_values($porRutaMap)
-            ]
-        ]);
     }
 
     /**
