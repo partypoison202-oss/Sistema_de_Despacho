@@ -146,9 +146,7 @@ export default function DetalleUnidadMantenimiento() {
       title: `${tipo} copiado: ${texto}`,
       showConfirmButton: false,
       timer: 1800,
-      timerProgressBar: true,
-      background: '#1e293b',
-      color: '#fff'
+      timerProgressBar: true
     });
   };
 

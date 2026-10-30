@@ -70,6 +70,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   const [isEditandoIncidenciaMes, setIsEditandoIncidenciaMes] = useState(false);
   const [folioOrden, setFolioOrden] = useState('');
   const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState(null);
   const [previewFilename, setPreviewFilename] = useState('');
   const [formData, setFormData] = useState({
     eco: '',
@@ -137,6 +138,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       if (previewPdfUrl) {
         URL.revokeObjectURL(previewPdfUrl);
         setPreviewPdfUrl(null);
+        setPreviewImageUrl(null);
         setPreviewFilename('');
       }
     }
@@ -215,15 +217,6 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       });
       return;
     }
-    if (!String(formData.falla_reportada || '').trim()) {
-      Swal.fire({ 
-        icon: 'warning', 
-        title: 'Atención', 
-        text: 'Debes ingresar la falla reportada.',
-        customClass: { container: '!z-[100000]' }
-      });
-      return;
-    }
     setStep(2);
   };
 
@@ -255,15 +248,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   };
 
   const isFormValid = () => {
-    return (
-      String(formData.operador || '').trim() !== '' &&
-      String(formData.tarjeton || '').trim() !== '' &&
-      String(formData.servicio || '').trim() !== '' &&
-      String(formData.corrida || '').trim() !== '' &&
-      String(formData.falla_reportada || '').trim() !== '' &&
-      String(formData.km || '').trim() !== '' &&
-      formData.firma_base64 !== ''
-    );
+    return Boolean(formData.firma_base64 && String(formData.firma_base64).trim() !== '');
   };
 
   const handleGeneratePDF = async () => {
@@ -287,6 +272,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       const filename = `Orden_Mantenimiento_${formData.eco || 'ECO'}_INC-${incCompleta}.pdf`;
 
       setPreviewPdfUrl(pdfUrl);
+      setPreviewImageUrl(imgData);
       setPreviewFilename(filename);
       return pdfUrl;
 
@@ -492,12 +478,12 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Operador <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Operador</label>
               <input type="text" name="operador" value={formData.operador} readOnly className="w-full border border-gray-200 rounded-lg p-2.5 text-sm transition-all shadow-sm bg-gray-100 text-gray-600 cursor-not-allowed focus:outline-none" />
               <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SE AUTOCOMPLETA CON EL TARJETÓN</p>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ID (Tarjetón) <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ID (Tarjetón)</label>
               <input 
                 type="text" 
                 name="tarjeton" 
@@ -514,7 +500,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
           <div className="grid grid-cols-3 gap-5 mb-6">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio</label>
               {(() => {
                 const tipo = String(initialData?.tipoTransporte || initialData?.tipo || '').toLowerCase();
                 // urbanuss, articulado, padron = troncal; zafiro, orion, vagoneta = alimentadora
@@ -546,7 +532,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
               <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SELECCIONE LA RUTA ASIGNADA (EJ. T01)</p>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida</label>
               <input 
                 type="text" 
                 name="corrida" 
@@ -560,7 +546,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
               <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NÚMERO DE CORRIDA (EJ. 2)</p>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">KM <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">KM</label>
               <input 
                 type="text" 
                 name="km" 
@@ -576,7 +562,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
           <div className="space-y-5 mb-6">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Falla Reportada <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Falla Reportada</label>
               <textarea 
                 name="falla_reportada" 
                 value={formData.falla_reportada} 
@@ -658,25 +644,32 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     </div>
   );
 
-  // Vista previa modal idéntica a la de Unidades en Mantenimiento
+  // Vista previa modal adaptativa para móviles, tablets y escritorio
   if (previewPdfUrl) {
     return createPortal(
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem'
+        backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', zIndex: 9999,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem'
       }}>
         <div style={{
-          backgroundColor: '#fff', borderRadius: '8px', padding: '1rem',
-          width: '100%', maxWidth: '900px', height: '85vh', display: 'flex', flexDirection: 'column'
+          backgroundColor: '#fff', borderRadius: '12px', padding: '1.25rem',
+          width: '100%', maxWidth: '960px', height: '88vh', display: 'flex', flexDirection: 'column',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, color: '#601a2a', fontSize: '1.25rem', fontWeight: 'bold' }}>Vista Previa del Reporte</h3>
-            <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h3 style={{ margin: 0, color: '#601a2a', fontSize: '1.25rem', fontWeight: 'bold' }}>Vista Previa del Reporte</h3>
+              <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#6b7280' }}>Reporte oficial • Optimizado para tablet, móvil y PC</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
               <button
-                style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', backgroundColor: '#601a2a', color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background-color 0.2s' }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#4a1420'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#601a2a'}
+                style={{
+                  padding: '0.5rem 1rem', border: 'none', borderRadius: '6px',
+                  backgroundColor: '#601a2a', color: '#fff', cursor: 'pointer',
+                  fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
                 onClick={() => {
                   const a = document.createElement('a');
                   a.href = previewPdfUrl;
@@ -687,17 +680,32 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
                   document.body.removeChild(a);
                 }}
               >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Descargar PDF
               </button>
               <button
-                style={{ padding: '0.5rem 1rem', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: '#f9fafb', color: '#374151', cursor: 'pointer', fontWeight: '500', transition: 'background-color 0.2s' }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                style={{
+                  padding: '0.5rem 0.85rem', border: '1px solid #d1d5db', borderRadius: '6px',
+                  backgroundColor: '#f9fafb', color: '#374151', cursor: 'pointer',
+                  fontWeight: '500', display: 'flex', alignItems: 'center', gap: '5px'
+                }}
+                title="Abrir PDF en pestaña nueva"
+                onClick={() => window.open(previewPdfUrl, '_blank')}
+              >
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                Abrir PDF
+              </button>
+              <button
+                style={{
+                  padding: '0.5rem 1rem', border: '1px solid #d1d5db', borderRadius: '6px',
+                  backgroundColor: '#fff', color: '#4b5563', cursor: 'pointer', fontWeight: '500'
+                }}
                 onClick={() => {
                   if (previewPdfUrl) {
                     URL.revokeObjectURL(previewPdfUrl);
                   }
                   setPreviewPdfUrl(null);
+                  setPreviewImageUrl(null);
                   setPreviewFilename('');
                   onClose();
                 }}
@@ -706,7 +714,35 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
               </button>
             </div>
           </div>
-          <iframe src={previewPdfUrl} title="Vista previa PDF" style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '4px' }} />
+          <div style={{
+            flex: 1,
+            overflow: 'auto',
+            backgroundColor: '#525659',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            border: '1px solid #374151',
+            WebkitOverflowScrolling: 'touch'
+          }}>
+            {previewImageUrl ? (
+              <img
+                src={previewImageUrl}
+                alt="Vista previa del reporte"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  borderRadius: '2px',
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.4)',
+                  backgroundColor: '#ffffff'
+                }}
+              />
+            ) : (
+              <iframe src={previewPdfUrl} title="Vista previa PDF" style={{ width: '100%', height: '100%', border: 'none' }} />
+            )}
+          </div>
         </div>
       </div>,
       document.body

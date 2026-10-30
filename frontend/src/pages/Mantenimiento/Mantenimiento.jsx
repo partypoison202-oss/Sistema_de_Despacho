@@ -496,7 +496,7 @@ export default function Mantenimiento() {
               <h3 style={{ margin: 0, color: '#601a2a', fontSize: '1.25rem', fontWeight: 'bold' }}>Vista Previa del Reporte</h3>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button
-                  style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', backgroundColor: '#601a2a', color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background-color 0.2s' }}
+                  style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', backgroundColor: '#601a2a', color: '#fff', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'background-color 0.2s' }}
                   onMouseOver={(e) => e.target.style.backgroundColor = '#4a1420'}
                   onMouseOut={(e) => e.target.style.backgroundColor = '#601a2a'}
                   onClick={() => {
@@ -509,7 +509,20 @@ export default function Mantenimiento() {
                     document.body.removeChild(a);
                   }}
                 >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                   Descargar PDF
+                </button>
+                <button
+                  style={{
+                    padding: '0.5rem 0.85rem', border: '1px solid #d1d5db', borderRadius: '6px',
+                    backgroundColor: '#f9fafb', color: '#374151', cursor: 'pointer',
+                    fontWeight: '500', display: 'flex', alignItems: 'center', gap: '5px'
+                  }}
+                  title="Abrir PDF en pestaña nueva"
+                  onClick={() => window.open(previewPdfUrl, '_blank')}
+                >
+                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  Abrir PDF
                 </button>
                 <button
                   style={{ padding: '0.5rem 1rem', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: '#f9fafb', color: '#374151', cursor: 'pointer', fontWeight: '500', transition: 'background-color 0.2s' }}
