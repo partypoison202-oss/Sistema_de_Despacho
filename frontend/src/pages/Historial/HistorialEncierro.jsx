@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto, formatearFechaDiaMesAnio, getValoresTransicion } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import './Historial.css';
@@ -276,8 +276,8 @@ export default function HistorialEncierro() {
             activeTab === 'cambios'
               ? 'Buscar por económico, tipo, modificación, estatus, detalles o usuario...'
               : activeTab === 'encierros'
-              ? 'Buscar por hora, económico, tipo, estatus, motivo, ruta o conductor...'
-              : 'Buscar por económico, tipo de unidad, estatus, motivo de baja o falla...'
+                ? 'Buscar por hora, económico, tipo, estatus, motivo, ruta o conductor...'
+                : 'Buscar por económico, tipo de unidad, estatus, motivo de baja o falla...'
           }
           totalCount={activeData.length}
           filteredCount={filteredData.length}
@@ -315,8 +315,15 @@ export default function HistorialEncierro() {
                         {formatAccion(d.tipo_accion)}
                       </span>
                     </td>
-                    <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : '-'}</td>
-                    <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : '-'}</td>
+                    {(() => {
+                      const trans = getValoresTransicion(d);
+                      return (
+                        <>
+                          <td style={{ fontWeight: '700', color: '#dc2626' }}>{trans.anterior}</td>
+                          <td style={{ fontWeight: '700', color: '#16a34a' }}>{trans.nuevo}</td>
+                        </>
+                      );
+                    })()}
                     <td style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
                       <DetalleOperacion
                         detalles={d.detalles}
@@ -331,8 +338,8 @@ export default function HistorialEncierro() {
                 {filteredData.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
-                      {activeData.length === 0 
-                        ? 'No hay modificaciones registradas por Encierro en este día.' 
+                      {activeData.length === 0
+                        ? 'No hay modificaciones registradas por Encierro en este día.'
                         : `No se encontraron registros que coincidan con "${busqueda}".`}
                     </td>
                   </tr>
@@ -389,8 +396,8 @@ export default function HistorialEncierro() {
                 {filteredData.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
-                      {activeData.length === 0 
-                        ? 'No hay encierros registrados en este día.' 
+                      {activeData.length === 0
+                        ? 'No hay encierros registrados en este día.'
                         : `No se encontraron registros que coincidan con "${busqueda}".`}
                     </td>
                   </tr>
@@ -427,8 +434,8 @@ export default function HistorialEncierro() {
                 {filteredData.length === 0 && (
                   <tr>
                     <td colSpan="5" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
-                      {activeData.length === 0 
-                        ? 'No hay registros de encierro para este estado de la fecha seleccionada.' 
+                      {activeData.length === 0
+                        ? 'No hay registros de encierro para este estado de la fecha seleccionada.'
                         : `No se encontraron registros que coincidan con "${busqueda}".`}
                     </td>
                   </tr>

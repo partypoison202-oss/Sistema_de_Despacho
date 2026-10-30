@@ -280,6 +280,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/mantenimiento/generar-folio', [DespachoController::class, 'generarFolioMantenimiento']);
     Route::get('/mantenimiento/reporte-combustible', [DespachoController::class, 'reporteCombustibleDiario']);
     Route::post('/mantenimiento/reporte-combustible', [DespachoController::class, 'registrarReporteCombustible']);
+    Route::get('/combustible/cargas-diarias', [DespachoController::class, 'getCargasCombustibleDiarias']);
+    Route::post('/combustible/guardar-masivo', [DespachoController::class, 'guardarCargasCombustibleMasivo']);
+    Route::get('/combustible/resumen-semanal', [DespachoController::class, 'getResumenSemanalCombustible']);
 
 
     // Gestión de Conductores
@@ -338,6 +341,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/despacho/{fecha}', [HistorialOperativoController::class, 'getHistorialDespacho']);
     Route::get('/historial-operativo/encierro/{fecha}', [HistorialOperativoController::class, 'getHistorialEncierro']);
     Route::get('/historial-operativo/mantenimiento/{fecha}', [HistorialOperativoController::class, 'getHistorialMantenimiento']);
+    Route::get('/historial-operativo/mantenimiento-folios', [HistorialOperativoController::class, 'getHistorialFolios']);
+    Route::post('/historial-operativo/actualizar-folio', [HistorialOperativoController::class, 'actualizarFolioHistorico']);
+    Route::get('/historial-operativo/auditoria-folios', [HistorialOperativoController::class, 'getAuditoriaFolios']);
+    Route::get('/historial-operativo/expediente-unidad/{economico}', [HistorialOperativoController::class, 'getExpedienteUnidad']);
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-operativo/mesa-control/{fecha}', [HistorialOperativoController::class, 'getHistorialMesaControl']);
     Route::get('/historial-operativo/programacion/{fecha}', [HistorialOperativoController::class, 'getHistorialProgramacion']);

@@ -7,6 +7,7 @@ import API_BASE from '../../config/api';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import { getProfileImageUrl } from '../../utils/imageUrl';
 import { generarPDFHistorialConductor } from '../../utils/generarPDFHistorialConductor';
+import { formatearFechaDiaMesAnio } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import { DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import './Historial.css';
@@ -1059,7 +1060,7 @@ export default function HistorialConductorIndividual() {
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.875rem' }}>
-                              {ev.fecha}
+                              {formatearFechaDiaMesAnio(ev.fecha)}
                             </span>
                             <span style={{ fontSize: '0.725rem', color: '#64748b', textTransform: 'capitalize' }}>
                               {new Date(ev.fecha + 'T00:00:00').toLocaleDateString('es-MX', { weekday: 'long' })}

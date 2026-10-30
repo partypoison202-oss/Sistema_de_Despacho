@@ -619,4 +619,348 @@ export const DetalleOperacion = ({
   );
 };
 
+/**
+ * Interpreta cambios de mantenimiento para badges y pills
+ */
+export const interpretarCambioMantenimiento = (d) => {
+  if (!d) {
+    return {
+      modificacion: 'Acción General',
+      badgeStyle: getAccionBadgeStyle(''),
+      valorAnterior: '-',
+      valorNuevo: '-',
+      detalles: 'Sin detalles adicionales',
+      tipoPillNuevo: 'default'
+    };
+  }
+
+  const accion = String(d.tipo_accion || '').toUpperCase();
+  const ant = String(d.estatus_anterior || '').trim().toUpperCase();
+  const nue = String(d.estatus_nuevo || '').trim().toUpperCase();
+  const rawDetalles = String(d.detalles || '').trim();
+
+  let incVal = d.numero_incidencia || d.incidencia || null;
+  if (!incVal && rawDetalles.includes(':')) {
+    const matchInc = rawDetalles.match(/INCIDENCIA:\s*([A-Z0-9-]+)/i);
+    if (matchInc) incVal = matchInc[1].trim();
+  }
+  if (!incVal && (accion.includes('INCIDENCIA') || nue.startsWith('OCT-') || nue.startsWith('INC-'))) {
+    incVal = (nue && nue !== 'INCIDENCIA ASIGNADA' && nue !== 'MANTENIMIENTO') ? nue : null;
+  }
+
+  let folVal = d.folio_mantenimiento || d.folio || null;
+  if (!folVal && rawDetalles.includes(':')) {
+    const matchFol = rawDetalles.match(/FOLIO:\s*([A-Z0-9-]+)/i);
+    if (matchFol) folVal = matchFol[1].trim();
+  }
+  if (!folVal && accion.includes('FOLIO')) {
+    folVal = (nue && nue !== 'FOLIO ASIGNADO' && nue !== 'MANTENIMIENTO') ? nue : null;
+  }
+
+  if (accion.includes('INCIDENCIA') || rawDetalles.toUpperCase().includes('INCIDENCIA:')) {
+    return {
+      modificacion: 'Registro de Incidencia',
+      badgeStyle: { backgroundColor: '#fdf2f4', color: '#A02142', border: '1px solid #fecdd3' },
+      valorAnterior: ant && ant !== 'MANTENIMIENTO' && ant !== 'SIN INCIDENCIA' ? ant : 'Sin Incidencia',
+      valorNuevo: incVal || nue || 'INCIDENCIA ASIGNADA',
+      detalles: rawDetalles.includes('ASIGNACIÓN DE INCIDENCIA:')
+        ? rawDetalles
+        : (rawDetalles || `Asignación de N° de incidencia: ${incVal || nue || 'Registrada'}`),
+      tipoPillNuevo: 'incidencia'
+    };
+  }
+
+  if (accion.includes('FOLIO') || rawDetalles.toUpperCase().includes('FOLIO:')) {
+    const esActualizacion = accion.includes('ACTUALIZ');
+    return {
+      modificacion: esActualizacion ? 'Actualizar Folio' : 'Asignar Folio',
+      badgeStyle: { backgroundColor: '#fdfbf7', color: '#BC955B', border: '1.5px solid #DDC9A3' },
+      valorAnterior: ant && ant !== 'MANTENIMIENTO' && ant !== 'SIN FOLIO' ? ant : 'Sin Folio',
+      valorNuevo: folVal || nue || 'FOLIO ASIGNADO',
+      detalles: rawDetalles.includes('ASIGNACIÓN DE FOLIO:')
+        ? rawDetalles
+        : (rawDetalles || `Asignación de folio de mtto: ${folVal || nue || 'Asignado'}`),
+      tipoPillNuevo: 'folio'
+    };
+  }
+
+  if (accion === 'CAMBIO_ESTATUS' || accion.includes('ESTATUS')) {
+    if (ant && nue && ant === nue) {
+      if (ant === 'MANTENIMIENTO') {
+        if (incVal) {
+          return {
+            modificacion: 'Registro de Incidencia',
+            badgeStyle: { backgroundColor: '#fdf2f4', color: '#A02142', border: '1px solid #fecdd3' },
+            valorAnterior: 'Sin Incidencia',
+            valorNuevo: incVal,
+            detalles: rawDetalles.includes('DE MANTENIMIENTO A MANTENIMIENTO')
+              ? `Registro de incidencia técnica en mtto: ${incVal}`
+              : (rawDetalles || `Asignación de número de incidencia: ${incVal}`),
+            tipoPillNuevo: 'incidencia'
+          };
+        }
+
+        if (folVal) {
+          return {
+            modificacion: 'Asignar Folio',
+            badgeStyle: { backgroundColor: '#fdfbf7', color: '#BC955B', border: '1.5px solid #DDC9A3' },
+            valorAnterior: 'Sin Folio',
+            valorNuevo: folVal,
+            detalles: rawDetalles.includes('DE MANTENIMIENTO A MANTENIMIENTO')
+              ? `Asignación de folio físico emitido en mtto: ${folVal}`
+              : (rawDetalles || `Asignación de folio: ${folVal}`),
+            tipoPillNuevo: 'folio'
+          };
+        }
+
+        if (d.falla_reportada || d.diagnostico) {
+          return {
+            modificacion: 'Actualización en Mtto',
+            badgeStyle: { backgroundColor: '#fdf2f4', color: '#691B31', border: '1px solid #fecdd3' },
+            valorAnterior: 'Revisión',
+            valorNuevo: d.falla_reportada || d.diagnostico,
+            detalles: `Falla o diagnóstico actualizado en mtto: ${d.falla_reportada || d.diagnostico}`,
+            tipoPillNuevo: 'permanece'
+          };
+        }
+
+        return {
+          modificacion: 'Actualización en Mtto',
+          badgeStyle: { backgroundColor: '#fdf2f4', color: '#691B31', border: '1px solid #fecdd3' },
+          valorAnterior: 'MANTENIMIENTO',
+          valorNuevo: 'ACTUALIZADO',
+          detalles: rawDetalles.includes('DE MANTENIMIENTO A MANTENIMIENTO')
+            ? 'Actualización de datos y confirmación de estatus en mtto'
+            : (rawDetalles || 'Actualización de datos en mtto'),
+          tipoPillNuevo: 'permanece'
+        };
+      }
+      return {
+        modificacion: 'Reconfirmación de Estatus',
+        badgeStyle: { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' },
+        valorAnterior: ant,
+        valorNuevo: 'RECONFIRMADO',
+        detalles: rawDetalles || `Reconfirmación de estatus ${ant}`,
+        tipoPillNuevo: 'reconfirmado'
+      };
+    }
+
+    if (nue === 'MANTENIMIENTO') {
+      let det = 'Ingreso de la unidad a mtto';
+      if (rawDetalles.includes('POR MOTIVO:')) {
+        const parts = rawDetalles.split(/POR MOTIVO:/i);
+        const mot = parts[1] ? parts[1].trim() : '';
+        if (mot && mot.toUpperCase() !== 'MANTENIMIENTO') {
+          det = `Envío a mtto por: ${mot}`;
+        }
+      }
+      return {
+        modificacion: 'Ingreso a Mtto',
+        badgeStyle: { backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' },
+        valorAnterior: ant || 'OPERACION',
+        valorNuevo: 'MANTENIMIENTO',
+        detalles: det,
+        tipoPillNuevo: 'mantenimiento'
+      };
+    }
+
+    if (ant === 'MANTENIMIENTO') {
+      return {
+        modificacion: 'Salida de Mtto',
+        badgeStyle: { backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #86efac' },
+        valorAnterior: 'MANTENIMIENTO',
+        valorNuevo: nue || 'OPERACION',
+        detalles: `Salida de mtto e incorporación a ${nue || 'OPERACIÓN'}`,
+        tipoPillNuevo: 'operacion'
+      };
+    }
+
+    return {
+      modificacion: 'Cambio de Estatus',
+      badgeStyle: { backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' },
+      valorAnterior: ant || '-',
+      valorNuevo: nue || '-',
+      detalles: rawDetalles || `Cambio de estatus de ${ant} a ${nue}`,
+      tipoPillNuevo: 'estatus'
+    };
+  }
+
+  if (accion.includes('MANTENIMIENTO') || accion.includes('DIAGNOSTICO') || accion.includes('FALLA')) {
+    return {
+      modificacion: 'Actualización en Mtto',
+      badgeStyle: { backgroundColor: '#fdf2f4', color: '#691B31', border: '1px solid #DDC9A3' },
+      valorAnterior: ant || 'REVISIÓN',
+      valorNuevo: nue || 'ACTUALIZADO',
+      detalles: rawDetalles || 'Actualización de diagnóstico técnico o falla reportada en mtto',
+      tipoPillNuevo: 'permanece'
+    };
+  }
+
+  if (accion.includes('REEMPLAZO')) {
+    return {
+      modificacion: 'Reemplazo de Unidad',
+      badgeStyle: { backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' },
+      valorAnterior: ant || '-',
+      valorNuevo: nue || '-',
+      detalles: rawDetalles || 'Sustitución de unidad en operación',
+      tipoPillNuevo: 'estatus'
+    };
+  }
+
+  return {
+    modificacion: formatAccion(accion),
+    badgeStyle: getAccionBadgeStyle(accion),
+    valorAnterior: ant || '-',
+    valorNuevo: nue || '-',
+    detalles: rawDetalles || 'Sin detalles adicionales',
+    tipoPillNuevo: 'default'
+  };
+};
+
+export const parseDetallesModificacion = (rawDetalles) => {
+  if (!rawDetalles || typeof rawDetalles !== 'string') {
+    return { tipo: 'simple', texto: rawDetalles || '' };
+  }
+
+  const text = rawDetalles.trim();
+  const motivoMatch = text.match(/(?:^|\|\s*)MOTIVO\s+AUDITOR[IÍ]A:\s*(.+)$/i);
+  let motivo = null;
+  let workText = text;
+
+  if (motivoMatch) {
+    motivo = motivoMatch[1].trim();
+    workText = text.substring(0, motivoMatch.index).trim();
+  }
+
+  const prefixMatch = workText.match(/^(?:ACTUALIZACI[OÓ]N\s+(?:DE\s+)?(?:FOLIO\/FECHA|FOLIO|INCIDENCIA)(?:\s+EN\s+ECO\s+\w+)?\s*:\s*)/i);
+  let contextTitle = null;
+  if (prefixMatch) {
+    contextTitle = prefixMatch[0].replace(/:\s*$/, '').trim();
+    workText = workText.substring(prefixMatch[0].length).trim();
+  }
+
+  const diffRegex = /([A-Za-z0-9_ÁÉÍÓÚáéíóú\s/]+):\s*'([^']*)'\s*->\s*'([^']*)'/g;
+  const diffs = [];
+  let match;
+
+  while ((match = diffRegex.exec(workText)) !== null) {
+    diffs.push({
+      campo: match[1].trim(),
+      anterior: match[2].trim(),
+      nuevo: match[3].trim()
+    });
+  }
+
+  if (diffs.length > 0 || motivo) {
+    let leftover = workText;
+    diffs.forEach(d => {
+      const pattern = new RegExp(`${d.campo}:\\s*'${d.anterior.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'\\s*->\\s*'${d.nuevo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'`, 'i');
+      leftover = leftover.replace(pattern, '');
+    });
+    leftover = leftover.replace(/^[|\s]+|[|\s]+$/g, '').trim();
+
+    return {
+      tipo: 'estructurado',
+      contextTitle,
+      diffs,
+      motivo,
+      extra: leftover || null
+    };
+  }
+
+  const asignacionIncMatch = text.match(/^ASIGNACI[OÓ]N DE INCIDENCIA:\s*([^-]+)(?:\s*-\s*FALLA:\s*(.+))?$/i);
+  if (asignacionIncMatch) {
+    return {
+      tipo: 'asignacion_incidencia',
+      incidencia: asignacionIncMatch[1].trim(),
+      falla: asignacionIncMatch[2]?.trim() || null
+    };
+  }
+
+  const asignacionFolioMatch = text.match(/^ASIGNACI[OÓ]N DE FOLIO:\s*(.+)$/i);
+  if (asignacionFolioMatch) {
+    return {
+      tipo: 'asignacion_folio',
+      folio: asignacionFolioMatch[1].trim()
+    };
+  }
+
+  return {
+    tipo: 'simple',
+    texto: text
+  };
+};
+
+export const formatearFechaDiaMesAnio = (fechaStr) => {
+  if (!fechaStr) return '';
+  const clean = String(fechaStr).trim().split(/[ T]/)[0];
+  const parts = clean.split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const [anio, mes, dia] = parts;
+      return `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${anio}`;
+    }
+    if (parts[2].length === 4) {
+      return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+    }
+  }
+  return fechaStr;
+};
+
+export const getValoresTransicion = (item) => {
+  if (!item) return { anterior: '—', nuevo: '—' };
+
+  const act = String(item.tipo_accion || '').toUpperCase();
+  const t = String(item.detalles || '').trim();
+  let ant = item.estatus_anterior ? String(item.estatus_anterior).toUpperCase() : null;
+  let nvo = item.estatus_nuevo ? String(item.estatus_nuevo).toUpperCase() : null;
+
+  const esDespacho = act.includes('DESPACHO') || t.includes('DESPACHO VALIDADO') || t.includes('SALIDA VALIDADA');
+  if (esDespacho) {
+    const mDesp = t.match(/(?:HORA(?:\s+REAL)?(?:\s+DE)?\s+SALIDA:\s*|A LAS\s+)([0-9]{1,2}:[0-9]{2})/i);
+    const hora = mDesp ? mDesp[1] : null;
+    return {
+      anterior: (ant && ant !== 'OPERACION') ? ant : 'EN PATIO',
+      nuevo: hora ? `SALIDA ${hora}` : (nvo || 'OPERACION'),
+      esEstatus: false
+    };
+  }
+
+  if (ant && nvo && ant === nvo) {
+    const mDash = t.match(/ANTERIOR:\s*(.*?),\s*NUEV[AO]:\s*([^)|]+)/i);
+    if (mDash) {
+      return { anterior: mDash[1].trim(), nuevo: mDash[2].trim(), esEstatus: false };
+    }
+    const mArrow = t.match(/:\s*(.+?)\s*->\s*([^|]+)/);
+    if (mArrow) {
+      return { anterior: mArrow[1].trim(), nuevo: mArrow[2].trim(), esEstatus: false };
+    }
+  }
+
+  if (ant || nvo) {
+    return {
+      anterior: ant || '—',
+      nuevo: nvo || '—',
+      esEstatus: true
+    };
+  }
+
+  const mDash = t.match(/ANTERIOR:\s*(.*?),\s*NUEV[AO]:\s*([^)|]+)/i);
+  if (mDash) {
+    return { anterior: mDash[1].trim(), nuevo: mDash[2].trim(), esEstatus: false };
+  }
+
+  const mArrow = t.match(/:\s*(.+?)\s*->\s*([^|]+)/);
+  if (mArrow) {
+    return { anterior: mArrow[1].trim(), nuevo: mArrow[2].trim(), esEstatus: false };
+  }
+
+  const mEnc = t.match(/A LAS\s*([0-9]{1,2}:[0-9]{2})/i);
+  if (act.includes('ENCIERRO') && mEnc) {
+    return { anterior: ant || 'OPERACION', nuevo: `ENCIERRO ${mEnc[1]}`, esEstatus: false };
+  }
+
+  return { anterior: '—', nuevo: '—', esEstatus: false };
+};
+
 export default DetalleOperacion;

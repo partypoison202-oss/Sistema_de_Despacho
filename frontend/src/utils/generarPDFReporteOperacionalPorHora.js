@@ -19,7 +19,7 @@ const loadImage = (src) => {
     });
 };
 
-export const generarPDFReporteOperacionalPorHora = async (data) => {
+export const generarPDFReporteOperacionalPorHora = async (data, returnBlob = false) => {
     if (!data || !data.length) {
         throw new Error("No hay datos para generar el reporte.");
     }
@@ -348,5 +348,12 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
         }
     });
 
-    pdf.save(`Reporte_Operacional_Hora_${fechaStr.replace(/\//g, '-')}_${horaStr.replace(/:/g, '-')}.pdf`);
+    const filename = `Reporte_Operacional_Hora_${fechaStr.replace(/\//g, '-')}_${horaStr.replace(/:/g, '-')}.pdf`;
+    if (returnBlob) {
+        const blob = pdf.output('blob');
+        return { blob, filename };
+    }
+
+    pdf.save(filename);
+    return { filename };
 };

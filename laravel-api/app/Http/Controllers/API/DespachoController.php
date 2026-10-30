@@ -731,6 +731,7 @@ class DespachoController extends Controller
                     'informacion_operativa.motivo_estatus',
                     'informacion_operativa.folio_mantenimiento',
                     'informacion_operativa.numero_incidencia',
+                    'informacion_operativa.fecha_registro',
                     'informacion_operativa.fecha_folio_mantenimiento',
                     'informacion_operativa.falla_reportada',
                     'informacion_operativa.diagnostico',
@@ -767,6 +768,54 @@ class DespachoController extends Controller
                 if ($registroBitacora && ! empty($registroBitacora->detalles)) {
                     if (preg_match('/HORA SALIDA:\s*([0-9]{1,2}:[0-9]{2})/i', $registroBitacora->detalles, $matches)) {
                         $horaSalidaLegacy = strtoupper($matches[1]);
+                    }
+                }
+            }
+
+            // Enriquecer fecha_registro y fecha_folio_mantenimiento con la hora exacta de la bitácora si tienen 00:00:00 o vienen sin hora
+            if ($info && ($info->numero_incidencia || $info->folio_mantenimiento)) {
+                $bitacoraUnit = DB::table('bitacora_cambios_unidades')
+                    ->where('unidad_id', $unidadBase->id)
+                    ->where(function ($q) {
+                        $q->whereIn('bitacora_cambios_unidades.tipo_accion', [
+                            'ACTUALIZACION_FOLIO', 
+                            'GENERAR_FOLIO', 
+                            'ASIGNACION_FOLIO',
+                            'ASIGNACION_INCIDENCIA', 
+                            'ACTUALIZACION_MANTENIMIENTO',
+                            'CAMBIO_ESTATUS'
+                        ])
+                        ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%FOLIO%')
+                        ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%INCIDENCIA%');
+                    })
+                    ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+                    ->get();
+
+                // 1. Hora real de la incidencia
+                $auditInc = $bitacoraUnit->first(function ($b) use ($info) {
+                    if ($info->numero_incidencia && str_contains($b->detalles ?? '', $info->numero_incidencia)) {
+                        return true;
+                    }
+                    return in_array($b->tipo_accion, ['ASIGNACION_INCIDENCIA', 'CAMBIO_ESTATUS']);
+                });
+                if ($auditInc && !empty($auditInc->created_at)) {
+                    $fechaRegStr = trim((string)($info->fecha_registro ?? ''));
+                    if (empty($fechaRegStr) || str_ends_with($fechaRegStr, '00:00:00') || str_ends_with($fechaRegStr, '00:00')) {
+                        $info->fecha_registro = $auditInc->created_at;
+                    }
+                }
+
+                // 2. Hora real del folio
+                $auditFol = $bitacoraUnit->first(function ($b) use ($info) {
+                    if ($info->folio_mantenimiento && str_contains($b->detalles ?? '', $info->folio_mantenimiento)) {
+                        return true;
+                    }
+                    return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO']);
+                });
+                if ($auditFol && !empty($auditFol->created_at)) {
+                    $fechaFolStr = trim((string)($info->fecha_folio_mantenimiento ?? ''));
+                    if (empty($fechaFolStr) || str_ends_with($fechaFolStr, '00:00:00') || str_ends_with($fechaFolStr, '00:00')) {
+                        $info->fecha_folio_mantenimiento = $auditFol->created_at;
                     }
                 }
             }
@@ -957,6 +1006,7 @@ class DespachoController extends Controller
                     'motivo_estatus' => $info->motivo_estatus,
                     'folio_mantenimiento' => $info->folio_mantenimiento,
                     'numero_incidencia' => $info->numero_incidencia,
+                    'fecha_registro' => $info->fecha_registro ?? null,
                     'fecha_folio_mantenimiento' => $info->fecha_folio_mantenimiento,
                     'falla_reportada' => $info->falla_reportada,
                     'diagnostico' => $info->diagnostico,
@@ -5418,11 +5468,17 @@ class DespachoController extends Controller
                     ], 400);
                 }
                 $updateData['numero_incidencia'] = $incReq;
+            } else {
+                $updateData['numero_incidencia'] = null;
+            }
+            if (! empty($incReq) && empty($registroOperativo->fecha_registro)) {
+                $updateData['fecha_registro'] = \Carbon\Carbon::now();
             }
         }
 
         if ($request->has('fecha_folio_mantenimiento')) {
-            $updateData['fecha_folio_mantenimiento'] = $request->fecha_folio_mantenimiento;
+            $folioEfectivo = trim((string)($updateData['folio_mantenimiento'] ?? ($registroOperativo->folio_mantenimiento ?? '')));
+            $updateData['fecha_folio_mantenimiento'] = !empty($folioEfectivo) ? $request->fecha_folio_mantenimiento : null;
         }
         if ($request->has('falla_reportada')) {
             $updateData['falla_reportada'] = $request->falla_reportada;
@@ -5555,15 +5611,72 @@ class DespachoController extends Controller
             ->update($filteredUpdate);
 
         // Registrar acción en la bitácora de cambios para la unidad original
-        BitacoraHelper::registrarCambio(
-            $unidad->id,
-            'CAMBIO_ESTATUS',
-            ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance')
-                ? 'CAMBIO DE ESTATUS DE '.strtoupper($registroOperativo->estatus ?? '').' A '.strtoupper($nuevoEstatus).($motivoEstatus ? ' POR MOTIVO: '.strtoupper($motivoEstatus) : '').($cambioUnidadActivo ? ' (UNIDAD REEMPLAZADA)' : '')
-                : 'CAMBIO DE ESTATUS DE '.strtoupper($registroOperativo->estatus ?? '').' A '.strtoupper($nuevoEstatus),
-            $registroOperativo->estatus ?? null,
-            $nuevoEstatus
-        );
+        $estatusAnterior = strtolower(trim($registroOperativo->estatus ?? ''));
+        $incidenciaAnterior = trim($registroOperativo->numero_incidencia ?? '');
+        $folioAnterior = trim($registroOperativo->folio_mantenimiento ?? '');
+
+        $incidenciaNueva = $request->has('numero_incidencia') ? trim($request->numero_incidencia ?? '') : $incidenciaAnterior;
+        $folioNuevo = $request->has('folio_mantenimiento') ? trim($request->folio_mantenimiento ?? '') : $folioAnterior;
+        $fallaNueva = $request->has('falla_reportada') ? trim($request->falla_reportada ?? '') : '';
+
+        // 1. Registro si hubo cambio real de estatus (ej. OPERACION -> MANTENIMIENTO)
+        if ($estatusAnterior !== $nuevoEstatus) {
+            $detallesEstatus = 'CAMBIO DE ESTATUS DE ' . strtoupper($estatusAnterior ?: 'SIN ESTATUS') . ' A ' . strtoupper($nuevoEstatus);
+            if ($motivoEstatus && strtoupper($motivoEstatus) !== strtoupper($nuevoEstatus)) {
+                $detallesEstatus .= ' POR MOTIVO: ' . strtoupper($motivoEstatus);
+            }
+            if ($cambioUnidadActivo) {
+                $detallesEstatus .= ' (UNIDAD REEMPLAZADA)';
+            }
+
+            BitacoraHelper::registrarCambio(
+                $unidad->id,
+                'CAMBIO_ESTATUS',
+                $detallesEstatus,
+                $estatusAnterior ?: null,
+                $nuevoEstatus
+            );
+        }
+
+        // 2. Registro específico si se asignó o modificó la incidencia
+        if ($request->has('numero_incidencia') && !empty($incidenciaNueva) && $incidenciaNueva !== $incidenciaAnterior) {
+            $detalleIncidencia = "ASIGNACIÓN DE INCIDENCIA: {$incidenciaNueva}";
+            if (!empty($fallaNueva)) {
+                $detalleIncidencia .= " - FALLA: " . strtoupper($fallaNueva);
+            }
+            BitacoraHelper::registrarCambio(
+                $unidad->id,
+                'ASIGNACION_INCIDENCIA',
+                $detalleIncidencia,
+                $incidenciaAnterior ?: 'SIN INCIDENCIA',
+                $incidenciaNueva
+            );
+        }
+
+        // 3. Registro específico si se asignó o modificó el folio de mantenimiento
+        if ($request->has('folio_mantenimiento') && !empty($folioNuevo) && $folioNuevo !== $folioAnterior) {
+            $detalleFolio = "ASIGNACIÓN DE FOLIO: {$folioNuevo}";
+            BitacoraHelper::registrarCambio(
+                $unidad->id,
+                'ASIGNACION_FOLIO',
+                $detalleFolio,
+                $folioAnterior ?: 'SIN FOLIO',
+                $folioNuevo
+            );
+        }
+
+        // 4. Si el estatus no cambió y tampoco incidencia/folio, pero se actualizaron diagnóstico o falla
+        if ($estatusAnterior === $nuevoEstatus && !$request->has('numero_incidencia') && !$request->has('folio_mantenimiento')) {
+            if ($request->has('falla_reportada') || $request->has('diagnostico')) {
+                BitacoraHelper::registrarCambio(
+                    $unidad->id,
+                    'ACTUALIZACION_MANTENIMIENTO',
+                    'ACTUALIZACIÓN DE DIAGNÓSTICO / FALLA EN TALLER',
+                    $registroOperativo->falla_reportada ?: 'SIN REPORTE',
+                    $request->falla_reportada ?: $request->diagnostico
+                );
+            }
+        }
 
         // Si es un cambio de unidad, procesar el reemplazo
         $conductorAsignado = null;
@@ -5946,7 +6059,8 @@ class DespachoController extends Controller
                 'informacion_operativa.mantenimiento_corrida',
                 'informacion_operativa.mantenimiento_kilometraje'
             )
-            ->orderBy('unidades.numero_eco')
+            ->orderByRaw('COALESCE(informacion_operativa.fecha_folio_mantenimiento, informacion_operativa.fecha_registro) DESC')
+            ->orderBy('informacion_operativa.id', 'DESC')
             ->get();
 
         return response()->json($unidades, 200);
@@ -6111,8 +6225,333 @@ class DespachoController extends Controller
     }
 
     /**
-     * Devuelve el último registro de mantenimiento guardado para una unidad.
+     * Obtiene el listado de unidades con sus cargas para el módulo Control de Combustible.
      */
+    public function getCargasCombustibleDiarias(Request $request)
+    {
+        try {
+            $fecha = $request->query('fecha') ?: now()->toDateString();
+
+            $unidadesRaw = DB::table('unidades')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->select(
+                    'unidades.id',
+                    'unidades.numero_eco',
+                    'unidades.tipo',
+                    'transportes.nombre as transporte_nombre',
+                    'unidades.litros_combustible',
+                    'unidades.litros_adblue',
+                    'unidades.kilometraje',
+                    'unidades.odometro',
+                    'unidades.fecha_ultima_carga'
+                )
+                ->orderBy('unidades.numero_eco')
+                ->get();
+
+            // Buscar si hay cargas en historial_mantenimiento para la fecha indicada
+            $historialHoy = DB::table('historial_mantenimiento')
+                ->where(function ($q) use ($fecha) {
+                    $q->whereDate('fecha_registro', $fecha)
+                      ->orWhereDate('created_at', $fecha)
+                      ->orWhere('fecha_ultima_carga', $fecha);
+                })
+                ->orderBy('id', 'desc')
+                ->get()
+                ->groupBy('unidad_id');
+
+            $organizadas = [
+                'urbanuss' => [],
+                'zafiro' => [],
+                'orion' => [],
+                'vagoneta' => [],
+            ];
+
+            foreach ($unidadesRaw as $u) {
+                $tipoUnidad = strtolower(trim($u->tipo ?: $u->transporte_nombre ?: ''));
+                if ($tipoUnidad === 'urvan') {
+                    $tipoUnidad = 'vagoneta';
+                } elseif ($tipoUnidad === 'urbanus') {
+                    $tipoUnidad = 'urbanuss';
+                }
+
+                if (!isset($organizadas[$tipoUnidad])) {
+                    $organizadas[$tipoUnidad] = [];
+                }
+
+                // Revisar si existe registro en el historial para esta fecha específica
+                $hRecords = $historialHoy->get($u->id);
+                $h = $hRecords ? $hRecords->first() : null;
+
+                $comb = '';
+                $adblue = '';
+                $km = '';
+
+                if ($h) {
+                    $comb = $h->litros_combustible !== null && $h->litros_combustible !== '' ? $h->litros_combustible : '';
+                    $adblue = $h->litros_adblue !== null && $h->litros_adblue !== '' ? $h->litros_adblue : '';
+                    $km = $h->kilometraje !== null && $h->kilometraje !== '' ? $h->kilometraje : ($h->odometro ?: '');
+                } elseif ($u->fecha_ultima_carga === $fecha || $fecha === now()->toDateString()) {
+                    $comb = $u->litros_combustible !== null && $u->litros_combustible !== '' ? $u->litros_combustible : '';
+                    $adblue = $u->litros_adblue !== null && $u->litros_adblue !== '' ? $u->litros_adblue : '';
+                    $km = $u->kilometraje !== null && $u->kilometraje !== '' ? $u->kilometraje : ($u->odometro ?: '');
+                }
+
+                $organizadas[$tipoUnidad][] = [
+                    'id' => $u->id,
+                    'eco' => $u->numero_eco,
+                    'combustible' => $comb,
+                    'adblue' => $adblue,
+                    'km' => $km,
+                ];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'fecha' => $fecha,
+                'data' => $organizadas,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('[getCargasCombustibleDiarias] Error: '.$e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al obtener unidades: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Guarda masivamente los consumos diarios de combustible y km de la flota.
+     */
+    public function guardarCargasCombustibleMasivo(Request $request)
+    {
+        try {
+            $request->validate([
+                'cargas' => 'required|array',
+            ]);
+
+            $cargas = $request->input('cargas'); // objeto con arrays por tecnología { urbanuss: [...], zafiro: [...] }
+            $fecha = $request->input('fecha') ?: now()->toDateString();
+            $usuario = $request->user();
+            $responsable = $usuario ? ($usuario->nombre_completo ?? $usuario->nombre ?? 'Sistema') : 'Sistema';
+
+            @set_time_limit(120);
+
+            $todasUnidades = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
+
+            $historialBatch = [];
+            $unidadesActualizar = [];
+            $totalProcesadas = 0;
+
+            foreach ($cargas as $tecKey => $items) {
+                if (!is_array($items)) {
+                    continue;
+                }
+
+                $tipoVehiculo = strtolower(trim($tecKey));
+
+                foreach ($items as $item) {
+                    $eco = trim((string) ($item['eco'] ?? ''));
+                    if ($eco === '') {
+                        continue;
+                    }
+
+                    $combustible = isset($item['combustible']) && $item['combustible'] !== '' ? (string) $item['combustible'] : null;
+                    $adblue = isset($item['adblue']) && $item['adblue'] !== '' ? (string) $item['adblue'] : null;
+                    $km = isset($item['km']) && $item['km'] !== '' ? (string) $item['km'] : null;
+
+                    // Si no tiene ningún dato de carga o odómetro, no saturamos la BD
+                    if ($combustible === null && $adblue === null && $km === null) {
+                        continue;
+                    }
+
+                    $numeroEcoClean = str_pad($eco, 3, '0', STR_PAD_LEFT);
+                    $unidad = $todasUnidades->get($numeroEcoClean) ?? $todasUnidades->get($eco);
+
+                    if (!$unidad) {
+                        continue;
+                    }
+
+                    $unidadesActualizar[] = [
+                        'id' => $unidad->id,
+                        'litros_combustible' => $combustible,
+                        'litros_adblue' => $adblue,
+                        'kilometraje' => $km,
+                        'odometro' => $km,
+                        'fecha_ultima_carga' => $fecha,
+                    ];
+
+                    $historialBatch[] = [
+                        'unidad_id' => $unidad->id,
+                        'tipo_vehiculo' => $tipoVehiculo,
+                        'litros_combustible' => $combustible,
+                        'litros_adblue' => $adblue,
+                        'kilometraje' => $km,
+                        'odometro' => $km,
+                        'fecha_ultima_carga' => $fecha,
+                        'fecha_registro' => now(),
+                        'responsable' => $responsable,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    $totalProcesadas++;
+                }
+            }
+
+            // Actualizar unidades
+            foreach ($unidadesActualizar as $uAct) {
+                DB::table('unidades')
+                    ->where('id', $uAct['id'])
+                    ->update([
+                        'litros_combustible' => $uAct['litros_combustible'],
+                        'litros_adblue' => $uAct['litros_adblue'],
+                        'kilometraje' => $uAct['kilometraje'],
+                        'odometro' => $uAct['odometro'],
+                        'fecha_ultima_carga' => $uAct['fecha_ultima_carga'],
+                    ]);
+            }
+
+            // Insertar historial en bloques de 50
+            if (!empty($historialBatch)) {
+                foreach (array_chunk($historialBatch, 50) as $chunk) {
+                    DB::table('historial_mantenimiento')->insert($chunk);
+                }
+            }
+
+            SyncService::notifyChange();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Se guardaron correctamente las cargas de {$totalProcesadas} unidades.",
+                'total_procesadas' => $totalProcesadas,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('[guardarCargasCombustibleMasivo] Error: '.$e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al guardar consumos: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtiene el consolidado semanal de consumos de combustible (Lunes a Domingo) por tecnología.
+     */
+    public function getResumenSemanalCombustible(Request $request)
+    {
+        try {
+            $fechaRefStr = $request->query('fecha') ?: now()->toDateString();
+            $fechaRef = Carbon::parse($fechaRefStr);
+
+            // Determinar la semana (Lunes a Domingo)
+            $inicioSemana = $fechaRef->copy()->startOfWeek(Carbon::MONDAY);
+            
+            $dias = [];
+            $fechasISO = [];
+            for ($i = 0; $i < 7; $i++) {
+                $d = $inicioSemana->copy()->addDays($i);
+                $mesesEs = [1 => 'ene', 2 => 'feb', 3 => 'mar', 4 => 'abr', 5 => 'may', 6 => 'jun', 7 => 'jul', 8 => 'ago', 9 => 'sep', 10 => 'oct', 11 => 'nov', 12 => 'dic'];
+                $diaEtiqueta = $d->format('d').'-'.($mesesEs[$d->month] ?? $d->format('M'));
+                $dias[] = $diaEtiqueta;
+                $fechasISO[] = $d->toDateString();
+            }
+
+            $inicioStr = $fechasISO[0];
+            $finStr = $fechasISO[6];
+
+            // Consultar historial_mantenimiento para el rango de la semana
+            $cargasHistorial = DB::table('historial_mantenimiento')
+                ->where(function ($q) use ($inicioStr, $finStr) {
+                    $q->whereBetween(DB::raw("CAST(fecha_registro AS DATE)"), [$inicioStr, $finStr])
+                      ->orWhereBetween('fecha_ultima_carga', [$inicioStr, $finStr]);
+                })
+                ->whereNotNull('litros_combustible')
+                ->where('litros_combustible', '!=', '')
+                ->where('litros_combustible', '!=', '0')
+                ->where('litros_combustible', '!=', '0.0')
+                ->select(
+                    'unidad_id',
+                    'tipo_vehiculo',
+                    'litros_combustible',
+                    DB::raw("COALESCE(fecha_ultima_carga, CAST(fecha_registro AS VARCHAR)) as fecha_carga")
+                )
+                ->get();
+
+            // También mapear transportes de unidades si tipo_vehiculo viene vacío
+            $unidadesMap = DB::table('unidades')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->select('unidades.id', 'unidades.tipo', 'transportes.nombre as transporte_nombre')
+                ->get()
+                ->keyBy('id');
+
+            // Matrices de acumulación por tecnología
+            $valoresUrbanuss = array_fill(0, 7, 0.0);
+            $valoresZafiro   = array_fill(0, 7, 0.0);
+            $valoresOrion    = array_fill(0, 7, 0.0);
+            $valoresVagoneta = array_fill(0, 7, 0.0);
+
+            foreach ($cargasHistorial as $reg) {
+                $litros = floatval($reg->litros_combustible ?? 0);
+                if ($litros <= 0) {
+                    continue;
+                }
+
+                $fechaCargaRaw = substr(trim((string)$reg->fecha_carga), 0, 10);
+                $diaIdx = array_search($fechaCargaRaw, $fechasISO);
+                if ($diaIdx === false) {
+                    continue;
+                }
+
+                $tipo = strtolower(trim((string)$reg->tipo_vehiculo));
+                if (!$tipo && isset($unidadesMap[$reg->unidad_id])) {
+                    $uObj = $unidadesMap[$reg->unidad_id];
+                    $tipo = strtolower(trim($uObj->tipo ?: $uObj->transporte_nombre ?: ''));
+                }
+
+                if (str_contains($tipo, 'urbanus')) {
+                    $valoresUrbanuss[$diaIdx] += $litros;
+                } elseif (str_contains($tipo, 'zafiro')) {
+                    $valoresZafiro[$diaIdx] += $litros;
+                } elseif (str_contains($tipo, 'orion')) {
+                    $valoresOrion[$diaIdx] += $litros;
+                } elseif (str_contains($tipo, 'vagoneta') || str_contains($tipo, 'urvan')) {
+                    $valoresVagoneta[$diaIdx] += $litros;
+                }
+            }
+
+            // Redondear a 2 decimales
+            $formatRow = fn($arr) => array_map(fn($v) => round($v, 2), $arr);
+
+            $resumen = [
+                'dias' => $dias,
+                'fechas' => $fechasISO,
+                'diesel' => [
+                    ['tecnologia' => 'Urbanuss', 'valores' => $formatRow($valoresUrbanuss)],
+                    ['tecnologia' => 'Zafiro',   'valores' => $formatRow($valoresZafiro)],
+                    ['tecnologia' => 'Orión',    'valores' => $formatRow($valoresOrion)],
+                ],
+                'gasolina' => [
+                    ['tecnologia' => 'Vagoneta', 'valores' => $formatRow($valoresVagoneta)],
+                ],
+            ];
+
+            return response()->json([
+                'status' => 'success',
+                'rango' => "{$inicioStr} al {$finStr}",
+                'data' => $resumen,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('[getResumenSemanalCombustible] Error: '.$e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al calcular resumen semanal: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function ultimoRegistroMantenimiento($eco)
     {
         $numeroEcoClean = str_pad(trim($eco), 3, '0', STR_PAD_LEFT);
@@ -6374,9 +6813,12 @@ class DespachoController extends Controller
 
                 $combustibleStr = in_array($tipo, ['urbanuss', 'zafiro', 'orion']) ? 'Diésel' : 'Gasolina';
                 $nombreDisplay = ucfirst($tipo);
-                // Mantenemos "Urbanuss" con doble 's' según solicitud
-                if ($nombreDisplay === 'Orion') {
+                if ($tipo === 'urvan') {
+                    $nombreDisplay = 'Vagoneta';
+                } elseif ($nombreDisplay === 'Orion') {
                     $nombreDisplay = 'Orión';
+                } elseif ($nombreDisplay === 'Urbanus' || $nombreDisplay === 'Urbanuss') {
+                    $nombreDisplay = 'Urbanuss';
                 }
 
                 $reporte[] = [
@@ -6403,8 +6845,37 @@ class DespachoController extends Controller
             $parqueTotal = collect($reporte)->sum('parque');
             $totales['porcentaje'] = $parqueTotal > 0 ? round(($totales['unidades_cargaron'] / $parqueTotal) * 100) : 0;
 
+            // Si ya existe un reporte guardado para esta fecha, combinar los motivos y observaciones guardados
+            $reporteGuardado = DB::table('reportes_combustible')->where('fecha_reporte', $today)->first();
+            if ($reporteGuardado && !empty($reporteGuardado->datos_detalle)) {
+                $detallesGuardados = is_string($reporteGuardado->datos_detalle)
+                    ? json_decode($reporteGuardado->datos_detalle, true)
+                    : $reporteGuardado->datos_detalle;
+
+                if (is_array($detallesGuardados)) {
+                    $guardadosMap = collect($detallesGuardados)->keyBy(function ($item) {
+                        return strtolower(trim($item['tipo_unidad'] ?? $item['tipo'] ?? ''));
+                    });
+
+                    $reporte = array_map(function ($fila) use ($guardadosMap) {
+                        $key = strtolower(trim($fila['tipo_unidad']));
+                        if ($guardadosMap->has($key)) {
+                            $saved = $guardadosMap->get($key);
+                            if (!empty($saved['motivo_no_carga'])) {
+                                $fila['motivo_no_carga'] = $saved['motivo_no_carga'];
+                            }
+                            if (isset($saved['observaciones']) && $saved['observaciones'] !== '') {
+                                $fila['observaciones'] = $saved['observaciones'];
+                            }
+                        }
+                        return $fila;
+                    }, $reporte);
+                }
+            }
+
             return response()->json([
                 'status' => 'success',
+                'fecha' => $today,
                 'data' => $reporte,
                 'totales' => $totales,
             ]);
@@ -6455,20 +6926,36 @@ class DespachoController extends Controller
             // Obtener el nombre del usuario autenticado
             $usuario = $request->user();
             $generadoPor = $usuario ? ($usuario->nombre_completo ?? $usuario->nombre ?? 'Sistema') : 'Sistema';
+            $fechaReporte = $request->input('fecha_reporte') ?: now()->toDateString();
 
-            DB::table('reportes_combustible')->insert([
-                'folio' => $folio,
-                'fecha_reporte' => now()->toDateString(),
-                'generado_por' => $generadoPor,
-                'datos_resumen' => json_encode($request->totales),
-                'datos_detalle' => json_encode($request->data),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $existente = DB::table('reportes_combustible')->where('fecha_reporte', $fechaReporte)->first();
+
+            if ($existente) {
+                DB::table('reportes_combustible')
+                    ->where('id', $existente->id)
+                    ->update([
+                        'generado_por' => $generadoPor,
+                        'datos_resumen' => json_encode($request->totales),
+                        'datos_detalle' => json_encode($request->data),
+                        'updated_at' => now(),
+                    ]);
+                $folio = $existente->folio;
+            } else {
+                DB::table('reportes_combustible')->insert([
+                    'folio' => $folio,
+                    'fecha_reporte' => $fechaReporte,
+                    'generado_por' => $generadoPor,
+                    'datos_resumen' => json_encode($request->totales),
+                    'datos_detalle' => json_encode($request->data),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
             return response()->json([
                 'status' => 'success',
                 'folio' => $folio,
+                'message' => 'Reporte de combustible guardado correctamente.',
             ]);
         } catch (\Exception $e) {
             \Log::error('[registrarReporteCombustible] Error: '.$e->getMessage());

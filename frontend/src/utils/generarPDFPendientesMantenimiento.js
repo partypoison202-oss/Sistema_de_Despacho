@@ -1,35 +1,20 @@
-﻿import { jsPDF } from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 /**
- * Carga una imagen y elimina el fondo blanco usando canvas,
- * devolviendo un dataURL PNG con transparencia.
+ * Carga el logo institucional oficial en su formato original
+ * respetando sus colores (dorado y blanco) y transparencia natural para jsPDF.
  */
-const cargarLogoTransparente = (src) =>
+const cargarLogoOficial = (src) =>
   new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      // Quitar fondo y pintar el logo de blanco (como brightness-0 invert)
-      for (let i = 0; i < data.length; i += 4) {
-        if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
-          // Fondo casi-blanco -> hacerlo transparente
-          data[i + 3] = 0; 
-        } else if (data[i + 3] > 0) {
-          // Si el pixel no es transparente, hacerlo completamente blanco
-          data[i] = 255;
-          data[i + 1] = 255;
-          data[i + 2] = 255;
-        }
-      }
-      ctx.putImageData(imageData, 0, 0);
       resolve(canvas.toDataURL('image/png'));
     };
     img.onerror = () => resolve(null);
@@ -90,8 +75,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   const pdf = new jsPDF('l', 'mm', 'letter');
   const pageW = pdf.internal.pageSize.getWidth();
 
-  // Cargar logo ACOTMA de alta calidad con fondo transparente
-  const logoDataUrl = await cargarLogoTransparente('/images/acotma_logo_connombre_contorno_v2.png');
+  // Cargar logo institucional oficial
+  const logoDataUrl = (await cargarLogoOficial('/images/acotma_logo_connombre_contorno_v2.png')) || (await cargarLogoOficial('/images/sistema_de_tm.webp'));
 
   // Fecha / hora
   const now = new Date();
@@ -101,20 +86,54 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   const horaStr =
     now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) + ' HORAS';
 
+  // Función auxiliar para parsear fechas locales sin sesgo de hora o zona horaria
+  const parsearFechaLocal = (fechaInput) => {
+    if (!fechaInput) return null;
+    if (fechaInput instanceof Date) {
+      return new Date(fechaInput.getFullYear(), fechaInput.getMonth(), fechaInput.getDate());
+    }
+    const str = String(fechaInput).trim();
+    // Manejar formato YYYY-MM-DD o YYYY-MM-DD HH:mm:ss o ISO
+    const match = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const day = parseInt(match[3], 10);
+      return new Date(year, month, day);
+    }
+    // Manejar formato DD/MM/YYYY
+    const matchSlash = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (matchSlash) {
+      const day = parseInt(matchSlash[1], 10);
+      const month = parseInt(matchSlash[2], 10) - 1;
+      const year = parseInt(matchSlash[3], 10);
+      return new Date(year, month, day);
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return null;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  };
+
   const calcularDias = (fecha) => {
     if (!fecha) return '—';
-    const startDate = new Date(fecha);
-    const endDate = new Date(now);
+    const startDate = parsearFechaLocal(fecha);
+    if (!startDate) return '—';
 
-    const diff = endDate - startDate;
-    if (diff < 0) return '0';
+    // Normalizar la fecha actual a medianoche (00:00:00) para calcular días calendario exactos
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const diffTime = today.getTime() - startDate.getTime();
+    if (diffTime < 0) return '0';
     
-    return Math.floor(diff / (1000 * 60 * 60 * 24)).toString();
+    // Diferencia en días calendario exactos (redondeo para tolerar cambios de horario)
+    const dias = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    return dias.toString();
   };
 
   const formatDate = (isoStr) => {
     if (!isoStr) return '—';
-    const d = new Date(isoStr);
+    const d = parsearFechaLocal(isoStr);
+    if (!d) return '—';
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   };
 
@@ -140,6 +159,51 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
     subtitulo = 'Unidades con reporte de falla activo';
     filename = `Reporte_Economicos_Folio_${fechaStr.replace(/ /g, '_')}.pdf`;
   }
+
+  // Ordenar: el más nuevo arriba, el más viejo abajo (descendente)
+  // 1. Por fecha de ingreso / folio (fecha más reciente primero)
+  // 2. Si las fechas son iguales, por número de folio / incidencia (mayor número = más nuevo arriba)
+  // 3. Fallback por ID de registro (id_incidencia mayor = creado recientemente arriba)
+  const obtenerTimestamp = (u) => {
+    const f = u.fecha_folio_mantenimiento || u.fecha_registro;
+    if (!f) return -Infinity;
+    if (f instanceof Date) return f.getTime();
+    const str = String(f).trim().replace(' ', 'T');
+    const t = new Date(str).getTime();
+    if (!isNaN(t)) return t;
+    const d = parsearFechaLocal(f);
+    return d ? d.getTime() : -Infinity;
+  };
+
+  const extraerNumero = (val) => {
+    if (!val) return 0;
+    const digits = String(val).replace(/\D/g, '');
+    return digits ? parseInt(digits, 10) : 0;
+  };
+
+  unidadesFiltradas.sort((a, b) => {
+    const timeA = obtenerTimestamp(a);
+    const timeB = obtenerTimestamp(b);
+    if (timeA !== timeB) {
+      return timeB - timeA; // Más nuevo (mayor timestamp) arriba, más viejo abajo
+    }
+
+    const folioA = tipo === 'pendientes' ? a.numero_incidencia : (a.folio_mantenimiento || a.numero_incidencia);
+    const folioB = tipo === 'pendientes' ? b.numero_incidencia : (b.folio_mantenimiento || b.numero_incidencia);
+    const numA = extraerNumero(folioA);
+    const numB = extraerNumero(folioB);
+    if (numA !== numB && numA > 0 && numB > 0) {
+      return numB - numA; // Más nuevo (mayor número) arriba, más viejo abajo
+    }
+
+    const idA = Number(a.id_incidencia) || 0;
+    const idB = Number(b.id_incidencia) || 0;
+    if (idA !== idB && idA > 0 && idB > 0) {
+      return idB - idA; // Mayor ID arriba, menor ID abajo
+    }
+
+    return String(b.numero_eco || '').localeCompare(String(a.numero_eco || ''));
+  });
 
   // Encabezado
   agregarEncabezado(pdf, logoDataUrl, titulo, subtitulo);

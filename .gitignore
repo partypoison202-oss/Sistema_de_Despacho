@@ -12,3 +12,10 @@ laravel-api/export.sql
 backups_bd/
 *.sql
 *.sql.gz
+.DS_Store
+*.DS_Store
+diff.patch
+sonar_issues*.json
+usuarios_completos.csv
+*.csv
+contrasenas_originales.txt

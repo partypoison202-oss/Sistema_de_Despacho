@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto, formatearFechaDiaMesAnio, getValoresTransicion } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import './Historial.css';
@@ -143,13 +143,13 @@ export default function HistorialDespacho() {
         return {
           'TIPO UNIDAD': t ? (String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase()) : '',
           'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
-        'RUTA': d.ruta || '',
-        'TARJETÓN TITULAR': d.numero_tarjeton || '',
-        'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
-        'TARJETÓN RELEVO': d.relevo_tarjeton || '',
-        'CONDUCTOR RELEVO': d.relevo_conductor || '',
-        'HORA RELEVO': d.relevo_hora || '',
-        'CORRIDAS FALTANTES': d.corridas || '',
+          'RUTA': d.ruta || '',
+          'TARJETÓN TITULAR': d.numero_tarjeton || '',
+          'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
+          'TARJETÓN RELEVO': d.relevo_tarjeton || '',
+          'CONDUCTOR RELEVO': d.relevo_conductor || '',
+          'HORA RELEVO': d.relevo_hora || '',
+          'CORRIDAS FALTANTES': d.corridas || '',
           'CICLO PERDIDO': d.ciclo || '',
           'MOTIVO DE FALTANTE': d.motivo || '',
           'ESTATUS FINAL': d.estatus || ''
@@ -285,8 +285,15 @@ export default function HistorialDespacho() {
                         {formatAccion(d.tipo_accion)}
                       </span>
                     </td>
-                    <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : '-'}</td>
-                    <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : '-'}</td>
+                    {(() => {
+                      const trans = getValoresTransicion(d);
+                      return (
+                        <>
+                          <td style={{ fontWeight: '700', color: '#dc2626' }}>{trans.anterior}</td>
+                          <td style={{ fontWeight: '700', color: '#16a34a' }}>{trans.nuevo}</td>
+                        </>
+                      );
+                    })()}
                     <td style={{ minWidth: '350px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>
                       <DetalleOperacion
                         detalles={d.detalles}
@@ -301,8 +308,8 @@ export default function HistorialDespacho() {
                 {filteredData.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
-                      {activeData.length === 0 
-                        ? 'No hay modificaciones registradas por Despacho en este día.' 
+                      {activeData.length === 0
+                        ? 'No hay modificaciones registradas por Despacho en este día.'
                         : `No se encontraron registros que coincidan con "${busqueda}".`}
                     </td>
                   </tr>
@@ -361,8 +368,8 @@ export default function HistorialDespacho() {
                 {filteredData.length === 0 && (
                   <tr>
                     <td colSpan="9" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
-                      {activeData.length === 0 
-                        ? 'No hay registros de despacho para este estado de la fecha seleccionada.' 
+                      {activeData.length === 0
+                        ? 'No hay registros de despacho para este estado de la fecha seleccionada.'
                         : `No se encontraron registros que coincidan con "${busqueda}".`}
                     </td>
                   </tr>

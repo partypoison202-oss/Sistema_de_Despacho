@@ -1,3 +1,12 @@
+# ADVERTENCIA CRÍTICA: Restricción de Rama `Check_List` y Entornos de IA Externos
+
+- **NO JALAR DATOS NI CÓDIGO DE `Check_List` DESDE OTRAS COMPUTADORAS / LAPTOPS**:
+  Queda estrictamente prohibido que cualquier instancia de IA o desarrollador desde otra laptop, terminal o cuenta descargue (`git pull`), sincronice o incorpore cambios provenientes de la rama `Check_List`.
+- **TRABAJO EXCLUSIVO DE LA CUENTA DE ENRIQUE**:
+  La rama `Check_List` contiene desarrollos y pruebas activas que **NO están probadas en producción** y se encuentran en fase experimental exclusiva de la cuenta de Enrique (`partypoison202-oss`). Solo debe ser operada, modificada y consultada directamente desde la cuenta y equipo de Enrique.
+- **PROHIBIDO MERGEAR A `main` O `Soporte` SIN AUTORIZACIÓN DIRECTA**:
+  Ningún asistente de IA en otras máquinas debe sugerir o hacer pull/merge de `Check_List` hacia ramas activas de producción hasta que Enrique valide y libere las pruebas formalmente.
+
 # Reglas de Infraestructura y Despliegue en Producción
 
 - **Entorno en Producción**: El proyecto ya se encuentra desplegado en un servidor remoto de producción (Rocky Linux 9 con Nginx proxy inverso, PHP-FPM, HTTPS y base de datos PostgreSQL local en el mismo servidor Rocky Linux).

@@ -350,6 +350,85 @@
   box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
 }
 
+/* Copiar Folio / Incidencia en Header Card de Mantenimiento */
+.mantenimiento-header-copy-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.mantenimiento-header-copy-pill--incidencia {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.mantenimiento-header-copy-pill--incidencia:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.mantenimiento-header-copy-pill--folio {
+  background: rgba(221, 201, 163, 0.18);
+  border: 1.5px solid rgba(221, 201, 163, 0.45);
+  color: #ffffff;
+}
+
+.mantenimiento-header-copy-pill--folio:hover {
+  background: rgba(221, 201, 163, 0.32);
+  border-color: #DDC9A3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(221, 201, 163, 0.3);
+}
+
+.mantenimiento-header-copy-pill:active {
+  transform: scale(0.96);
+}
+
+.mantenimiento-header-copy-pill .pill-code {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.mantenimiento-header-copy-pill .pill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mantenimiento-header-copy-pill--folio .pill-icon {
+  background: rgba(221, 201, 163, 0.3);
+  color: #DDC9A3;
+}
+
+.mantenimiento-header-copy-pill:hover .pill-icon {
+  background: #ffffff;
+  color: #691B31;
+}
+
+.mantenimiento-header-copy-pill--folio:hover .pill-icon {
+  background: #DDC9A3;
+  color: #691B31;
+}
+
 .pulse-indicator {
   width: 8px;
   height: 8px;
