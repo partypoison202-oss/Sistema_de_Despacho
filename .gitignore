@@ -19,3 +19,15 @@ sonar_issues*.json
 usuarios_completos.csv
 *.csv
 contrasenas_originales.txt
+
+# Respaldos de código y temporales
+*.bak
+*.bak*
+*_old_root/
+laravel-api/storage/*.json
+
+# Scripts de diagnóstico y utilidades de servidor
+test_*.php
+ver_*.php
+ver_*.sh
+fix_*.php
