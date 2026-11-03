@@ -220,15 +220,9 @@ export default function HistorialMantenimiento() {
     (['mantenimiento', 'percance'].includes(String(f.estatus || '').toLowerCase().trim()))
   );
 
-  // Unidades correspondientes a la fecha seleccionada que SIGUEN en taller/percance.
-  // Las que ya regresaron a Operación o Reserva salen de la vista diaria y quedan en Historial Completo.
-  const yaEnOperacion = (f) => {
-    const est = String(f.estatus || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return est === 'operacion' || est === 'reserva' || f.cerrado === true || f.es_operacion === true;
-  };
-
+  // Unidades correspondientes a la fecha seleccionada en su respectivo día.
+  // Si la unidad ya concluyó su mantenimiento (operación/reserva), se muestra en su día como registro cerrado (🔒 Cerrado).
   const foliosValidosDia = foliosValidosGlobal.filter(f => {
-    if (yaEnOperacion(f)) return false;
     if (!selectedFecha) return true;
 
     const fFolio = extraerFechaYMD(f.fecha_folio_mantenimiento);
