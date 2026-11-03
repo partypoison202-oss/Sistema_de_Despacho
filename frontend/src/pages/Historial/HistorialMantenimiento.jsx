@@ -19,7 +19,7 @@ export default function HistorialMantenimiento() {
   const [filtroBusqueda, setFiltroBusqueda] = useState('');
   const [activeTab, setActiveTab] = useState(location?.state?.tab || 'folios'); // 'folios', 'inicio', 'cambios', 'fin', 'checklists'
   const [verSoloFechaFolios, setVerSoloFechaFolios] = useState(true);
-  const [filtroTipoFolio, setFiltroTipoFolio] = useState('en_taller'); // 'en_taller', 'cerrados', 'todos', 'con_incidencia', 'con_folio', 'sin_folio'
+  const [filtroTipoFolio, setFiltroTipoFolio] = useState('todos'); // 'todos', 'en_taller', 'cerrados', 'con_incidencia', 'con_folio', 'sin_folio'
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -1129,29 +1129,29 @@ export default function HistorialMantenimiento() {
                 </span>
                 <button
                   type="button"
-                  className={`chip-btn ${filtroTipoFolio === 'en_taller' ? 'active' : ''}`}
-                  onClick={() => setFiltroTipoFolio('en_taller')}
-                  title="Unidades que actualmente se encuentran adentro de taller o en percance"
+                  className={`chip-btn ${filtroTipoFolio === 'todos' ? 'active' : ''}`}
+                  onClick={() => setFiltroTipoFolio('todos')}
+                  title={verSoloFechaFolios ? "Mostrar todos los registros de este día" : "Mostrar todos los registros históricos"}
                 >
-                  <span className="chip-dot dot-active-live"></span>
-                  En Taller Ahora <span className="chip-count">{kpiEnTallerActivo}</span>
+                  Todos <span className="chip-count">{kpiTotalActivo}</span>
                 </button>
                 <button
                   type="button"
-                  className={`chip-btn ${filtroTipoFolio === 'cerrados' ? 'active' : ''}`}
+                  className={`chip-btn ${filtroTipoFolio === 'en_taller' || filtroTipoFolio === 'activos' ? 'active' : ''}`}
+                  onClick={() => setFiltroTipoFolio('en_taller')}
+                  title="Unidades que actualmente se encuentran en mantenimiento o percance"
+                >
+                  <span className="chip-dot dot-active-live"></span>
+                  En mtto ahora <span className="chip-count">{kpiEnTallerActivo}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`chip-btn ${filtroTipoFolio === 'cerrados' || filtroTipoFolio === 'liberados' ? 'active' : ''}`}
                   onClick={() => setFiltroTipoFolio('cerrados')}
                   title="Unidades que ya concluyeron mantenimiento y regresaron a Operación o Reserva"
                 >
                   <span className="chip-dot" style={{ backgroundColor: '#64748b' }}></span>
-                  Cerrados / Liberados <span className="chip-count">{kpiCerradosActivo}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`chip-btn ${filtroTipoFolio === 'todos' ? 'active' : ''}`}
-                  onClick={() => setFiltroTipoFolio('todos')}
-                  title="Mostrar el total de registros del día (activos y concluidos)"
-                >
-                  Todos <span className="chip-count">{kpiTotalActivo}</span>
+                  Liberados <span className="chip-count">{kpiCerradosActivo}</span>
                 </button>
                 <button
                   type="button"
@@ -1691,10 +1691,10 @@ export default function HistorialMantenimiento() {
                               </>
                             ) : (filtroTipoFolio === 'en_taller' || filtroTipoFolio === 'activos') && kpiEnTallerActivo === 0 ? (
                               <>
-                                No hay unidades en taller activo para el día <strong>{selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'seleccionado'}</strong>.
+                                No hay unidades en mtto ahora para el día <strong>{selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'seleccionado'}</strong>.
                                 {kpiCerradosActivo > 0 && (
                                   <span style={{ display: 'block', marginTop: '6px' }}>
-                                    Hay <strong>{kpiCerradosActivo}</strong> unidades con mantenimiento ya concluido/cerrado en esta fecha.
+                                    Hay <strong>{kpiCerradosActivo}</strong> unidades liberadas en esta fecha.
                                   </span>
                                 )}
                               </>
