@@ -213,10 +213,11 @@ export default function HistorialMantenimiento() {
     return '';
   };
 
-  // Métricas KPI de Folios (calculadas estrictamente sobre unidades con folio o incidencia)
+  // Métricas KPI de Folios (calculadas sobre unidades con folio, incidencia o en taller activo)
   const foliosValidosGlobal = (foliosHistoricos || []).filter(f => 
     (f.folio_mantenimiento && String(f.folio_mantenimiento).trim() !== '') || 
-    (f.numero_incidencia && String(f.numero_incidencia).trim() !== '')
+    (f.numero_incidencia && String(f.numero_incidencia).trim() !== '') ||
+    (['mantenimiento', 'percance'].includes(String(f.estatus || '').toLowerCase().trim()))
   );
 
   // Unidades correspondientes a la fecha seleccionada que SIGUEN en taller/percance.
@@ -229,6 +230,16 @@ export default function HistorialMantenimiento() {
   const foliosValidosDia = foliosValidosGlobal.filter(f => {
     if (yaEnOperacion(f)) return false;
     if (!selectedFecha) return true;
+
+    // Si la fecha seleccionada es hoy y la unidad sigue activamente en mantenimiento o percance, debe aparecer
+    const hoyLocal = new Date().toLocaleDateString('en-CA');
+    const hoyIso = new Date().toISOString().slice(0, 10);
+    const esHoy = selectedFecha === hoyLocal || selectedFecha === hoyIso;
+    const est = String(f.estatus || '').toLowerCase().trim();
+    if (esHoy && (est === 'mantenimiento' || est === 'percance')) {
+      return true;
+    }
+
     const fFolio = extraerFechaYMD(f.fecha_folio_mantenimiento);
     const fInc = extraerFechaYMD(f.fecha_registro);
     return fFolio === selectedFecha || fInc === selectedFecha;
