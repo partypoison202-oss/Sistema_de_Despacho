@@ -1,37 +1,36 @@
 // src/pages/DetalleUnidades/DetalleUnidades.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from '../../../components/Header/Header';
 import { estaDesincorporadaPorItinerario } from '../../../utils/itinerarioUtils';
 import './DetalleUnidades.css';
 
 // ---- Helpers para leer campos con distintos nombres posibles ----
-// Ajusta/agrega el nombre real del campo de tu API si es distinto.
 const getNumeroEconomico = (d) =>
-  d.NUMERO_ECONOMICO ??
-  d.NO_ECONOMICO ??
-  d.NUM_ECONOMICO ??
-  d.ECONOMICO ??
-  d.UNIDAD ??
-  d.NO_UNIDAD ??
+  d?.NUMERO_ECONOMICO ??
+  d?.NO_ECONOMICO ??
+  d?.NUM_ECONOMICO ??
+  d?.ECONOMICO ??
+  d?.UNIDAD ??
+  d?.NO_UNIDAD ??
   'S/N';
 
 const getRuta = (d) =>
-  d.RUTA ??
-  d.NOMBRE_RUTA ??
-  d.NO_RUTA ??
-  d.RUTA_ASIGNADA ??
+  d?.RUTA ??
+  d?.NOMBRE_RUTA ??
+  d?.NO_RUTA ??
+  d?.RUTA_ASIGNADA ??
   'Sin ruta asignada';
 
 const getModelo = (d) =>
-  d.TIPO_DE_UNIDAD ??
-  d.tipo ??
-  d.MODELO ??
-  d.__modelInfo?.label ??
+  d?.TIPO_DE_UNIDAD ??
+  d?.tipo ??
+  d?.MODELO ??
+  d?.__modelInfo?.label ??
   '—';
 
 const getCorrida = (d) => {
-  const val = d.CORRIDAS ?? d.CORRIDA ?? d.corrida ?? d.corridas ?? d.MANTENIMIENTO_CORRIDA ?? d.mantenimiento_corrida;
+  const val = d?.CORRIDAS ?? d?.CORRIDA ?? d?.corrida ?? d?.corridas ?? d?.MANTENIMIENTO_CORRIDA ?? d?.mantenimiento_corrida;
   if (val !== undefined && val !== null && String(val).trim() !== '') {
     return String(val).trim();
   }
@@ -39,28 +38,28 @@ const getCorrida = (d) => {
 };
 
 const getConductor = (d) => {
-  const rel = d.RELEVO_CONDUCTOR || d.relevo_conductor;
+  const rel = d?.RELEVO_CONDUCTOR || d?.relevo_conductor;
   if (rel && String(rel).trim() !== '') {
     const cleanRel = String(rel).replace(/\s*\(\d+\)$/, '').trim();
     return `${cleanRel} (Relevo)`;
   }
-  return d.CONDUCTOR ??
-    d.NOMBRE_CONDUCTOR ??
-    d.CHOFER ??
-    d.NOMBRE_CHOFER ??
-    d.OPERADOR ??
+  return d?.CONDUCTOR ??
+    d?.NOMBRE_CONDUCTOR ??
+    d?.CHOFER ??
+    d?.NOMBRE_CHOFER ??
+    d?.OPERADOR ??
     'Sin persona conductora asignada';
 };
 
 const getTarjeton = (d) => {
-  const relCond = d.RELEVO_CONDUCTOR || d.relevo_conductor;
-  const relTarj = d.RELEVO_TARJETON || d.relevo_tarjeton;
+  const relCond = d?.RELEVO_CONDUCTOR || d?.relevo_conductor;
+  const relTarj = d?.RELEVO_TARJETON || d?.relevo_tarjeton;
   if (relCond && String(relCond).trim() !== '') {
     return relTarj || '—';
   }
-  return d.TARJETON ??
-    d.TARJETON_CONDUCTOR ??
-    d.NO_TARJETON ??
+  return d?.TARJETON ??
+    d?.TARJETON_CONDUCTOR ??
+    d?.NO_TARJETON ??
     '—';
 };
 
@@ -93,16 +92,43 @@ export default function DetalleUnidades() {
             <p className="detalle-empty-state__hint">
               Vuelve al Centro de Control y selecciona una tarjeta de tipo de unidad o ruta.
             </p>
+            <button
+              type="button"
+              onClick={() => navigate('/centro-control')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                margin: '0 auto',
+                padding: '10px 22px',
+                backgroundColor: '#601a2a',
+                color: '#ffffff',
+                borderRadius: '10px',
+                border: 'none',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(96, 26, 42, 0.25)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Volver a Monitoreo
+            </button>
           </div>
         </main>
       </div>
     );
   }
 
-  const groups = STATUS_TABS.map((tab) => ({
-    ...tab,
-    units: model[tab.key] || [],
-  }));
+  const groups = useMemo(() => {
+    return STATUS_TABS.map((tab) => ({
+      ...tab,
+      units: model[tab.key] || [],
+    }));
+  }, [model]);
 
   const totalCount = model.units ? model.units.length : (model.total || groups.reduce((acc, g) => g.key !== 'unidadesCirculando' ? acc + g.units.length : acc, 0));
 
@@ -119,9 +145,9 @@ export default function DetalleUnidades() {
       return { color: 'itinerario', label: 'DESINCORPORADA POR ITINERARIO' };
     }
 
-    const est = (u.ESTATUS || u.estatus || '').toUpperCase().trim();
-    const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').trim();
-    const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
+    const est = (u?.ESTATUS || u?.estatus || '').toUpperCase().trim();
+    const horaSalida = (u?.HORA_REAL_SALIDA_PATIO || u?.HORA_SALIDA || '').trim();
+    const isEncerrada = Boolean(u?.YA_ENCERRADA || u?.ya_encerrada);
 
     if (est.includes('OPERACI')) {
       if (horaSalida !== '' && !isEncerrada) return { color: 'circulando', label: 'Operación (Circulando)' };
@@ -133,31 +159,33 @@ export default function DetalleUnidades() {
     return { color: 'reserva', label: est || 'Registrado' };
   };
 
-  let allUnits =
-    activeTab === 'todas'
-      ? (model.units && model.units.length > 0 ? model.units : groups.flatMap((g) => g.key !== 'unidadesCirculando' ? g.units : [])).map((u) => {
-          const info = getUnitStatusInfo(u);
-          return { ...u, __statusColor: info.color, __statusLabel: info.label };
-        })
-      : (groups.find((g) => g.key === activeTab)?.units || []).map((u) => {
-          const g = groups.find((grp) => grp.key === activeTab);
-          const info = getUnitStatusInfo(u, g);
-          return { ...u, __statusColor: info.color, __statusLabel: info.label };
-        });
+  const allUnits = useMemo(() => {
+    let list =
+      activeTab === 'todas'
+        ? (model.units && model.units.length > 0 ? model.units : groups.flatMap((g) => g.key !== 'unidadesCirculando' ? g.units : [])).map((u) => {
+            const info = getUnitStatusInfo(u);
+            return { ...u, __statusColor: info.color, __statusLabel: info.label };
+          })
+        : (groups.find((g) => g.key === activeTab)?.units || []).map((u) => {
+            const g = groups.find((grp) => grp.key === activeTab);
+            const info = getUnitStatusInfo(u, g);
+            return { ...u, __statusColor: info.color, __statusLabel: info.label };
+          });
 
-  // Aplicar filtro de buscador general
-  if (searchTerm.trim() !== '') {
-    const term = searchTerm.toLowerCase();
-    allUnits = allUnits.filter(u => 
-      getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
-      getRuta(u).toLowerCase().includes(term) ||
-      getModelo(u).toLowerCase().includes(term) ||
-      getCorrida(u).toLowerCase().includes(term) ||
-      getConductor(u).toLowerCase().includes(term) ||
-      getTarjeton(u).toString().toLowerCase().includes(term) ||
-      u.__statusLabel.toLowerCase().includes(term)
-    );
-  }
+    if (searchTerm.trim() !== '') {
+      const term = searchTerm.toLowerCase();
+      list = list.filter((u) =>
+        getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
+        getRuta(u).toLowerCase().includes(term) ||
+        getModelo(u).toLowerCase().includes(term) ||
+        getCorrida(u).toLowerCase().includes(term) ||
+        getConductor(u).toLowerCase().includes(term) ||
+        getTarjeton(u).toString().toLowerCase().includes(term) ||
+        u.__statusLabel.toLowerCase().includes(term)
+      );
+    }
+    return list;
+  }, [model, groups, activeTab, searchTerm]);
 
   return (
     <div className="detalle-page">
@@ -265,7 +293,7 @@ export default function DetalleUnidades() {
             </div>
             <div className="detalle-table__body">
               {allUnits.map((u, i) => (
-                <div className="detalle-table__row" key={i}>
+                <div className="detalle-table__row" key={`${getNumeroEconomico(u)}_${i}`}>
                   <span className="detalle-table__cell detalle-table__cell--unidad">
                     {getNumeroEconomico(u)}
                   </span>

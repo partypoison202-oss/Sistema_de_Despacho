@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -11,6 +11,7 @@ import { estaDesincorporadaPorItinerario } from '../../utils/itinerarioUtils';
 import { compareRutas, formatRutaDescription } from '../../utils/rutaUtils';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
+
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
 const modelsConfig = [
   { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanussfrenterealista.webp', color: 'maroon' },
@@ -58,6 +59,18 @@ const ROUTE_DESCRIPTIONS = {
   '20B': { tipo: 'alimentadora', label: '20B', desc: '20B Ruta Incluyente Poniente - Oriente' }
 };
 
+// Normalización de texto para búsquedas y comparaciones seguras
+const normStr = (str) =>
+  (str || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+
+// Normalización unificada de estatus operativo
+const getEstatus = (d) => normStr(d?.ESTATUS || d?.estatus || '');
+
 const normalizeRutaKey = (rawRuta, tipoUnidad) => {
   if (!rawRuta || rawRuta.trim() === '' || rawRuta.toUpperCase().includes('SIN ASIGNAR')) {
     return null;
@@ -72,6 +85,89 @@ const normalizeRutaKey = (rawRuta, tipoUnidad) => {
   return clean;
 };
 
+// Helper para % de cada segmento de la barra apilada
+const pct = (value, total) => (total > 0 ? (value / total) * 100 : 0);
+
+// Helpers para la extracción segura de propiedades
+const getNumeroEconomico = (d) =>
+  d?.NUMERO_ECONOMICO ?? d?.NO_ECONOMICO ?? d?.NUM_ECONOMICO ?? d?.ECONOMICO ?? d?.UNIDAD ?? d?.NO_UNIDAD ?? 'S/N';
+
+const getRuta = (d) =>
+  d?.RUTA ?? d?.NOMBRE_RUTA ?? d?.NO_RUTA ?? d?.RUTA_ASIGNADA ?? 'Sin ruta asignada';
+
+const getCorrida = (d) => {
+  const val = d?.CORRIDAS ?? d?.CORRIDA ?? d?.corrida ?? d?.corridas ?? d?.MANTENIMIENTO_CORRIDA ?? d?.mantenimiento_corrida;
+  if (val !== undefined && val !== null && String(val).trim() !== '') {
+    return String(val).trim();
+  }
+  return '—';
+};
+
+const getConductor = (d) =>
+  d?.CONDUCTOR ?? d?.NOMBRE_CONDUCTOR ?? d?.CHOFER ?? d?.NOMBRE_CHOFER ?? d?.OPERADOR ?? 'Sin persona conductora asignada';
+
+const getTarjeton = (d) =>
+  d?.TARJETON ?? d?.TARJETON_CONDUCTOR ?? d?.NO_TARJETON ?? '—';
+
+// Helper unificado para determinar si una unidad cumplió su turno o tiene encierro programado
+const esUnidadEncierroProgramado = (d) => {
+  if (Boolean(d?.TURNO_CUMPLIDO || d?.turno_cumplido)) return true;
+
+  const est = getEstatus(d);
+  if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
+
+  const isEncerrada = Boolean(d?.YA_ENCERRADA || d?.ya_encerrada);
+  const motivo = (d?.MOTIVO_ESTATUS || d?.motivo_estatus || d?.MOTIVO || d?.motivo || '').toString().toLowerCase();
+
+  const esFallaOPercance = motivo.includes('falla') ||
+    motivo.includes('averia') ||
+    motivo.includes('avería') ||
+    motivo.includes('siniestro') ||
+    motivo.includes('taller') ||
+    motivo.includes('mantenimiento') ||
+    motivo.includes('percance');
+
+  if (esFallaOPercance) return false;
+
+  const esEncierroMotivo = motivo.includes('fin de turno') ||
+    motivo.includes('encierro programado') ||
+    motivo.includes('encierro regular') ||
+    motivo.includes('encierro') ||
+    motivo.includes('turno cumplido') ||
+    motivo.includes('cumplio turno') ||
+    motivo.includes('cumplió turno') ||
+    motivo.includes('cumplimiento') ||
+    motivo.includes('termino de turno') ||
+    motivo.includes('término de turno') ||
+    motivo.includes('servicio concluido') ||
+    motivo.includes('fin de servicio') ||
+    motivo.includes('concluyo servicio') ||
+    motivo.includes('concluyó servicio') ||
+    motivo.includes('fin de jornada');
+
+  return isEncerrada || esEncierroMotivo;
+};
+
+// Helper unificado para categorizar visualmente el estatus de la unidad
+const getUnitStatusInfo = (u) => {
+  if (estaDesincorporadaPorItinerario(u)) {
+    return { label: 'DESINCORPORADA POR ITINERARIO', color: 'itinerario' };
+  }
+  const est = getEstatus(u);
+  const horaSalida = (u?.HORA_REAL_SALIDA_PATIO || u?.HORA_SALIDA || '').toString().trim();
+  const isEncerrada = Boolean(u?.YA_ENCERRADA || u?.ya_encerrada);
+  if (est.includes('OPERACI')) {
+    if (horaSalida !== '' && !isEncerrada) {
+      return { label: 'Operación (Circulando)', color: 'operacion' };
+    }
+    return { label: 'Operación', color: 'operacion' };
+  }
+  if (est.includes('MANTENIMIENTO')) return { label: 'Mantenimiento', color: 'mantenimiento' };
+  if (est.includes('PERCANCE')) return { label: 'Percance', color: 'percance' };
+  if (est.includes('RESERVA')) return { label: 'Reserva', color: 'reserva' };
+  return { label: est || 'Registrado', color: 'reserva' };
+};
+
 export default function CentroControl() {
   const navigate = useNavigate();
 
@@ -84,15 +180,6 @@ export default function CentroControl() {
   const [vistaDesglose, setVistaDesglose] = useState('tipo'); // 'tipo' | 'rutas'
   const [filtroRutaCategoria, setFiltroRutaCategoria] = useState('TODAS'); // 'TODAS' | 'TRONCAL' | 'ALIMENTADORA'
   const [filtroRutaTexto, setFiltroRutaTexto] = useState('');
-  const [expandedRoute, setExpandedRoute] = useState(null);
-
-  const reporteRutasRef = useRef(null);
-  const reporteUnidadesRef = useRef(null);
-
-  // ---- Titanes (activos / notificaciones) ----
-  // TODO: reemplazar por datos reales cuando exista el endpoint de Titanes
-  const [titanesActivos, setTitanesActivos] = useState(0);
-  const [titanesNotificaciones, setTitanesNotificaciones] = useState(0);
 
   // ---- Carga y desglose de unidades por tipo y estatus ----
   const fetchDespachoHoy = async () => {
@@ -152,23 +239,57 @@ export default function CentroControl() {
     staleTime: 60000 * 5,
   });
 
-  const normStr = (str) =>
-    (str || '')
-      .toString()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toUpperCase()
-      .trim();
+  // ---- Titanes (activos / notificaciones pendientes) ----
+  const { data: usuarios = [] } = useQuery({
+    queryKey: ['usuarios-titanes'],
+    queryFn: async () => {
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+      const res = await fetch(`${API_BASE}/api/users`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60000 * 5,
+  });
 
-  const modelData = React.useMemo(() => {
+  const { data: notificacionesTitan = [] } = useQuery({
+    queryKey: ['titan-notificaciones-pendientes'],
+    queryFn: async () => {
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+      const res = await fetch(`${API_BASE}/api/titan/notificaciones-pendientes`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const titanesActivos = useMemo(() => {
+    return (Array.isArray(usuarios) ? usuarios : []).filter((u) => {
+      const rolNombre = (u.role?.nombre || u.role?.name || '').toUpperCase().trim();
+      const estaActivo = u.activo === true || u.activo === 'true' || u.activo === 1 || u.activo === undefined;
+      return rolNombre === ROL_TITAN && estaActivo;
+    }).length;
+  }, [usuarios]);
+
+  const titanesNotificaciones = notificacionesTitan?.length || 0;
+
+  const modelData = useMemo(() => {
     return modelsConfig.map((mc) => {
       const units = (Array.isArray(apiData) ? apiData : []).filter((d) => {
-        const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
-        const est = normStr(d.ESTATUS || d.estatus);
+        const matchesModel = normStr(d?.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+        const est = getEstatus(d);
         const isNoProgramada = est === 'NO_PROGRAMADA' || est === 'NO PROGRAMADA';
         return matchesModel && !isNoProgramada;
       });
-      const getEstatus = (d) => normStr(d.ESTATUS || d.estatus);
 
       // Unidades desincorporadas por itinerario (en su ventana horaria activa)
       const unidadesDesincItinerario = units.filter((d) => estaDesincorporadaPorItinerario(d));
@@ -178,10 +299,11 @@ export default function CentroControl() {
 
       // Circulando = las que YA salieron de despacho (validadas con hora_real_salida_patio, no encerradas y no en itinerario)
       const unidadesCirculando = units.filter((d) => {
-        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
-        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+        const horaSalida = (d?.HORA_REAL_SALIDA_PATIO || d?.HORA_SALIDA || '').toString().trim();
+        const isEncerrada = Boolean(d?.YA_ENCERRADA || d?.ya_encerrada);
         return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
       });
+
       // Reserva = todas las que tienen estatus 'reserva'
       const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
       // Mantenimiento = todas las que tienen estatus 'mantenimiento'
@@ -190,42 +312,7 @@ export default function CentroControl() {
       const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
       // Encierro programado / Fin de turno cumplido (unidades que ya completaron su servicio programado)
-      const unidadesEncerradasProgramadas = units.filter((d) => {
-        if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
-
-        const est = getEstatus(d);
-        if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
-
-        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
-
-        const esFallaOPercance = motivo.includes('falla') ||
-          motivo.includes('averia') ||
-          motivo.includes('siniestro') ||
-          motivo.includes('taller') ||
-          motivo.includes('mantenimiento') ||
-          motivo.includes('percance');
-
-        if (esFallaOPercance) return false;
-
-        const esEncierroMotivo = motivo.includes('fin de turno') ||
-          motivo.includes('encierro programado') ||
-          motivo.includes('encierro regular') ||
-          motivo.includes('encierro') ||
-          motivo.includes('turno cumplido') ||
-          motivo.includes('cumplio turno') ||
-          motivo.includes('cumplió turno') ||
-          motivo.includes('cumplimiento') ||
-          motivo.includes('termino de turno') ||
-          motivo.includes('término de turno') ||
-          motivo.includes('servicio concluido') ||
-          motivo.includes('fin de servicio') ||
-          motivo.includes('concluyo servicio') ||
-          motivo.includes('concluyó servicio') ||
-          motivo.includes('fin de jornada');
-
-        return isEncerrada || esEncierroMotivo;
-      });
+      const unidadesEncerradasProgramadas = units.filter(esUnidadEncierroProgramado);
 
       const total = units.length;
       const operacion = unidadesOperacion.length;
@@ -240,9 +327,9 @@ export default function CentroControl() {
       // Total Programadas fijo: Unidades en operación programadas al inicio del día (snapshot de cambio de día)
       const hasSnapshot = Array.isArray(inicioData) && inicioData.length > 0;
       const programadasInicio = hasSnapshot
-        ? inicioData.filter(d => {
-          const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
-          const estatusNorm = normStr(d.ESTATUS || d.estatus);
+        ? inicioData.filter((d) => {
+          const matchesModel = normStr(d?.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+          const estatusNorm = getEstatus(d);
           const isOperacion = estatusNorm.includes('OPERACI');
           return matchesModel && isOperacion;
         }).length
@@ -250,10 +337,10 @@ export default function CentroControl() {
 
       // Si el snapshot está disponible, se respeta el congelado de inicio de día para cada modelo.
       // Si aún no hay snapshot, programadas contempla la flota total asignada al servicio.
-      const programadasFallback = units.filter(d => {
-        const est = normStr(d.ESTATUS || d.estatus);
+      const programadasFallback = units.filter((d) => {
+        const est = getEstatus(d);
         const isOper = est.includes('OPERACI');
-        const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(d.MANTENIMIENTO_RUTA || d.mantenimiento_ruta);
+        const isMantoConRuta = (est.includes('MANTENIMIENTO') || est.includes('PERCANCE')) && Boolean(d?.MANTENIMIENTO_RUTA || d?.mantenimiento_ruta);
         return isOper || isMantoConRuta;
       }).length;
       const programadas = hasSnapshot ? programadasInicio : programadasFallback;
@@ -282,24 +369,28 @@ export default function CentroControl() {
     });
   }, [apiData, inicioData]);
 
-  const totales = modelData.reduce(
-    (acc, m) => ({
-      total: (acc.total || 0) + (m.total || 0),
-      programadas: acc.programadas + m.programadas,
-      operacion: acc.operacion + m.operacion,
-      desincItinerario: (acc.desincItinerario || 0) + (m.desincItinerario || 0),
-      encerradasProgramadas: (acc.encerradasProgramadas || 0) + (m.encerradasProgramadas || 0),
-      circulando: (acc.circulando || 0) + (m.circulando || 0),
-      reserva: acc.reserva + m.reserva,
-      mantenimiento: acc.mantenimiento + m.mantenimiento,
-      percance: (acc.percance || 0) + (m.percance || 0),
-    }),
-    { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, encerradasProgramadas: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
-  );
+  const totales = useMemo(() => {
+    return modelData.reduce(
+      (acc, m) => ({
+        total: (acc.total || 0) + (m.total || 0),
+        programadas: acc.programadas + m.programadas,
+        operacion: acc.operacion + m.operacion,
+        desincItinerario: (acc.desincItinerario || 0) + (m.desincItinerario || 0),
+        encerradasProgramadas: (acc.encerradasProgramadas || 0) + (m.encerradasProgramadas || 0),
+        circulando: (acc.circulando || 0) + (m.circulando || 0),
+        reserva: acc.reserva + m.reserva,
+        mantenimiento: acc.mantenimiento + m.mantenimiento,
+        percance: (acc.percance || 0) + (m.percance || 0),
+      }),
+      { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, encerradasProgramadas: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
+    );
+  }, [modelData]);
 
-  const eficienciaGlobal = totales.programadas > 0
-    ? Math.min(100, Math.round(((totales.circulando + (totales.desincItinerario || 0) + (totales.encerradasProgramadas || 0)) / totales.programadas) * 100))
-    : 0;
+  const eficienciaGlobal = useMemo(() => {
+    return totales.programadas > 0
+      ? Math.min(100, Math.round(((totales.circulando + (totales.desincItinerario || 0) + (totales.encerradasProgramadas || 0)) / totales.programadas) * 100))
+      : 0;
+  }, [totales]);
 
   const handleGenerarReporte = () => {
     descargarReportesGeneralesConAlerta(setIsGenerating);
@@ -308,8 +399,6 @@ export default function CentroControl() {
   const handleGenerarReporteEstadisticas = async () => {
     setIsGeneratingStats(true);
     try {
-      // Usamos los mismos datos calculados que ya están en el componente:
-      // totales, modelData, eficienciaGlobal, y apiData
       await generarPDFEstadisticasCentro(totales, modelData, eficienciaGlobal, apiData);
 
       Swal.fire({
@@ -393,57 +482,19 @@ export default function CentroControl() {
     }
   };
 
-  // Helper para % de cada segmento de la barra apilada
-  const pct = (value, total) => (total > 0 ? (value / total) * 100 : 0);
+  // Filtrado optimizado de todas las unidades si hay búsqueda global
+  const allUnitsFiltered = useMemo(() => {
+    const term = globalSearch.trim().toLowerCase();
+    if (!term) return [];
 
-  // Helpers para la búsqueda global
-  const getNumeroEconomico = (d) =>
-    d.NUMERO_ECONOMICO ?? d.NO_ECONOMICO ?? d.NUM_ECONOMICO ?? d.ECONOMICO ?? d.UNIDAD ?? d.NO_UNIDAD ?? 'S/N';
-  const getRuta = (d) =>
-    d.RUTA ?? d.NOMBRE_RUTA ?? d.NO_RUTA ?? d.RUTA_ASIGNADA ?? 'Sin ruta asignada';
-  const getCorrida = (d) => {
-    const val = d.CORRIDAS ?? d.CORRIDA ?? d.corrida ?? d.corridas ?? d.MANTENIMIENTO_CORRIDA ?? d.mantenimiento_corrida;
-    if (val !== undefined && val !== null && String(val).trim() !== '') {
-      return String(val).trim();
-    }
-    return '—';
-  };
-  const getConductor = (d) =>
-    d.CONDUCTOR ?? d.NOMBRE_CONDUCTOR ?? d.CHOFER ?? d.NOMBRE_CHOFER ?? d.OPERADOR ?? 'Sin persona conductora asignada';
-  const getTarjeton = (d) =>
-    d.TARJETON ?? d.TARJETON_CONDUCTOR ?? d.NO_TARJETON ?? '—';
-  const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
-
-  // Filtrado de todas las unidades si hay búsqueda
-  let allUnitsFiltered = [];
-  if (globalSearch.trim() !== '') {
-    const term = globalSearch.toLowerCase();
     const allUnits = modelData.flatMap((m) =>
       (m.units || []).map((u) => {
-        const estatus = getEstatus(u);
-        const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').trim();
-        let colorClass = 'operacion';
-        let labelStatus = horaSalida !== '' ? 'Operación (Circulando)' : 'Operación';
-
-        if (estaDesincorporadaPorItinerario(u)) {
-          colorClass = 'itinerario';
-          labelStatus = 'DESINCORPORADA POR ITINERARIO';
-        } else if (estatus.includes('OPERACI')) {
-          if (horaSalida !== '') {
-            colorClass = 'operacion'; labelStatus = 'Operación (Circulando)';
-          } else {
-            colorClass = 'operacion'; labelStatus = 'Operación';
-          }
-        }
-        else if (estatus.includes('MANTENIMIENTO')) { colorClass = 'mantenimiento'; labelStatus = 'Mantenimiento'; }
-        else if (estatus.includes('RESERVA')) { colorClass = 'reserva'; labelStatus = 'Reserva'; }
-        else if (estatus.includes('PERCANCE')) { colorClass = 'percance'; labelStatus = 'Percance'; }
-
-        return { ...u, __modelInfo: m, __statusColor: colorClass, __statusLabel: labelStatus };
+        const info = getUnitStatusInfo(u);
+        return { ...u, __modelInfo: m, __statusColor: info.color, __statusLabel: info.label };
       })
     );
 
-    allUnitsFiltered = allUnits.filter((u) =>
+    return allUnits.filter((u) =>
       getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
       getRuta(u).toLowerCase().includes(term) ||
       getCorrida(u).toLowerCase().includes(term) ||
@@ -452,29 +503,10 @@ export default function CentroControl() {
       u.__statusLabel.toLowerCase().includes(term) ||
       u.__modelInfo.label.toLowerCase().includes(term)
     );
-  }
+  }, [globalSearch, modelData]);
 
   // ---- Desglose por Rutas (Troncales y Alimentadoras) ----
-  const getUnitStatusInfo = (u) => {
-    if (estaDesincorporadaPorItinerario(u)) {
-      return { label: 'DESINCORPORADA POR ITINERARIO', color: 'itinerario' };
-    }
-    const est = getEstatus(u);
-    const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').toString().trim();
-    const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
-    if (est.includes('OPERACI')) {
-      if (horaSalida !== '' && !isEncerrada) {
-        return { label: 'Circulando', color: 'operacion' };
-      }
-      return { label: 'En Patio', color: 'reserva' };
-    }
-    if (est.includes('MANTENIMIENTO')) return { label: 'Mantenimiento', color: 'mantenimiento' };
-    if (est.includes('PERCANCE')) return { label: 'Percance', color: 'percance' };
-    if (est.includes('RESERVA')) return { label: 'Reserva', color: 'reserva' };
-    return { label: est || 'Registrado', color: 'reserva' };
-  };
-
-  const routeData = React.useMemo(() => {
+  const routeData = useMemo(() => {
     const list = Array.isArray(apiData) ? apiData : [];
     const routesMap = {};
     const descripcionesMap = rutasCatalogo?.descripciones || {};
@@ -483,9 +515,9 @@ export default function CentroControl() {
     const catalogoItems = Array.isArray(rutasCatalogo?.catalogo) && rutasCatalogo.catalogo.length > 0
       ? rutasCatalogo.catalogo
       : [
-          ...(rutasCatalogo?.troncales || []).map((r) => ({ ruta: r, tipo: 'troncal' })),
-          ...(rutasCatalogo?.alimentadoras || []).map((r) => ({ ruta: r, tipo: 'alimentadora' })),
-        ];
+        ...(rutasCatalogo?.troncales || []).map((r) => ({ ruta: r, tipo: 'troncal' })),
+        ...(rutasCatalogo?.alimentadoras || []).map((r) => ({ ruta: r, tipo: 'alimentadora' })),
+      ];
 
     // 1. Sembrar primero todas las rutas registradas en el catálogo maestro (Neon DB)
     catalogoItems.forEach((r) => {
@@ -518,8 +550,8 @@ export default function CentroControl() {
 
     // 2. Asignar las unidades activas a cada ruta correspondiente respetando el tipo
     list.forEach((u) => {
-      const est = (u.ESTATUS || '').toLowerCase().trim();
-      if (est === 'no_programada' || est === 'no programada') return;
+      const est = getEstatus(u);
+      if (est === 'NO_PROGRAMADA' || est === 'NO PROGRAMADA') return;
 
       const rawRuta = (u.RUTA ?? u.NOMBRE_RUTA ?? u.NO_RUTA ?? u.RUTA_ASIGNADA ?? '').toString().trim();
       const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || '').toString().trim();
@@ -565,49 +597,14 @@ export default function CentroControl() {
       const unidadesDesincItinerario = units.filter((d) => estaDesincorporadaPorItinerario(d));
       const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d));
       const unidadesCirculando = units.filter((d) => {
-        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
-        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+        const horaSalida = (d?.HORA_REAL_SALIDA_PATIO || d?.HORA_SALIDA || '').toString().trim();
+        const isEncerrada = Boolean(d?.YA_ENCERRADA || d?.ya_encerrada);
         return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
       });
       const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
       const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
-      const unidadesEncerradasProgramadas = units.filter((d) => {
-        if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
-
-        const est = getEstatus(d);
-        if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
-
-        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
-
-        const esFallaOPercance = motivo.includes('falla') ||
-          motivo.includes('averia') ||
-          motivo.includes('siniestro') ||
-          motivo.includes('taller') ||
-          motivo.includes('mantenimiento') ||
-          motivo.includes('percance');
-
-        if (esFallaOPercance) return false;
-
-        const esEncierroMotivo = motivo.includes('fin de turno') ||
-          motivo.includes('encierro programado') ||
-          motivo.includes('encierro regular') ||
-          motivo.includes('encierro') ||
-          motivo.includes('turno cumplido') ||
-          motivo.includes('cumplio turno') ||
-          motivo.includes('cumplió turno') ||
-          motivo.includes('cumplimiento') ||
-          motivo.includes('termino de turno') ||
-          motivo.includes('término de turno') ||
-          motivo.includes('servicio concluido') ||
-          motivo.includes('fin de servicio') ||
-          motivo.includes('concluyo servicio') ||
-          motivo.includes('concluyó servicio') ||
-          motivo.includes('fin de jornada');
-
-        return isEncerrada || esEncierroMotivo;
-      });
+      const unidadesEncerradasProgramadas = units.filter(esUnidadEncierroProgramado);
 
       const total = units.length;
       const operacion = unidadesOperacion.length;
@@ -636,6 +633,7 @@ export default function CentroControl() {
         eficiencia,
         unidadesOperacion,
         unidadesCirculando,
+        unidadesEncerradasProgramadas,
         unidadesReserva,
         unidadesMantenimiento,
         unidadesPercance,
@@ -650,11 +648,11 @@ export default function CentroControl() {
     });
   }, [apiData, rutasCatalogo]);
 
-  const troncalesCount = React.useMemo(() => routeData.filter(r => r.tipo === 'troncal').length, [routeData]);
-  const alimentadorasCount = React.useMemo(() => routeData.filter(r => r.tipo === 'alimentadora').length, [routeData]);
+  const troncalesCount = useMemo(() => routeData.filter((r) => r.tipo === 'troncal').length, [routeData]);
+  const alimentadorasCount = useMemo(() => routeData.filter((r) => r.tipo === 'alimentadora').length, [routeData]);
 
-  const rutasVisibles = React.useMemo(() => {
-    return routeData.filter(r => {
+  const rutasVisibles = useMemo(() => {
+    return routeData.filter((r) => {
       if (filtroRutaCategoria === 'TRONCAL' && r.tipo !== 'troncal') return false;
       if (filtroRutaCategoria === 'ALIMENTADORA' && r.tipo !== 'alimentadora') return false;
 
@@ -662,9 +660,9 @@ export default function CentroControl() {
         const query = filtroRutaTexto.toLowerCase().trim();
         const matchLabel = r.label.toLowerCase().includes(query);
         const matchDesc = r.desc.toLowerCase().includes(query);
-        const matchUnits = r.units.some(u => {
-          const eco = (u.NUMERO_ECONOMICO ?? u.ECONOMICO ?? '').toString().toLowerCase();
-          const cond = (u.CONDUCTOR ?? u.NOMBRE_CONDUCTOR ?? '').toLowerCase();
+        const matchUnits = r.units.some((u) => {
+          const eco = getNumeroEconomico(u).toString().toLowerCase();
+          const cond = getConductor(u).toLowerCase();
           const cor = getCorrida(u).toLowerCase();
           return eco.includes(query) || cond.includes(query) || cor.includes(query);
         });
@@ -674,13 +672,15 @@ export default function CentroControl() {
     });
   }, [routeData, filtroRutaCategoria, filtroRutaTexto]);
 
-  // Obtenemos la fecha actual formateada en español
-  const fechaActual = new Date().toLocaleDateString('es-ES', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  // Fecha actual formateada en español
+  const fechaActual = useMemo(() => {
+    return new Date().toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }, []);
 
   return (
     <>
@@ -766,7 +766,7 @@ export default function CentroControl() {
               Titanes
             </button>
 
-            {/* ===== NUEVO BOTÓN BITÁCORA ===== */}
+            {/* Botón Bitácora */}
             <button
               type="button"
               className="centro-btn-plano centro-btn-plano--bitacora"
@@ -780,7 +780,6 @@ export default function CentroControl() {
               </svg>
               Bitácora
             </button>
-
 
             {/* Botón Plano de Patio */}
             <button
@@ -799,7 +798,6 @@ export default function CentroControl() {
 
           {/* ---------- KPIs globales ---------- */}
           <section className="centro-kpis">
-            {/* ... resto de KPIs (sin cambios) ... */}
             <div className="centro-kpi centro-kpi--total">
               <div className="centro-kpi__icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -969,7 +967,7 @@ export default function CentroControl() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {allUnitsFiltered.map((u, i) => (
-                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 90px 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
+                      <div key={`${getNumeroEconomico(u)}_${i}`} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 90px 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
                         <span style={{ fontWeight: '700', color: '#601a2a' }}>{getNumeroEconomico(u)}</span>
                         <span style={{ fontWeight: '600' }}>{u.__modelInfo.label}</span>
                         <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', width: 'fit-content', color: u.__statusColor === 'itinerario' ? '#b45309' : u.__statusColor === 'operacion' ? '#059669' : u.__statusColor === 'reserva' ? '#b45309' : u.__statusColor === 'mantenimiento' ? '#dc2626' : '#4b5563', backgroundColor: u.__statusColor === 'itinerario' ? '#fef3c7' : u.__statusColor === 'operacion' ? '#ecfdf5' : u.__statusColor === 'reserva' ? '#fffbeb' : u.__statusColor === 'mantenimiento' ? '#fef2f2' : '#f3f4f6', border: u.__statusColor === 'itinerario' ? '1px solid #fde68a' : 'none' }}>
@@ -993,10 +991,15 @@ export default function CentroControl() {
             <section className="centro-type-grid">
               {modelsConfig.map((mc) => {
                 const m = modelData.find((x) => x.id === mc.id) || {
+                  total: 0,
                   programadas: 0,
                   operacion: 0,
                   reserva: 0,
                   mantenimiento: 0,
+                  percance: 0,
+                  desincItinerario: 0,
+                  circulando: 0,
+                  encerradasProgramadas: 0,
                 };
                 return (
                   <div
@@ -1025,8 +1028,8 @@ export default function CentroControl() {
                     <div className="centro-bar" role="img" aria-label={`Distribución de estatus ${mc.label}`}>
                       <span
                         className="centro-bar__seg centro-bar__seg--operacion"
-                        style={{ width: `${pct(m.operacion, m.total || m.programadas)}%` }}
-                        title={`Operación: ${m.operacion}`}
+                        style={{ width: `${pct(m.circulando, m.total || m.programadas)}%` }}
+                        title={`Operación: ${m.circulando}`}
                       />
                       <span
                         className="centro-bar__seg"
@@ -1055,9 +1058,9 @@ export default function CentroControl() {
                         <span className="centro-status-dot centro-status-dot--operacion" />
                         <span className="centro-status-label">Operación</span>
                         <span className="centro-status-percent centro-status-percent--operacion">
-                          {cargando ? '—' : `${Math.round(pct(m.operacion, m.total || m.programadas))}%`}
+                          {cargando ? '—' : `${Math.round(pct(m.circulando, m.total || m.programadas))}%`}
                         </span>
-                        <span className="centro-status-value">{cargando ? '—' : m.operacion}</span>
+                        <span className="centro-status-value">{cargando ? '—' : m.circulando}</span>
                       </div>
                       <div className="centro-status-row">
                         <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
@@ -1161,7 +1164,6 @@ export default function CentroControl() {
               {rutasVisibles.length > 0 ? (
                 <section className="centro-route-grid">
                   {rutasVisibles.map((r) => {
-                    const isExpanded = expandedRoute === r.key;
                     const isTroncal = r.tipo === 'troncal';
                     const cardModifier = isTroncal ? 'troncal' : 'alimentadora';
 
@@ -1201,8 +1203,8 @@ export default function CentroControl() {
                         <div className="centro-bar" role="img" aria-label={`Distribución ruta ${r.label}`}>
                           <span
                             className="centro-bar__seg centro-bar__seg--operacion"
-                            style={{ width: `${pct(r.operacion, r.total || r.programadas)}%` }}
-                            title={`Operación: ${r.operacion}`}
+                            style={{ width: `${pct(r.circulando, r.total || r.programadas)}%` }}
+                            title={`Operación: ${r.circulando}`}
                           />
                           <span
                             className="centro-bar__seg centro-bar__seg--reserva"
@@ -1222,9 +1224,9 @@ export default function CentroControl() {
                             <span className="centro-status-dot centro-status-dot--operacion" />
                             <span className="centro-status-label">Operación</span>
                             <span className="centro-status-percent centro-status-percent--operacion">
-                              {cargando ? '—' : `${Math.round(pct(r.operacion, r.total || r.programadas))}%`}
+                              {cargando ? '—' : `${Math.round(pct(r.circulando, r.total || r.programadas))}%`}
                             </span>
-                            <span className="centro-status-value">{cargando ? '—' : r.operacion}</span>
+                            <span className="centro-status-value">{cargando ? '—' : r.circulando}</span>
                           </div>
                           <div className="centro-status-row">
                             <span className="centro-status-dot centro-status-dot--reserva" />

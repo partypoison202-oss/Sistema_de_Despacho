@@ -664,43 +664,7 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
         return Number.isInteger(num) ? enteroStr : String(Number(num.toFixed(2)));
     };
 
-    const ciclosFaltantes = listaUnidades.filter(u => {
-        const ciclo = u.CICLO || u.ciclo;
-        return ciclo !== null && ciclo !== undefined && String(ciclo).trim() !== '';
-    });
-
-    const sumCiclos = (unidades) => {
-        return unidades.reduce((acc, u) => {
-            const cicloVal = u.CICLO || u.ciclo;
-            return acc + parseCiclo(cicloVal);
-        }, 0);
-    };
-
-    const unidadesAlimentador = ciclosFaltantes.filter(u => {
-        const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase();
-        const ruta = (u.RUTA || u.ruta || '').toUpperCase();
-        return !tipo.includes('URBANUS') && !ruta.startsWith('T-');
-    });
-
-    const unidadesTroncal = ciclosFaltantes.filter(u => {
-        const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase();
-        const ruta = (u.RUTA || u.ruta || '').toUpperCase();
-        return tipo.includes('URBANUS') || ruta.startsWith('T-');
-    });
-
-    const faltantesAlimentador = sumCiclos(unidadesAlimentador);
-    const faltantesTroncal = sumCiclos(unidadesTroncal);
-    const faltantesTotal = faltantesAlimentador + faltantesTroncal;
-
-
-
-    // =========================================================================
-    // CORRIDAS PENDIENTES POR PROGRAMACIÓN
-    // =========================================================================
-    // Se evalúan las unidades programadas. Si su hora de salida programada (o acople)
-    // es posterior a la hora en que se generó el reporte (al dar clic), deben mostrarse.
-    // "no importa que esa unidad ya esté despachada, si su hora de salida es despues
-    // de cuando se generó el reporte, ahi se debe mostrar".
+    // Helper para extraer minutos y hora formateada HH:MM
     const extraerMinutosYHora = (val) => {
         if (!val) return null;
         const str = String(val).trim();
@@ -711,13 +675,28 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
         const m = Number.parseInt(match[2], 10);
         if (Number.isNaN(h) || Number.isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
         return {
-            formatted: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+            formatted: String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'),
             minutes: h * 60 + m
         };
     };
 
     // Minutos actuales en que se generó el reporte (hora exacta del clic)
     const clickMinutes = nowLocal.getHours() * 60 + nowLocal.getMinutes();
+    // Tolerancia operativa: 15 minutos de gracia tras la hora de salida programada
+    const TOLERANCIA_SALIDA_MINUTOS = 15;
+
+    // Helper para verificar si una unidad ya cuenta con hora real de salida de patio (ya despachada)
+    const checkUnidadDespachada = (u) => {
+        const rawReal = String(
+            u.HORA_REAL_SALIDA_PATIO || u.hora_real_salida_patio ||
+            u.HORA_SALIDA || u.hora_salida || ''
+        ).trim();
+        if (!rawReal || rawReal === '--:--' || rawReal === '-' || rawReal.toLowerCase() === 'null') {
+            return false;
+        }
+        const obj = extraerMinutosYHora(rawReal);
+        return Boolean(obj);
+    };
 
     const normEcoKey = (val) => {
         const s = String(val ?? '').trim();
@@ -746,7 +725,13 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
         }
     });
 
+    // =========================================================================
+    // CORRIDAS PENDIENTES POR PROGRAMACIÓN & CORRIDAS PERDIDAS
+    // =========================================================================
     const todasLasCorridas = [];
+    const corridasPerdidasDetectadas = [];
+    const ecosConCorridaPerdida = new Set();
+
     universoUnidades.forEach(u => {
         const rawEco = String(u.ECONOMICO || u.numero_eco || '').trim();
         const ecoKey = normEcoKey(rawEco);
@@ -779,18 +764,13 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
         const objSalidaPatio = extraerMinutosYHora(rawSalidaPatio);
         const objAcople = extraerMinutosYHora(rawAcople);
 
-        // Se jala estrictamente la hora de la columna "hora de salida de patio" (o acople como fallback).
-        // NO se toma la hora de incorporación, ya que esa hora corresponde a itinerario.
         let displayHora = null;
         let refMinutes = null;
 
-        const salidaPendiente = objSalidaPatio && objSalidaPatio.minutes > clickMinutes;
-        const acoplePendiente = !objSalidaPatio && objAcople && objAcople.minutes > clickMinutes;
-
-        if (salidaPendiente) {
+        if (objSalidaPatio) {
             displayHora = objSalidaPatio.formatted;
             refMinutes = objSalidaPatio.minutes;
-        } else if (acoplePendiente) {
+        } else if (objAcople) {
             displayHora = objAcople.formatted;
             refMinutes = objAcople.minutes;
         }
@@ -798,35 +778,79 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
         if (!displayHora || refMinutes === null) return;
 
         const rutaFormateada = rutaRaw ? rutaRaw.toUpperCase().replace(/^T(\d{2})$/, 'T-$1') : '';
-
         const tieneRuta = rutaFormateada && rutaFormateada !== 'SIN RUTA';
         const tieneCorrida = Boolean(corridaRaw);
 
+        if (!tieneRuta && !tieneCorrida && !eco) return;
+
         let textoEtiqueta = '';
         if (tieneRuta && tieneCorrida) {
-            textoEtiqueta = `${rutaFormateada} corrida ${corridaRaw}`;
+            textoEtiqueta = rutaFormateada + ' corrida ' + corridaRaw;
         } else if (eco) {
-            textoEtiqueta = tieneRuta ? `Unidad ${eco} (${rutaFormateada})` : `Unidad ${eco}`;
+            textoEtiqueta = tieneRuta ? ('Unidad ' + eco + ' (' + rutaFormateada + ')') : ('Unidad ' + eco);
         } else if (tieneRuta) {
-            textoEtiqueta = `${rutaFormateada}`;
+            textoEtiqueta = rutaFormateada;
         } else {
-            textoEtiqueta = `Unidad`;
+            textoEtiqueta = 'Unidad';
         }
 
-        todasLasCorridas.push({
-            eco: eco,
-            ruta: rutaFormateada,
-            corrida: corridaRaw,
-            etiqueta: textoEtiqueta,
-            acople: displayHora,
-            minutes: refMinutes
-        });
+        // 1. CORRIDAS A FUTURO: Su hora de salida programada es posterior a la hora del reporte
+        if (refMinutes > clickMinutes) {
+            todasLasCorridas.push({
+                eco: eco,
+                ruta: rutaFormateada,
+                corrida: corridaRaw,
+                etiqueta: textoEtiqueta,
+                acople: displayHora,
+                minutes: refMinutes
+            });
+            return;
+        }
+
+        // 2. Si su hora programada ya llegó o pasó, verificamos si ya fue despachada
+        const estaDespachada = checkUnidadDespachada(u);
+        if (estaDespachada) {
+            // Ya salió a circular: NO es corrida perdida
+            return;
+        }
+
+        // 3. Si NO ha salido de patio, evaluamos la tolerancia de 15 minutos:
+        // Si clickMinutes <= refMinutes + TOLERANCIA_SALIDA_MINUTOS: está en margen de gracia (no se declara perdida aún).
+        // Si clickMinutes > refMinutes + TOLERANCIA_SALIDA_MINUTOS: ¡es una corrida perdida!
+        if (clickMinutes > refMinutes + TOLERANCIA_SALIDA_MINUTOS) {
+            const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || fallbackIni.TIPO_DE_UNIDAD || fallbackIni.tipo || '').toUpperCase();
+            const motivoRaw = String(
+                u.MOTIVO || u.motivo || u.MOTIVO_ESTATUS || u.motivo_estatus ||
+                fallbackIni.MOTIVO || fallbackIni.motivo || ''
+            ).trim();
+
+            // Si la unidad fue mandada a reserva desde el módulo de pasteles o no se le puso motivo,
+            // se categoriza por defecto como 'FALTA DE OPERADOR'
+            const motivoFinal = motivoRaw || 'FALTA DE OPERADOR';
+
+            corridasPerdidasDetectadas.push({
+                ECONOMICO: eco,
+                RUTA: rutaFormateada,
+                CORRIDAS: corridaRaw,
+                HORA_SALIDA: displayHora,
+                ACOPLE: displayHora,
+                CICLO: '--',
+                ciclo: '--',
+                MOTIVO: motivoFinal,
+                motivo: motivoFinal,
+                tipo: tipoUnidad,
+                TIPO_DE_UNIDAD: tipoUnidad,
+                esCorridaPerdida: true,
+                minutes: refMinutes
+            });
+            if (eco) ecosConCorridaPerdida.add(eco);
+        }
     });
 
-    // Deduplicar por unidad (económico) para no descartar unidades distintas que compartan ruta o número de corrida
+    // Deduplicar corridas pendientes por unidad para la sección de observaciones
     const corridasMap = new Map();
     todasLasCorridas.forEach((item, idx) => {
-        const key = item.eco ? `eco_${item.eco}` : `item_${idx}`;
+        const key = item.eco ? ('eco_' + item.eco) : ('item_' + idx);
         if (!corridasMap.has(key) || item.minutes < corridasMap.get(key).minutes) {
             corridasMap.set(key, item);
         }
@@ -839,7 +863,69 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
             (a.eco || '').localeCompare(b.eco || '', undefined, { numeric: true })
         );
 
-    const fecha = new Date().toLocaleDateString('es-MX', {
+    // Ciclos perdidos capturados desde despacho (unidades que sí salieron pero perdieron vueltas en ruta)
+    const ciclosPerdidosDesdeDespacho = listaUnidades.filter(u => {
+        const c = u.CICLO || u.ciclo;
+        return c !== null && c !== undefined && String(c).trim() !== '';
+    }).map(u => {
+        const ecoKey = normEcoKey(u.ECONOMICO || u.numero_eco);
+        const rutaRaw = String(u.RUTA || u.ruta || '').trim();
+        const rutaFormateada = rutaRaw ? rutaRaw.toUpperCase().replace(/^T(\d{2})$/, 'T-$1') : '';
+        const corridaRaw = String(u.CORRIDAS ?? u.CORRIDA ?? u.corrida ?? u.corridas ?? '').trim();
+        const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase();
+        const cVal = u.CICLO || u.ciclo;
+
+        return {
+            ECONOMICO: ecoKey,
+            RUTA: rutaFormateada,
+            CORRIDAS: corridaRaw,
+            HORA_SALIDA: u.HORA_SALIDA || u.hora_salida || u.ACOPLE || u.acople || '',
+            ACOPLE: u.ACOPLE || u.acople || '',
+            CICLO: formatCiclo(parseCiclo(cVal)) || String(cVal),
+            ciclo: cVal,
+            MOTIVO: u.MOTIVO || u.motivo || u.MOTIVO_ESTATUS || u.motivo_estatus || 'INCIDENCIA OPERATIVA',
+            motivo: u.MOTIVO || u.motivo || u.MOTIVO_ESTATUS || u.motivo_estatus || 'INCIDENCIA OPERATIVA',
+            tipo: tipoUnidad,
+            TIPO_DE_UNIDAD: tipoUnidad,
+            esCorridaPerdida: false,
+            minutes: 0
+        };
+    });
+
+    // Unificar corridas perdidas + ciclos perdidos sin duplicar económicos
+    const ciclosSinDuplicar = ciclosPerdidosDesdeDespacho.filter(c => !ecosConCorridaPerdida.has(c.ECONOMICO));
+    const todosLosFaltantes = [...corridasPerdidasDetectadas, ...ciclosSinDuplicar];
+
+    todosLosFaltantes.sort((a, b) =>
+        (a.minutes || 0) - (b.minutes || 0) ||
+        (a.RUTA || '').localeCompare(b.RUTA || '', undefined, { numeric: true }) ||
+        (a.ECONOMICO || '').localeCompare(b.ECONOMICO || '', undefined, { numeric: true })
+    );
+
+    const esTroncal = (item) => {
+        const tipo = (item.TIPO_DE_UNIDAD || item.tipo || '').toUpperCase();
+        const ruta = (item.RUTA || item.ruta || '').toUpperCase();
+        return tipo.includes('URBANUS') || ruta.startsWith('T-');
+    };
+
+    const unidadesAlimentador = todosLosFaltantes.filter(item => !esTroncal(item));
+    const unidadesTroncal = todosLosFaltantes.filter(item => esTroncal(item));
+
+    const sumFaltantes = (items) => {
+        return items.reduce((acc, item) => {
+            if (item.esCorridaPerdida) {
+                return acc + 1; // Cada corrida completa perdida cuenta como 1 corrida faltante
+            }
+            return acc + parseCiclo(item.ciclo || item.CICLO);
+        }, 0);
+    };
+
+    const faltantesAlimentador = sumFaltantes(unidadesAlimentador);
+    const faltantesTroncal = sumFaltantes(unidadesTroncal);
+    const faltantesTotal = faltantesAlimentador + faltantesTroncal;
+
+
+        const fecha = new Date().toLocaleDateString('es-MX', {
         day: '2-digit', month: 'long', year: 'numeric'
     }).toUpperCase();
 
@@ -1355,8 +1441,8 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
     });
     p3CursorY += 6;
 
-    const maxFilasFaltantes = Math.min(ciclosFaltantes.length, 6);
-    const faltantesFilas = ciclosFaltantes.length > 0 ? ciclosFaltantes.slice(0, maxFilasFaltantes) : [null, null];
+    const maxFilasFaltantes = Math.min(todosLosFaltantes.length, 6);
+    const faltantesFilas = todosLosFaltantes.length > 0 ? todosLosFaltantes.slice(0, maxFilasFaltantes) : [null, null];
     faltantesFilas.forEach((item, idx) => {
         let colX = p3X;
         pdf.setFillColor(...(item ? COLOR_WHITE : COLOR_LIGHT_CELL));
@@ -1369,7 +1455,7 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
                 else if (cIdx === 2) cellText = String(item.RUTA || item.ruta || '');
                 else if (cIdx === 3) cellText = String(item.CORRIDAS ?? item.CORRIDA ?? item.corrida ?? '');
                 else if (cIdx === 4) cellText = String(item.HORA_SALIDA || item.ACOPLE || '');
-                else if (cIdx === 5) cellText = formatCiclo(parseCiclo(item.CICLO || item.ciclo)) || String(item.CICLO || item.ciclo || '');
+                else if (cIdx === 5) cellText = item.esCorridaPerdida ? '--' : (formatCiclo(parseCiclo(item.CICLO || item.ciclo)) || String(item.CICLO || item.ciclo || ''));
                 else if (cIdx === 6) cellText = String(item.MOTIVO || item.motivo || item.MOTIVO_ESTATUS || '');
 
                 pdf.setFont('helvetica', 'bold');
