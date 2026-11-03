@@ -103,9 +103,11 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       setIncidencia(parsedIncidencia.codigo);
       setIsEditandoIncidenciaMes(false);
 
-      // Extraemos el folio de la orden si ya existe
-      if (initialData?.folio_mantenimiento) {
+      // Extraemos el folio de la orden si ya existe y estamos en el paso de orden
+      if (initialData?.folio_mantenimiento && pasoInicial === 2) {
         setFolioOrden(initialData.folio_mantenimiento);
+      } else {
+        setFolioOrden('');
       }
 
       const now = new Date();
@@ -337,8 +339,8 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         numero_incidencia: incidenciaCompleta,
         motivo: 'MANTENIMIENTO',
         falla_reportada: formData.falla_reportada, // Se guarda desde el paso 1
-        folio_mantenimiento: formData.folio_mantenimiento || undefined,
-        fecha_folio_mantenimiento: formData.fecha_folio_mantenimiento || undefined,
+        folio_mantenimiento: null,
+        fecha_folio_mantenimiento: null,
         generarFolioAutomatico: false  // NO generar folio al solo registrar incidencia
       });
       onClose();

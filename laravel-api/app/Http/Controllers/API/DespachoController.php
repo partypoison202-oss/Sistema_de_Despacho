@@ -5450,6 +5450,12 @@ class DespachoController extends Controller
                     ], 400);
                 }
                 $updateData['folio_mantenimiento'] = $folioReq;
+                if (!$request->has('fecha_folio_mantenimiento') || empty($request->fecha_folio_mantenimiento)) {
+                    $updateData['fecha_folio_mantenimiento'] = \Carbon\Carbon::now();
+                }
+            } else {
+                $updateData['folio_mantenimiento'] = null;
+                $updateData['fecha_folio_mantenimiento'] = null;
             }
         }
 
@@ -5468,10 +5474,20 @@ class DespachoController extends Controller
                     ], 400);
                 }
                 $updateData['numero_incidencia'] = $incReq;
+
+                // Al asignar o renovar incidencia, registrar la fecha actual y limpiar cualquier folio previo
+                $incAnterior = trim((string)($registroOperativo->numero_incidencia ?? ''));
+                if ($incAnterior !== $incReq || empty($registroOperativo->fecha_registro)) {
+                    $updateData['fecha_registro'] = \Carbon\Carbon::now();
+                    if (!$request->has('folio_mantenimiento') || empty(trim((string)$request->folio_mantenimiento))) {
+                        $updateData['folio_mantenimiento'] = null;
+                        $updateData['fecha_folio_mantenimiento'] = null;
+                    }
+                }
             } else {
                 $updateData['numero_incidencia'] = null;
             }
-            if (! empty($incReq) && empty($registroOperativo->fecha_registro)) {
+            if (! empty($incReq) && empty($updateData['fecha_registro']) && empty($registroOperativo->fecha_registro)) {
                 $updateData['fecha_registro'] = \Carbon\Carbon::now();
             }
         }
@@ -5479,6 +5495,25 @@ class DespachoController extends Controller
         if ($request->has('fecha_folio_mantenimiento')) {
             $folioEfectivo = trim((string)($updateData['folio_mantenimiento'] ?? ($registroOperativo->folio_mantenimiento ?? '')));
             $updateData['fecha_folio_mantenimiento'] = !empty($folioEfectivo) ? $request->fecha_folio_mantenimiento : null;
+        }
+
+        // Si la unidad pasa a mantenimiento y no se mandó un folio nuevo, limpiar folios obsoletos
+        if ($nuevoEstatus === 'mantenimiento') {
+            if (!$request->has('folio_mantenimiento') || empty(trim((string)$request->folio_mantenimiento))) {
+                $fRegBase = $updateData['fecha_registro'] ?? $registroOperativo->fecha_registro;
+                $fFolBase = $updateData['fecha_folio_mantenimiento'] ?? $registroOperativo->fecha_folio_mantenimiento;
+                if (!empty($fRegBase) && !empty($fFolBase)) {
+                    try {
+                        if (\Carbon\Carbon::parse($fFolBase)->lt(\Carbon\Carbon::parse($fRegBase))) {
+                            $updateData['folio_mantenimiento'] = null;
+                            $updateData['fecha_folio_mantenimiento'] = null;
+                        }
+                    } catch (\Exception $e) {}
+                }
+            }
+            if (empty($updateData['fecha_registro']) && empty($registroOperativo->fecha_registro)) {
+                $updateData['fecha_registro'] = \Carbon\Carbon::now();
+            }
         }
         if ($request->has('falla_reportada')) {
             $updateData['falla_reportada'] = $request->falla_reportada;
@@ -5564,6 +5599,15 @@ class DespachoController extends Controller
                 ->where('fecha_historial', $fechaHoyMex)
                 ->where('momento', 'ENCIERRO')
                 ->delete();
+
+            // Limpiar datos de taller al salir de mantenimiento a operación
+            if ($registroOperativo && in_array(strtolower(trim($registroOperativo->estatus ?? '')), ['mantenimiento', 'percance'])) {
+                $updateData['falla_reportada'] = null;
+                $updateData['diagnostico'] = null;
+                $updateData['firma_base64'] = null;
+                $updateData['id_firma'] = null;
+                $updateData['fecha_firma'] = null;
+            }
 
             $allInputs = $request->all();
             if (array_key_exists('nombre_conductor', $allInputs)) {
@@ -6062,6 +6106,20 @@ class DespachoController extends Controller
             ->orderByRaw('COALESCE(informacion_operativa.fecha_folio_mantenimiento, informacion_operativa.fecha_registro) DESC')
             ->orderBy('informacion_operativa.id', 'DESC')
             ->get();
+
+        $unidades = $unidades->map(function ($u) {
+            // Regla de integridad: Si el folio tiene una fecha anterior a la fecha de la incidencia,
+            // ese folio corresponde a un ciclo anterior y no debe mostrarse como folio activo de esta incidencia.
+            if (!empty($u->folio_mantenimiento) && !empty($u->fecha_folio_mantenimiento) && !empty($u->fecha_registro)) {
+                try {
+                    if (\Carbon\Carbon::parse($u->fecha_folio_mantenimiento)->lt(\Carbon\Carbon::parse($u->fecha_registro))) {
+                        $u->folio_mantenimiento = null;
+                        $u->fecha_folio_mantenimiento = null;
+                    }
+                } catch (\Exception $e) {}
+            }
+            return $u;
+        });
 
         return response()->json($unidades, 200);
     }
@@ -7158,12 +7216,17 @@ class DespachoController extends Controller
                 ->where('id', $registroOperativo->id)
                 ->update([
                     'numero_incidencia' => trim($request->incidencia),
+                    'fecha_registro' => \Carbon\Carbon::now(),
+                    'folio_mantenimiento' => null,
+                    'fecha_folio_mantenimiento' => null,
                 ]);
 
             BitacoraHelper::registrarCambio(
                 $registroOperativo->unidad_id,
                 'ASIGNACION_INCIDENCIA',
-                'ASIGNÓ NÚMERO DE INCIDENCIA: '.trim($request->incidencia)
+                'ASIGNÓ NÚMERO DE INCIDENCIA: '.trim($request->incidencia),
+                $registroOperativo->numero_incidencia ?: 'SIN INCIDENCIA',
+                trim($request->incidencia)
             );
 
             return response()->json([

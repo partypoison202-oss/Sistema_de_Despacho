@@ -550,7 +550,7 @@ class HistorialOperativoController extends Controller
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
-            ->where('momento', 'INICIO')
+            ->where(DB::raw('UPPER(historial_operativo.momento)'), 'INICIO')
             ->whereIn(DB::raw('LOWER(historial_operativo.estatus)'), ['mantenimiento', 'percance'])
             ->select(
                 'historial_operativo.id as id_historial',
@@ -565,7 +565,28 @@ class HistorialOperativoController extends Controller
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        // Fallback 1: Si es hoy y el snapshot de inicio no tiene unidades en mantenimiento pero en informacion_operativa sí las hay
+        // Fallback 1: Si no hay registros en historial_operativo pero existe programacion_inicial para esa fecha
+        if ($inicio->isEmpty()) {
+            $inicio = DB::table('programacion_inicial')
+                ->join('unidades', 'programacion_inicial.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->where('programacion_inicial.fecha', $fecha)
+                ->whereIn(DB::raw('LOWER(programacion_inicial.estatus)'), ['mantenimiento', 'percance'])
+                ->select(
+                    'programacion_inicial.id as id_historial',
+                    'unidades.numero_eco as economico',
+                    $this->tipoUnidadRaw('programacion_inicial.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('programacion_inicial.tipo', 'tipo_unidad'),
+                    'programacion_inicial.estatus',
+                    DB::raw("COALESCE(NULLIF(TRIM(programacion_inicial.motivo_estatus), ''), UPPER(programacion_inicial.estatus)) as motivo_estatus"),
+                    DB::raw("COALESCE(NULLIF(TRIM(programacion_inicial.falla_reportada), ''), NULLIF(TRIM(programacion_inicial.falla), ''), NULLIF(TRIM(programacion_inicial.diagnostico), ''), NULLIF(TRIM(programacion_inicial.motivo_estatus), ''), '-') as falla")
+                )
+                ->orderByRaw("COALESCE(programacion_inicial.tipo, transportes.nombre, '')")
+                ->orderBy('unidades.numero_eco')
+                ->get();
+        }
+
+        // Fallback 2: Si es hoy y el snapshot de inicio no tiene unidades en mantenimiento pero en informacion_operativa sí las hay
         if ($inicio->isEmpty() && $esHoy) {
             $inicio = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -585,7 +606,7 @@ class HistorialOperativoController extends Controller
                 ->get();
         }
 
-        // Fallback 2: Si es un día histórico y no hay snapshot de inicio, buscar en el cierre o inicio del día previo
+        // Fallback 3: Si es un día histórico y no hay snapshot de inicio, buscar en el cierre o inicio del día previo
         if ($inicio->isEmpty()) {
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
             $inicio = DB::table('historial_operativo')
@@ -615,7 +636,10 @@ class HistorialOperativoController extends Controller
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
-            ->where('bitacora_cambios_unidades.fecha', $fecha)
+            ->where(function($q) use ($fecha) {
+                $q->where('bitacora_cambios_unidades.fecha', $fecha)
+                  ->orWhereDate('bitacora_cambios_unidades.created_at', $fecha);
+            })
             ->where(function($q) {
                 $q->whereRaw('LOWER(bitacora_cambios_unidades.estatus_nuevo) = ?', ['mantenimiento'])
                   ->orWhereRaw('LOWER(bitacora_cambios_unidades.estatus_anterior) = ?', ['mantenimiento'])
@@ -843,17 +867,30 @@ class HistorialOperativoController extends Controller
                 $f->fecha_folio_mantenimiento = null;
                 $f->tiempo_folio = null;
             } else {
-                $auditFolio = $fAuditoria->first(function ($b) use ($f) {
-                    if (str_contains($b->detalles ?? '', $f->folio_mantenimiento)) {
-                        return true;
-                    }
-                    return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO']);
-                });
+                // Validación de integridad: un folio NO puede ser anterior a la incidencia activa
+                if (!empty($f->fecha_registro) && !empty($f->fecha_folio_mantenimiento)) {
+                    try {
+                        if (Carbon::parse($f->fecha_folio_mantenimiento)->lt(Carbon::parse($f->fecha_registro))) {
+                            $f->folio_mantenimiento = null;
+                            $f->fecha_folio_mantenimiento = null;
+                            $f->tiempo_folio = null;
+                        }
+                    } catch (\Exception $e) {}
+                }
 
-                if ($auditFolio && !empty($auditFolio->hora)) {
-                    $fechaFolioStr = trim((string)($f->fecha_folio_mantenimiento ?? ''));
-                    if (empty($fechaFolioStr) || str_ends_with($fechaFolioStr, '00:00:00') || str_ends_with($fechaFolioStr, '00:00')) {
-                        $f->fecha_folio_mantenimiento = $auditFolio->hora;
+                if (!empty($f->folio_mantenimiento)) {
+                    $auditFolio = $fAuditoria->first(function ($b) use ($f) {
+                        if (str_contains($b->detalles ?? '', $f->folio_mantenimiento)) {
+                            return true;
+                        }
+                        return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO']);
+                    });
+
+                    if ($auditFolio && !empty($auditFolio->hora)) {
+                        $fechaFolioStr = trim((string)($f->fecha_folio_mantenimiento ?? ''));
+                        if (empty($fechaFolioStr) || str_ends_with($fechaFolioStr, '00:00:00') || str_ends_with($fechaFolioStr, '00:00')) {
+                            $f->fecha_folio_mantenimiento = $auditFolio->hora;
+                        }
                     }
                 }
             }
@@ -934,6 +971,13 @@ class HistorialOperativoController extends Controller
                         'fecha_inicio' => $f->fecha_folio_mantenimiento,
                         'fecha_fin' => $fechaFin->toDateTimeString()
                     ];
+
+                    // Regla de dominio: tiempo con folio nunca puede superar el tiempo en incidencia
+                    if (!empty($f->tiempo_incidencia) && $f->tiempo_folio['dias'] > $f->tiempo_incidencia['dias']) {
+                        $f->tiempo_folio['dias'] = $f->tiempo_incidencia['dias'];
+                        $f->tiempo_folio['horas'] = min($f->tiempo_folio['horas'], $f->tiempo_incidencia['horas']);
+                        $f->tiempo_folio['texto'] = $f->tiempo_incidencia['texto'];
+                    }
                 } catch (\Exception $e) {}
             }
 
@@ -944,7 +988,12 @@ class HistorialOperativoController extends Controller
             $folios = $folios->filter(function ($f) use ($fecha) {
                 $fFolio = !empty($f->fecha_folio_mantenimiento) ? substr((string)$f->fecha_folio_mantenimiento, 0, 10) : null;
                 $fReg = !empty($f->fecha_registro) ? substr((string)$f->fecha_registro, 0, 10) : null;
-                return $fFolio === $fecha || $fReg === $fecha;
+                $fSalida = !empty($f->fecha_salida_operacion) ? substr((string)$f->fecha_salida_operacion, 0, 10) : null;
+                $tieneAuditFecha = collect($f->auditoria ?? [])->some(function ($a) use ($fecha) {
+                    $horaStr = !empty($a->hora) ? substr((string)$a->hora, 0, 10) : (!empty($a->fecha) ? (string)$a->fecha : null);
+                    return $horaStr === $fecha;
+                });
+                return $fFolio === $fecha || $fReg === $fecha || $fSalida === $fecha || $tieneAuditFecha;
             })->values();
         }
 
@@ -1000,6 +1049,21 @@ class HistorialOperativoController extends Controller
                     'status' => 'error',
                     'message' => "El folio '$nuevoFolio' ya se encuentra asignado a otra unidad. Por favor verifique."
                 ], 422);
+            }
+        }
+
+        // Validar que la fecha del folio no sea anterior a la fecha de la incidencia
+        if ($nuevaFechaFolio) {
+            $fIncReferencia = $nuevaFechaInc ?? $registro->fecha_registro;
+            if ($fIncReferencia) {
+                try {
+                    if (Carbon::parse($nuevaFechaFolio)->lt(Carbon::parse($fIncReferencia))) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'La fecha del folio de mantenimiento no puede ser anterior a la fecha de registro de la incidencia.'
+                        ], 422);
+                    }
+                } catch (\Exception $e) {}
             }
         }
 

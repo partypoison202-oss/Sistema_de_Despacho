@@ -205,7 +205,7 @@ class BitacoraHelper
             DB::table('bitacora_cambios_unidades')->insert([
                 'unidad_id' => $unidadId,
                 'usuario_id' => auth()->id(),
-                'fecha' => Carbon::today()->toDateString(),
+                'fecha' => Carbon::today('America/Mexico_City')->toDateString(),
                 'tipo_accion' => $tipoAccion,
                 'estatus_anterior' => $anterior,
                 'estatus_nuevo' => $nuevo,

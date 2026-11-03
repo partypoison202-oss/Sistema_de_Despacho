@@ -287,7 +287,9 @@ export default function DetalleUnidadMantenimiento() {
           estatus: estatusFinal,
           motivo_estatus: estatusFinal.toUpperCase(),
           numero_incidencia: incidenciaCompleta,
-          falla_reportada: fallaFormValue.trim() || null
+          falla_reportada: fallaFormValue.trim() || null,
+          folio_mantenimiento: null,
+          fecha_folio_mantenimiento: null
         })
       });
       const data = await response.json();
@@ -299,7 +301,9 @@ export default function DetalleUnidadMantenimiento() {
           estatus: estatusFinal,
           motivo_estatus: estatusFinal.toUpperCase(),
           numero_incidencia: incidenciaCompleta,
-          falla_reportada: fallaFormValue.trim()
+          falla_reportada: fallaFormValue.trim(),
+          folio_mantenimiento: null,
+          fecha_folio_mantenimiento: null
         }));
         setSelectedEstado(estatusFinal);
         setIsIncidenceModalOpen(false);
@@ -326,6 +330,8 @@ export default function DetalleUnidadMantenimiento() {
                 motivo_estatus: estatusFinal.toUpperCase(),
                 numero_incidencia: incidenciaCompleta,
                 falla_reportada: fallaFormValue.trim(),
+                folio_mantenimiento: null,
+                fecha_folio_mantenimiento: null,
                 nombre_conductor: 'No reportado hoy',
                 ruta: 'Sin ruta',
                 tarjeton: '',

@@ -135,6 +135,16 @@ class FixMantenimientoColumns extends Command
                     SELECT 3, '233', 'VAGONETA'
                     WHERE NOT EXISTS (SELECT 1 FROM unidades WHERE TRIM(numero_eco) IN ('233', '0233'));
                 END IF;
+
+                -- Limpieza de folios obsoletos/desfasados de ciclos anteriores
+                IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'informacion_operativa') THEN
+                    UPDATE informacion_operativa
+                    SET folio_mantenimiento = null, fecha_folio_mantenimiento = null
+                    WHERE folio_mantenimiento IS NOT NULL
+                      AND fecha_registro IS NOT NULL
+                      AND fecha_folio_mantenimiento IS NOT NULL
+                      AND fecha_folio_mantenimiento < fecha_registro;
+                END IF;
             END $$;
         ";
 
