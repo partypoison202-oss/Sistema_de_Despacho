@@ -19,7 +19,7 @@ export default function HistorialMantenimiento() {
   const [filtroBusqueda, setFiltroBusqueda] = useState('');
   const [activeTab, setActiveTab] = useState(location?.state?.tab || 'folios'); // 'folios', 'inicio', 'cambios', 'fin', 'checklists'
   const [verSoloFechaFolios, setVerSoloFechaFolios] = useState(true);
-  const [filtroTipoFolio, setFiltroTipoFolio] = useState('todos'); // 'todos', 'con_incidencia', 'con_folio', 'sin_folio'
+  const [filtroTipoFolio, setFiltroTipoFolio] = useState('en_taller'); // 'en_taller', 'cerrados', 'todos', 'con_incidencia', 'con_folio', 'sin_folio'
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -242,7 +242,14 @@ export default function HistorialMantenimiento() {
     return str !== '' && str !== 's/f' && str !== 'sin folio' && str !== 'sin_folio' && str !== 'pendiente' && str !== 'n/a' && str !== 'null';
   };
 
+  const esEnTallerActivo = (f) => {
+    const est = String(f.estatus || '').toLowerCase().trim();
+    return est === 'mantenimiento' || est === 'percance';
+  };
+
   const kpiTotalActivo = foliosBase.length;
+  const kpiEnTallerActivo = foliosBase.filter(f => esEnTallerActivo(f)).length;
+  const kpiCerradosActivo = foliosBase.filter(f => !esEnTallerActivo(f)).length;
   const kpiConIncidenciaActivo = foliosBase.filter(f => f.numero_incidencia && String(f.numero_incidencia).trim() !== '').length;
   const kpiConFolioActivo = foliosBase.filter(f => tieneFolioValido(f.folio_mantenimiento)).length;
   const kpiSinFolioActivo = foliosBase.filter(f => !tieneFolioValido(f.folio_mantenimiento)).length;
@@ -263,7 +270,11 @@ export default function HistorialMantenimiento() {
     if (activeTab === 'checklists') return datos.checklists || [];
     if (activeTab === 'folios') {
       let lista = foliosBase;
-      if (filtroTipoFolio === 'con_incidencia') {
+      if (filtroTipoFolio === 'en_taller' || filtroTipoFolio === 'activos') {
+        lista = lista.filter(f => esEnTallerActivo(f));
+      } else if (filtroTipoFolio === 'cerrados' || filtroTipoFolio === 'liberados') {
+        lista = lista.filter(f => !esEnTallerActivo(f));
+      } else if (filtroTipoFolio === 'con_incidencia') {
         lista = lista.filter(f => f.numero_incidencia && String(f.numero_incidencia).trim() !== '');
       } else if (filtroTipoFolio === 'con_folio') {
         lista = lista.filter(f => tieneFolioValido(f.folio_mantenimiento));
@@ -1118,8 +1129,27 @@ export default function HistorialMantenimiento() {
                 </span>
                 <button
                   type="button"
+                  className={`chip-btn ${filtroTipoFolio === 'en_taller' ? 'active' : ''}`}
+                  onClick={() => setFiltroTipoFolio('en_taller')}
+                  title="Unidades que actualmente se encuentran adentro de taller o en percance"
+                >
+                  <span className="chip-dot dot-active-live"></span>
+                  En Taller Ahora <span className="chip-count">{kpiEnTallerActivo}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`chip-btn ${filtroTipoFolio === 'cerrados' ? 'active' : ''}`}
+                  onClick={() => setFiltroTipoFolio('cerrados')}
+                  title="Unidades que ya concluyeron mantenimiento y regresaron a Operación o Reserva"
+                >
+                  <span className="chip-dot" style={{ backgroundColor: '#64748b' }}></span>
+                  Cerrados / Liberados <span className="chip-count">{kpiCerradosActivo}</span>
+                </button>
+                <button
+                  type="button"
                   className={`chip-btn ${filtroTipoFolio === 'todos' ? 'active' : ''}`}
                   onClick={() => setFiltroTipoFolio('todos')}
+                  title="Mostrar el total de registros del día (activos y concluidos)"
                 >
                   Todos <span className="chip-count">{kpiTotalActivo}</span>
                 </button>
@@ -1659,6 +1689,15 @@ export default function HistorialMantenimiento() {
                               <>
                                 No hay resultados para "<strong>{filtroBusqueda}</strong>". Recuerda que la búsqueda solo opera por <strong>Económico</strong>, <strong>N° de Incidencia</strong> o <strong>N° de Folio</strong>.
                               </>
+                            ) : (filtroTipoFolio === 'en_taller' || filtroTipoFolio === 'activos') && kpiEnTallerActivo === 0 ? (
+                              <>
+                                No hay unidades en taller activo para el día <strong>{selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'seleccionado'}</strong>.
+                                {kpiCerradosActivo > 0 && (
+                                  <span style={{ display: 'block', marginTop: '6px' }}>
+                                    Hay <strong>{kpiCerradosActivo}</strong> unidades con mantenimiento ya concluido/cerrado en esta fecha.
+                                  </span>
+                                )}
+                              </>
                             ) : verSoloFechaFolios ? (
                               <>
                                 No se registraron folios ni incidencias el día <strong>{selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'seleccionado'}</strong>.
@@ -1667,6 +1706,22 @@ export default function HistorialMantenimiento() {
                               'No hay económicos que coincidan con los filtros seleccionados.'
                             )}
                           </p>
+
+                          {/* Botón directo para ver registros cerrados si en taller activo no hay nada */}
+                          {(filtroTipoFolio === 'en_taller' || filtroTipoFolio === 'activos') && kpiCerradosActivo > 0 && !filtroBusqueda.trim() && (
+                            <button
+                              type="button"
+                              className="btn-ir-historial-completo-empty"
+                              onClick={() => setFiltroTipoFolio('todos')}
+                              style={{ marginTop: '0.65rem' }}
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                              </svg>
+                              <span>Ver Todos los Registros del Día ({kpiTotalActivo})</span>
+                            </button>
+                          )}
 
                           {/* Botón directo para pasar a Historial Completo con un solo clic */}
                           {verSoloFechaFolios && kpiTotalGlobal > 0 && !filtroBusqueda.trim() && (
@@ -3356,6 +3411,16 @@ export default function HistorialMantenimiento() {
         }
         .dot-rose {
           background-color: #A02142;
+        }
+        .dot-active-live {
+          background-color: #ef4444;
+          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+          animation: pulse-live 1.8s infinite;
+        }
+        @keyframes pulse-live {
+          0% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+          100% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         .folios-quick-status-legend {
           display: flex;
