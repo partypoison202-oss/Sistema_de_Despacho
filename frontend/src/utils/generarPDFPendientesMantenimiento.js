@@ -142,19 +142,27 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   let subtitulo;
   let filename;
 
+  const esFolioInvalido = (u) => {
+    if (!u.folio_mantenimiento || String(u.folio_mantenimiento).trim() === '') return true;
+    if (u.fecha_folio_mantenimiento && u.fecha_registro) {
+      try {
+        const dFol = new Date(String(u.fecha_folio_mantenimiento).replace(' ', 'T')).getTime();
+        const dInc = new Date(String(u.fecha_registro).replace(' ', 'T')).getTime();
+        if (!isNaN(dFol) && !isNaN(dInc) && dFol < dInc) return true;
+      } catch (e) {}
+    }
+    return false;
+  };
+
   if (tipo === 'pendientes') {
     // Tienen número de incidencia registrada pero NO tienen folio generado aún
-    unidadesFiltradas = unidades.filter(
-      (u) => !u.folio_mantenimiento || String(u.folio_mantenimiento).trim() === ''
-    );
+    unidadesFiltradas = unidades.filter((u) => esFolioInvalido(u));
     titulo = 'ECONÓMICOS EN MANTENIMIENTO';
     subtitulo = 'Económicos con incidencia asignada';
     filename = `Reporte_Economicos_Mantenimiento_${fechaStr.replace(/ /g, '_')}.pdf`;
   } else {
     // Ya tienen folio completo generado (en mantenimiento activo)
-    unidadesFiltradas = unidades.filter(
-      (u) => u.folio_mantenimiento && String(u.folio_mantenimiento).trim() !== ''
-    );
+    unidadesFiltradas = unidades.filter((u) => !esFolioInvalido(u));
     titulo = 'ECONÓMICOS CON FOLIO';
     subtitulo = 'Unidades con reporte de falla activo';
     filename = `Reporte_Economicos_Folio_${fechaStr.replace(/ /g, '_')}.pdf`;
@@ -229,8 +237,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
       u.numero_eco,
       String(u.tipo || '').toUpperCase(),
       String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
-      formatDate(u.fecha_folio_mantenimiento || u.fecha_registro),
-      calcularDias(u.fecha_folio_mantenimiento || u.fecha_registro),
+      formatDate(u.fecha_registro || u.fecha_folio_mantenimiento),
+      calcularDias(u.fecha_registro || u.fecha_folio_mantenimiento),
     ]);
     colStyles = {
       4: { halign: 'left', cellWidth: 50 },
@@ -247,8 +255,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
       u.numero_eco,
       String(u.tipo || '').toUpperCase(),
       String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
-      formatDate(u.fecha_folio_mantenimiento || u.fecha_registro),
-      calcularDias(u.fecha_folio_mantenimiento || u.fecha_registro),
+      formatDate(u.fecha_registro || u.fecha_folio_mantenimiento),
+      calcularDias(u.fecha_registro || u.fecha_folio_mantenimiento),
     ]);
     colStyles = {
       5: { halign: 'left', cellWidth: 50 },
