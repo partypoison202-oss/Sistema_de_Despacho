@@ -811,16 +811,17 @@ class HistorialOperativoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where(function ($q) {
-                // 1. Unidades que tienen folio físico de mantenimiento asignado
-                $q->where(function ($qFolio) {
+                // 1. Unidades que se encuentran activamente en taller o percance
+                $q->whereIn(DB::raw("LOWER(COALESCE(informacion_operativa.estatus, ''))"), ['mantenimiento', 'percance'])
+                // 2. O unidades con folio físico de mantenimiento asignado
+                ->orWhere(function ($qFolio) {
                     $qFolio->whereNotNull('informacion_operativa.folio_mantenimiento')
                            ->where('informacion_operativa.folio_mantenimiento', '!=', '');
                 })
-                // 2. O unidades con número de incidencia asignado (excluyendo percance no resuelto sin folio)
+                // 3. O unidades con número de incidencia asignado
                 ->orWhere(function ($qInc) {
                     $qInc->whereNotNull('informacion_operativa.numero_incidencia')
-                         ->where('informacion_operativa.numero_incidencia', '!=', '')
-                         ->whereRaw("LOWER(COALESCE(informacion_operativa.estatus, '')) != ?", ['percance']);
+                         ->where('informacion_operativa.numero_incidencia', '!=', '');
                 });
             });
 
@@ -1016,7 +1017,13 @@ class HistorialOperativoController extends Controller
         });
 
         if ($fecha) {
-            $folios = $folios->filter(function ($f) use ($fecha) {
+            $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
+            $esHoy = ($fecha === $fechaHoyMex || $fecha === Carbon::today()->toDateString());
+            $folios = $folios->filter(function ($f) use ($fecha, $esHoy) {
+                $est = strtolower(trim((string)($f->estatus ?? '')));
+                if ($esHoy && in_array($est, ['mantenimiento', 'percance'])) {
+                    return true;
+                }
                 $fFolio = !empty($f->fecha_folio_mantenimiento) ? substr((string)$f->fecha_folio_mantenimiento, 0, 10) : null;
                 $fReg = !empty($f->fecha_registro) ? substr((string)$f->fecha_registro, 0, 10) : null;
                 return $fFolio === $fecha || $fReg === $fecha;
