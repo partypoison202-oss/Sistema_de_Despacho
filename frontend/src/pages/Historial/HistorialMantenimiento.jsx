@@ -219,15 +219,19 @@ export default function HistorialMantenimiento() {
     (f.numero_incidencia && String(f.numero_incidencia).trim() !== '')
   );
 
-  // Unidades correspondientes a la fecha seleccionada que tienen o tuvieron folio o incidencia registrada.
-  // Las unidades que regresaron a Operación se conservan mostrando su último cambio y estado resuelto.
+  // Unidades correspondientes a la fecha seleccionada que SIGUEN en taller/percance.
+  // Las que ya regresaron a Operación salen de esta vista y quedan en su Historial Completo.
+  const yaEnOperacion = (f) => {
+    const est = String(f.estatus || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return est === 'operacion';
+  };
+
   const foliosValidosDia = foliosValidosGlobal.filter(f => {
+    if (yaEnOperacion(f)) return false;
     if (!selectedFecha) return true;
     const fFolio = extraerFechaYMD(f.fecha_folio_mantenimiento);
     const fInc = extraerFechaYMD(f.fecha_registro);
-    const fSalida = extraerFechaYMD(f.fecha_salida_operacion);
-    const tieneAuditoriaEnFecha = Array.isArray(f.auditoria) && f.auditoria.some(a => extraerFechaYMD(a.hora || a.fecha) === selectedFecha);
-    return fFolio === selectedFecha || fInc === selectedFecha || fSalida === selectedFecha || tieneAuditoriaEnFecha;
+    return fFolio === selectedFecha || fInc === selectedFecha;
   });
 
   // Lista base según el modo de alcance activo (Por Día vs Todos los Días / Historial Completo)
