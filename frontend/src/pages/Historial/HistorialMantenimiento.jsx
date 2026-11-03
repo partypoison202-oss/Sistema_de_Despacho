@@ -220,25 +220,10 @@ export default function HistorialMantenimiento() {
     (['mantenimiento', 'percance'].includes(String(f.estatus || '').toLowerCase().trim()))
   );
 
-  // Unidades correspondientes a la fecha seleccionada que SIGUEN en taller/percance.
-  // Las que ya regresaron a Operación salen de esta vista y quedan en su Historial Completo.
-  const yaEnOperacion = (f) => {
-    const est = String(f.estatus || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return est === 'operacion';
-  };
-
+  // Unidades correspondientes a la fecha seleccionada en su respectivo día.
+  // Si la unidad ya concluyó su mantenimiento (operación/reserva), se muestra en su día como registro cerrado (🔒 Cerrado).
   const foliosValidosDia = foliosValidosGlobal.filter(f => {
-    if (yaEnOperacion(f)) return false;
     if (!selectedFecha) return true;
-
-    // Si la fecha seleccionada es hoy y la unidad sigue activamente en mantenimiento o percance, debe aparecer
-    const hoyLocal = new Date().toLocaleDateString('en-CA');
-    const hoyIso = new Date().toISOString().slice(0, 10);
-    const esHoy = selectedFecha === hoyLocal || selectedFecha === hoyIso;
-    const est = String(f.estatus || '').toLowerCase().trim();
-    if (esHoy && (est === 'mantenimiento' || est === 'percance')) {
-      return true;
-    }
 
     const fFolio = extraerFechaYMD(f.fecha_folio_mantenimiento);
     const fInc = extraerFechaYMD(f.fecha_registro);
@@ -287,19 +272,21 @@ export default function HistorialMantenimiento() {
       }
 
       // ORDENAMIENTO REQUERIDO:
-      // 1. Si es por día (verSoloFechaFolios === true): "de la hora más vieja a la más reciente" -> ASCENDENTE
-      // 2. Si es Historial Completo (verSoloFechaFolios === false): "del más nuevo al más viejo, los viejos abajo y los nuevos folios arriba" -> DESCENDENTE
+      // "alineados los economicos por cronologia del mas viejo hasta abajo y el mas nuevo hasta ariba"
+      // -> El más nuevo (fecha/hora más reciente) ARRIBA, el más viejo (fecha/hora más antigua) ABAJO.
       return [...lista].sort((a, b) => {
-        const timeA = new Date(a.fecha_folio_mantenimiento || a.fecha_registro || 0).getTime();
-        const timeB = new Date(b.fecha_folio_mantenimiento || b.fecha_registro || 0).getTime();
+        const parseTime = (val) => {
+          if (!val) return 0;
+          if (val instanceof Date) return val.getTime();
+          const str = String(val).trim().replace(' ', 'T');
+          const t = new Date(str).getTime();
+          return isNaN(t) ? 0 : t;
+        };
+        const timeA = Math.max(parseTime(a.fecha_folio_mantenimiento), parseTime(a.fecha_registro));
+        const timeB = Math.max(parseTime(b.fecha_folio_mantenimiento), parseTime(b.fecha_registro));
 
-        if (verSoloFechaFolios) {
-          if (timeA !== timeB) return timeA - timeB;
-          return String(a.economico || '').localeCompare(String(b.economico || ''), undefined, { numeric: true });
-        } else {
-          if (timeB !== timeA) return timeB - timeA;
-          return String(a.economico || '').localeCompare(String(b.economico || ''), undefined, { numeric: true });
-        }
+        if (timeB !== timeA) return timeB - timeA; // Más nuevo arriba, más viejo abajo
+        return String(a.economico || '').localeCompare(String(b.economico || ''), undefined, { numeric: true });
       });
     }
     return [];

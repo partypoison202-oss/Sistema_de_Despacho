@@ -902,8 +902,12 @@ class HistorialOperativoController extends Controller
 
             if ($auditIncidencia && !empty($auditIncidencia->hora)) {
                 $fechaRegStr = trim((string)($f->fecha_registro ?? ''));
-                if (empty($fechaRegStr) || str_ends_with($fechaRegStr, '00:00:00') || str_ends_with($fechaRegStr, '00:00')) {
-                    $f->fecha_registro = $auditIncidencia->hora;
+                $esMismoDia = (!empty($fechaRegStr) && substr($auditIncidencia->hora, 0, 10) === substr($fechaRegStr, 0, 10));
+                $esIncidenciaEspecifica = (!empty($f->numero_incidencia) && str_contains($auditIncidencia->detalles ?? '', (string)$f->numero_incidencia));
+                if (empty($fechaRegStr) || $esMismoDia || $esIncidenciaEspecifica) {
+                    if (empty($fechaRegStr) || str_ends_with($fechaRegStr, '00:00:00') || str_ends_with($fechaRegStr, '00:00')) {
+                        $f->fecha_registro = $auditIncidencia->hora;
+                    }
                 }
             }
 
@@ -913,7 +917,7 @@ class HistorialOperativoController extends Controller
                 $f->tiempo_folio = null;
             } else {
                 $auditFolio = $fAuditoria->first(function ($b) use ($f) {
-                    if (str_contains($b->detalles ?? '', $f->folio_mantenimiento)) {
+                    if (str_contains($b->detalles ?? '', (string)$f->folio_mantenimiento)) {
                         return true;
                     }
                     return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO']);
@@ -921,8 +925,12 @@ class HistorialOperativoController extends Controller
 
                 if ($auditFolio && !empty($auditFolio->hora)) {
                     $fechaFolioStr = trim((string)($f->fecha_folio_mantenimiento ?? ''));
-                    if (empty($fechaFolioStr) || str_ends_with($fechaFolioStr, '00:00:00') || str_ends_with($fechaFolioStr, '00:00')) {
-                        $f->fecha_folio_mantenimiento = $auditFolio->hora;
+                    $esMismoDiaFol = (!empty($fechaFolioStr) && substr($auditFolio->hora, 0, 10) === substr($fechaFolioStr, 0, 10));
+                    $esFolioEspecifico = (!empty($f->folio_mantenimiento) && str_contains($auditFolio->detalles ?? '', (string)$f->folio_mantenimiento));
+                    if (empty($fechaFolioStr) || $esMismoDiaFol || $esFolioEspecifico) {
+                        if (empty($fechaFolioStr) || str_ends_with($fechaFolioStr, '00:00:00') || str_ends_with($fechaFolioStr, '00:00')) {
+                            $f->fecha_folio_mantenimiento = $auditFolio->hora;
+                        }
                     }
                 }
             }
@@ -1017,13 +1025,7 @@ class HistorialOperativoController extends Controller
         });
 
         if ($fecha) {
-            $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
-            $esHoy = ($fecha === $fechaHoyMex || $fecha === Carbon::today()->toDateString());
-            $folios = $folios->filter(function ($f) use ($fecha, $esHoy) {
-                $est = strtolower(trim((string)($f->estatus ?? '')));
-                if ($esHoy && in_array($est, ['mantenimiento', 'percance'])) {
-                    return true;
-                }
+            $folios = $folios->filter(function ($f) use ($fecha) {
                 $fFolio = !empty($f->fecha_folio_mantenimiento) ? substr((string)$f->fecha_folio_mantenimiento, 0, 10) : null;
                 $fReg = !empty($f->fecha_registro) ? substr((string)$f->fecha_registro, 0, 10) : null;
                 return $fFolio === $fecha || $fReg === $fecha;
