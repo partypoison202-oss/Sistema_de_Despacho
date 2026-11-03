@@ -103,9 +103,14 @@ class Conductor extends Model
 
     protected $memoizedVentanaFaltas = null;
 
-    public function evaluarInhabilitacionFaltas()
+    public function limpiarMemoizedVentanaFaltas()
     {
-        if ($this->memoizedVentanaFaltas !== null) {
+        $this->memoizedVentanaFaltas = null;
+    }
+
+    public function evaluarInhabilitacionFaltas($forzarRecalculo = false)
+    {
+        if (!$forzarRecalculo && $this->memoizedVentanaFaltas !== null) {
             return $this->memoizedVentanaFaltas;
         }
 
@@ -124,6 +129,11 @@ class Conductor extends Model
             $faltasNoJustificadas = [];
             foreach ($detalle as $item) {
                 if (!is_array($item)) continue;
+
+                // Las incidencias convertidas o registradas como retardo no son faltas activas
+                if (isset($item['estado']) && $item['estado'] === 'retardo') {
+                    continue;
+                }
 
                 $esJustificada = isset($item['estado']) && $item['estado'] === 'justificada';
                 if (isset($item['justificada']) && $item['justificada']) {

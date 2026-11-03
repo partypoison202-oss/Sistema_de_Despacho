@@ -235,6 +235,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       setObservacionesJustificante('');
       setFaltaAJustificar(null);
 
+      if (data?.conductor) {
+        setConductorSeleccionado(prev => ({ ...(prev || {}), ...data.conductor }));
+      }
+
       if (typeof onRefresh === 'function') {
         onRefresh();
       }
@@ -281,6 +285,9 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       });
 
       setModalNuevaFaltaOpen(false);
+      if (data?.conductor) {
+        setConductorSeleccionado(prev => ({ ...(prev || {}), ...data.conductor }));
+      }
       if (typeof onRefresh === 'function') {
         onRefresh();
       }
@@ -340,6 +347,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
         confirmButtonColor: '#10b981',
         timer: 1500
       });
+
+      if (data?.conductor) {
+        setConductorSeleccionado(prev => ({ ...(prev || {}), ...data.conductor }));
+      }
 
       if (typeof onRefresh === 'function') {
         onRefresh();
@@ -407,6 +418,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
         confirmButtonColor: '#10b981',
         timer: 2000
       });
+
+      if (data?.conductor) {
+        setConductorSeleccionado(prev => ({ ...(prev || {}), ...data.conductor }));
+      }
 
       if (typeof onRefresh === 'function') {
         onRefresh();
