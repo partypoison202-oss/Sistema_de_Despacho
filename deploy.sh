@@ -10,6 +10,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Prevenir que cambios de permisos de Linux (chmod en storage) ensucien git status
+git config core.fileMode false 2>/dev/null || true
+
 # ── Colores para la interfaz de consola ────────────────────────
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -43,6 +46,7 @@ PULL_NEEDED=false
 RANGE=""
 TIPO_DESPLIEGUE=""
 PREGUNTA=""
+
 
 if [ "$REMOTE_PENDING" -gt 0 ]; then
     PULL_NEEDED=true
@@ -247,6 +251,8 @@ echo -e "${GREEN}✔ Usando php: ${PHP_BIN}${NC}"
 # Paso 1: Actualizar código desde Git
 if [ "$PULL_NEEDED" = true ]; then
     echo -e "\n${BLUE}📥 1. Descargando cambios desde Git (git pull origin ${BRANCH})...${NC}"
+    # Descartar cualquier residuo de permisos en storage para garantizar pull sin bloqueos
+    git checkout -- laravel-api/bootstrap/cache/.gitignore laravel-api/storage/ 2>/dev/null || true
     git pull origin "$BRANCH"
 else
     echo -e "\n${GREEN}✔ 1. Código local ya sincronizado (no se requiere descarga adicional de Git).${NC}"
@@ -256,7 +262,13 @@ fi
 echo -e "\n${BLUE}📦 2. Instalando dependencias y compilando Frontend (Vite)...${NC}"
 cd frontend
 npm ci --ignore-scripts
-npm run build
+if ! npm run build; then
+    echo -e "${RED}❌ Error al compilar frontend con Vite.${NC}"
+    echo -e "${YELLOW}ℹ️  Diagnóstico: Si el error menciona 'EACCES: permission denied, unlink' en 'dist/' o 'node_modules/.bin/',${NC}"
+    echo -e "${YELLOW}   significa que previamente se ejecutó npm con sudo/root dejando archivos bloqueados.${NC}"
+    echo -e "${YELLOW}   Para solucionarlo ejecuta: mv dist dist_old_root && npm run build${NC}"
+    exit 1
+fi
 cd ..
 
 # Paso 3: Instalación de dependencias del backend optimizadas para producción
@@ -269,8 +281,11 @@ echo -e "\n${BLUE}🧹 4. Limpiando y optimizando caché de Laravel...${NC}"
 "$PHP_BIN" artisan optimize:clear
 
 # Paso 5: Asignación de permisos en storage y bootstrap/cache ANTES de ejecutar artisan
+# NOTA CRÍTICA ROCKY LINUX 9: Se usa '2>/dev/null || true' porque bajo 'set -e', si algún archivo en storage
+# pertenece al usuario de PHP-FPM (apache), el usuario 'desarrollo' no es su dueño y chmod
+# arrojaría 'Operation not permitted', deteniendo el despliegue innecesariamente.
 echo -e "\n${BLUE}🔐 5. Asignando permisos críticos a storage y bootstrap/cache...${NC}"
-chmod -R 777 storage bootstrap/cache
+chmod -R 777 storage bootstrap/cache 2>/dev/null || true
 
 # Paso 5.4: Respaldo preventivo automático de base de datos (PostgreSQL)
 echo -e "\n${BLUE}💾 5.4. Generando respaldo preventivo automático de base de datos...${NC}"
@@ -315,12 +330,20 @@ echo -e "\n${BLUE}🗄️ 6. Ejecutando migraciones de base de datos (solo nueva
 "$PHP_BIN" artisan migrate --force
 
 # Paso 6.5: Garantizar permisos y propiedad post-artisan en storage y logs
+# NOTA CRÍTICA ROCKY LINUX 9: PHP-FPM corre bajo el usuario 'apache:apache' (NO nginx ni desarrollo).
+# Nginx actúa como reverse proxy, pero quien escribe sesiones y caché de Laravel es PHP-FPM.
+# Por lo tanto, se prioriza 'apache:apache' para prevenir errores HTTP 500 (Permission denied).
 echo -e "\n${BLUE}🔐 6.5. Asegurando permisos post-artisan en storage y logs...${NC}"
 mkdir -p storage/logs
 touch storage/logs/laravel.log
-chmod -R 777 storage bootstrap/cache
+chmod -R 777 storage bootstrap/cache 2>/dev/null || true
 chmod 666 storage/logs/laravel.log 2>/dev/null || chmod 777 storage/logs/laravel.log 2>/dev/null || true
-chown -R nginx:nginx storage bootstrap/cache 2>/dev/null || chown -R apache:apache storage bootstrap/cache 2>/dev/null || chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+# Prioridad 1: apache (Rocky Linux / CentOS / RHEL), Prioridad 2: nginx, Prioridad 3: www-data
+chown -R apache:apache storage bootstrap/cache 2>/dev/null || \
+chown -R nginx:nginx storage bootstrap/cache 2>/dev/null || \
+chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+# Reestablecer contexto SELinux en Rocky Linux 9
+chcon -R -t httpd_sys_rw_content_t storage bootstrap/cache 2>/dev/null || true
 
 cd ..
 

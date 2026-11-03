@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { generarPDFPendientesMantenimiento } from '../../utils/generarPDFPendientesMantenimiento';
+import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
 import { transportModules } from '../../config/transportModules';
 import './Mantenimiento.css';
 import '../CentroControl/CentroControl.css';
@@ -31,6 +32,7 @@ export default function Mantenimiento() {
   // Estado para el modal de previsualización
   const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
   const [previewFilename, setPreviewFilename] = useState('');
+  const [generandoOperacional, setGenerandoOperacional] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -273,18 +275,71 @@ export default function Mantenimiento() {
     }
   };
 
+  const handleGenerarReporteOperacionalPorHora = async () => {
+    try {
+      setGenerandoOperacional(true);
+      Swal.fire({
+        title: 'Generando reporte...',
+        text: 'Obteniendo datos operativos del día...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+      const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error('Error al obtener datos operativos de hoy');
+      const data = await res.json();
+
+      if (!data || data.length === 0) {
+        Swal.close();
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sin datos disponibles',
+          text: 'No hay datos de despacho registrados para el día de hoy.',
+          confirmButtonColor: '#601a2a',
+        });
+        return;
+      }
+
+      const { blob, filename } = await generarPDFReporteOperacionalPorHora(data, true);
+      Swal.close();
+      const url = URL.createObjectURL(blob);
+      setPreviewPdfUrl(url);
+      setPreviewFilename(filename);
+    } catch (error) {
+      console.error('Error al generar reporte operacional por hora:', error);
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message || 'No se pudo generar el reporte operacional por hora.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setGenerandoOperacional(false);
+    }
+  };
+
   return (
     <>
       <div className="mantenimiento">
         <Header />
         <main className="mantenimiento__main">
-          <p className="page-eyebrow">SELECCIONE EL TIPO DE TRANSPORTE</p>
+          <p className="page-eyebrow">{isInspeccion ? 'SISTEMA DE GESTIÓN OPERATIVA' : 'SELECCIONE EL TIPO DE TRANSPORTE'}</p>
           <h1 className="page-title">
-            {isInspeccion ? 'CARGA DE COMBUSTIBLE' : 'MANTENIMIENTO PARQUE VEHICULAR'}
+            {isInspeccion ? 'CONTROL DE COMBUSTIBLE' : 'MANTENIMIENTO PARQUE VEHICULAR'}
           </h1>
           <p className="mantenimiento__subtitle text-gray-500 dark:text-gray-300">
             {isInspeccion
-              ? 'Toque la imagen del transporte para comenzar la carga de combustible'
+              ? 'Captura diaria de combustible, AdBlue y seguimiento semanal de consumos'
               : 'Toque la imagen del transporte para comenzar el mantenimiento'}
           </p>
 
@@ -355,6 +410,46 @@ export default function Mantenimiento() {
                     <small>Unidades con reporte de falla activo</small>
                   </span>
                 </button>
+
+                <button
+                  type="button"
+                  className="mant-btn mant-btn--hora"
+                  onClick={handleGenerarReporteOperacionalPorHora}
+                  disabled={generandoOperacional}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <span>
+                    <strong>{generandoOperacional ? 'Generando...' : 'Reporte Operativo por Hora'}</strong>
+                    <small>Estatus de flota, taller y patio</small>
+                  </span>
+                </button>
+              </div>
+
+              {/* Botón hacia Historial Mantenimiento (Revisión e Historial de Folios Previos) */}
+              <div className="mantenimiento__actions-extra">
+                <button
+                  type="button"
+                  className="mant-btn mant-btn--historial"
+                  onClick={() => navigate('/historial/mantenimiento', { state: { tab: 'folios' } })}
+                  title="Ir a Historial de Mantenimiento - Revisión e Historial de Folios Previos"
+                >
+                  <svg className="mant-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v5h5" />
+                    <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
+                    <path d="M12 7v5l4 2" />
+                  </svg>
+                  <span>
+                    <strong>Historial de Mantenimiento</strong>
+                    <small>Revisión e Historial de Folios Previos</small>
+                  </span>
+                  <svg className="mant-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
               </div>
             </div>
           )}
@@ -401,7 +496,7 @@ export default function Mantenimiento() {
               <h3 style={{ margin: 0, color: '#601a2a', fontSize: '1.25rem', fontWeight: 'bold' }}>Vista Previa del Reporte</h3>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button
-                  style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', backgroundColor: '#601a2a', color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background-color 0.2s' }}
+                  style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', backgroundColor: '#601a2a', color: '#fff', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'background-color 0.2s' }}
                   onMouseOver={(e) => e.target.style.backgroundColor = '#4a1420'}
                   onMouseOut={(e) => e.target.style.backgroundColor = '#601a2a'}
                   onClick={() => {
@@ -414,7 +509,20 @@ export default function Mantenimiento() {
                     document.body.removeChild(a);
                   }}
                 >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                   Descargar PDF
+                </button>
+                <button
+                  style={{
+                    padding: '0.5rem 0.85rem', border: '1px solid #d1d5db', borderRadius: '6px',
+                    backgroundColor: '#f9fafb', color: '#374151', cursor: 'pointer',
+                    fontWeight: '500', display: 'flex', alignItems: 'center', gap: '5px'
+                  }}
+                  title="Abrir PDF en pestaña nueva"
+                  onClick={() => window.open(previewPdfUrl, '_blank')}
+                >
+                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  Abrir PDF
                 </button>
                 <button
                   style={{ padding: '0.5rem 1rem', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: '#f9fafb', color: '#374151', cursor: 'pointer', fontWeight: '500', transition: 'background-color 0.2s' }}

@@ -141,6 +141,54 @@ class BitacoraHelper
                     Log::info("Snapshot INICIO guardado de forma auto-generada para la fecha {$hoy}.");
                 }
             }
+
+            // Asegurar también que programacion_inicial capture la flota programada original de hoy
+            if (\Illuminate\Support\Facades\Schema::hasTable('programacion_inicial')) {
+                if ($forzar) {
+                    DB::table('programacion_inicial')->where('fecha', $hoy)->delete();
+                }
+                $existeProg = DB::table('programacion_inicial')->where('fecha', $hoy)->exists();
+                if (!$existeProg) {
+                    $regsOperativa = DB::table('informacion_operativa')->get();
+                    $inicialCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing('programacion_inicial'));
+                    $itemsInicial = [];
+                    foreach ($regsOperativa as $reg) {
+                        $arrayReg = (array) $reg;
+                        $estatusOrig = strtolower(trim((string)($arrayReg['estatus'] ?? '')));
+                        $tieneRutaManto = !empty($arrayReg['mantenimiento_ruta']);
+                        $tieneServicio = !empty($arrayReg['ruta']) || !empty($arrayReg['numero_tarjeton']) || !empty($arrayReg['corridas']);
+                        $esProgramada = ($estatusOrig === 'operacion' || ($estatusOrig !== 'reserva' && ($tieneServicio || $tieneRutaManto)));
+
+                        if ($esProgramada) {
+                            $rowFiltered = [];
+                            foreach ($arrayReg as $k => $v) {
+                                if (isset($inicialCols[$k])) {
+                                    $rowFiltered[$k] = in_array($k, ['patio_norte', 'transporte_patio_norte', 'itinerario'])
+                                        ? (filter_var($v, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
+                                        : $v;
+                                }
+                            }
+                            $rowFiltered['estatus'] = 'operacion';
+                            $rowFiltered['fecha'] = $hoy;
+                            if ($tieneRutaManto) {
+                                $rowFiltered['ruta'] = $arrayReg['mantenimiento_ruta'];
+                                if (!empty($arrayReg['mantenimiento_conductor'])) $rowFiltered['nombre_conductor'] = $arrayReg['mantenimiento_conductor'];
+                                if (!empty($arrayReg['mantenimiento_tarjeton'])) $rowFiltered['numero_tarjeton'] = $arrayReg['mantenimiento_tarjeton'];
+                                if (!empty($arrayReg['mantenimiento_corrida'])) $rowFiltered['corridas'] = (int) preg_replace('/[^0-9]/', '', (string)$arrayReg['mantenimiento_corrida']);
+                            }
+                            $rowFiltered['created_at'] = Carbon::now();
+                            $rowFiltered['updated_at'] = Carbon::now();
+                            $itemsInicial[] = array_intersect_key($rowFiltered, $inicialCols);
+                        }
+                    }
+                    if (!empty($itemsInicial)) {
+                        foreach (array_chunk($itemsInicial, 50) as $chunk) {
+                            DB::table('programacion_inicial')->insert($chunk);
+                        }
+                        Log::info("Programación inicial capturada para la fecha {$hoy} (" . count($itemsInicial) . " unidades).");
+                    }
+                }
+            }
         } catch (\Exception $e) {
             Log::error('Error en BitacoraHelper::ensureInicioSnapshot: ' . $e->getMessage());
         }

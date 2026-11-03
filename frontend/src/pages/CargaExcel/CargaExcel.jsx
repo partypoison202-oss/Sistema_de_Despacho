@@ -643,25 +643,25 @@ export default function CargaExcel({ isPasteles = false }) {
     let textoX = 14; // límite izquierdo del bloque de título (se ajusta si carga el logo izq.)
     let textoRightLimit = pageWidth - 14; // límite derecho (se ajusta si carga el logo der.)
 
-    // ── LOGO IZQUIERDO: sistema_de_tm ──
+    // ── LOGO IZQUIERDO: ACOTMA ──
     try {
-      const { base64, width, height } = await loadImageAsBase64('/images/sistema_de_tm.webp');
+      const { base64, width, height } = await loadImageAsBase64('/images/acotma_logo_connombre_contorno_v2.png');
       const anchoMM = (width / height) * logoAltoMM;
       doc.addImage(base64, 'PNG', 14, logoY, anchoMM, logoAltoMM, undefined, 'FAST');
       textoX = 14 + anchoMM + 6;
     } catch (e) {
-      console.warn('No se pudo cargar el logo sistema_de_tm.webp para el PDF:', e);
+      console.warn('No se pudo cargar el logo acotma_logo_connombre_contorno_v2.png para el PDF:', e);
     }
 
-    // ── LOGO DERECHO: sitmah_logo ──
+    // ── LOGO DERECHO: Escudo Hidalgo ──
     try {
-      const { base64, width, height } = await loadImageAsBase64('/images/sitmah_logo.png');
+      const { base64, width, height } = await loadImageAsBase64('/images/escudo_hidalgo.png');
       const anchoMM = (width / height) * logoAltoMM;
       const logoXDerecho = pageWidth - 14 - anchoMM;
       doc.addImage(base64, 'PNG', logoXDerecho, logoY, anchoMM, logoAltoMM, undefined, 'FAST');
       textoRightLimit = logoXDerecho - 6;
     } catch (e) {
-      console.warn('No se pudo cargar el logo sitmah_logo para el PDF:', e);
+      console.warn('No se pudo cargar el logo escudo_hidalgo.png para el PDF:', e);
     }
 
     // ── TÍTULO (centrado entre ambos logos) ──

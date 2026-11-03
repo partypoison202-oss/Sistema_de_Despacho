@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+﻿import jsPDF from 'jspdf';
 
 // Colores institucionales
 const COLOR_GUINDA     = [96, 26, 42]; 
@@ -145,8 +145,8 @@ export const generarPDFReporteUnidades = async (data) => {
     pdf.setFillColor(...COLOR_GUINDA);
     pdf.rect(0, 0, pw, 25, 'F');
     
-    // Logo
-    const logoImg = await loadImage('/images/sistema_de_tm.webp');
+    // Logo ACOTMA
+    const logoImg = await loadImage('/images/acotma_logo_connombre_contorno_v2.png');
     if (logoImg && (logoImg.naturalWidth > 0 || logoImg.width > 0)) {
         const canvas = document.createElement('canvas');
         canvas.width  = logoImg.naturalWidth  || logoImg.width;

@@ -1,0 +1,474 @@
+/* ==========================================================================
+   Detalles de la Acción / Operación — Formato Visual, Simétrico y Estructurado
+   ========================================================================== */
+
+.da-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #ffffff;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #e2e8f0;
+  border-left-width: 3.5px;
+  border-left-color: var(--da-accent, #691B31);
+  border-radius: 7px;
+  padding: 0.42rem 0.65rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  text-align: left;
+  transition: box-shadow 0.15s ease-in-out, border-color 0.15s ease-in-out;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.da-card:hover {
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.07);
+  border-top-color: #cbd5e1;
+  border-right-color: #cbd5e1;
+  border-bottom-color: #cbd5e1;
+  /* NO sobreescribir border-left-color para preservar el acento temático */
+}
+
+/* Fila de Despacho Validado (siempre agrupado y uniforme a la izquierda) */
+.da-despacho-row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
+}
+
+/* Variante Despacho Validado */
+.da-card--despacho {
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%) !important;
+  border-color: #bbf7d0 !important;
+  border-left-color: #16a34a !important;
+}
+
+.da-card--despacho:hover {
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.12) !important;
+  border-top-color: #86efac !important;
+  border-right-color: #86efac !important;
+  border-bottom-color: #86efac !important;
+  border-left-color: #16a34a !important;
+}
+
+/* Variante Encierro Automático */
+.da-card--encierro {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%) !important;
+  border-color: #cbd5e1 !important;
+  border-left-color: #475569 !important;
+}
+
+.da-card--encierro:hover {
+  border-top-color: #94a3b8 !important;
+  border-right-color: #94a3b8 !important;
+  border-bottom-color: #94a3b8 !important;
+  border-left-color: #475569 !important;
+}
+
+/* Encabezados y Contexto */
+.da-header-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.da-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  align-self: flex-start;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--da-accent, #691B31);
+  background: #fdf2f4;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid #fecdd3;
+  line-height: 1.25;
+}
+
+.da-context-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.da-context--falla {
+  color: #be123c;
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.da-context--folio {
+  color: #b45309;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+/* Badge de Despacho Validado */
+.da-badge-validado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.da-check-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+/* Badge de Encierro */
+.da-badge-encierro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.71rem;
+  font-weight: 800;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 0.16rem 0.5rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+/* Chip de Hora / Reloj */
+.da-time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.71rem;
+  font-weight: 700;
+  color: #065f46;
+  background: #ffffff;
+  border: 1px solid #a7f3d0;
+  padding: 0.14rem 0.5rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(6, 95, 70, 0.04);
+}
+
+.da-time-chip svg {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.da-time-chip-lbl {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #059669;
+  letter-spacing: 0.25px;
+}
+
+.da-time-chip strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: #047857;
+}
+
+/* Filas de Diffs (Transición de valores) */
+.da-diffs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.da-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* Etiqueta del Campo con Icono Temático */
+.da-field-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.da-field-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.da-field-icon-box svg {
+  width: 12.5px;
+  height: 12.5px;
+}
+
+/* Colores Temáticos por Tipo de Icono */
+.da-icon--salida {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.da-icon--ruta {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.da-icon--hora {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.da-icon--acople {
+  background: #faf5ff;
+  color: #7c3aed;
+  border: 1px solid #e9d5ff;
+}
+
+.da-icon--relevo {
+  background: #eef2ff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
+}
+
+.da-icon--conductor {
+  background: #f0fdfa;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
+}
+
+.da-icon--estatus {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.da-icon--falla {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+}
+
+.da-icon--folio {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.da-icon--combustible {
+  background: #ecfeff;
+  color: #0891b2;
+  border: 1px solid #a5f3fc;
+}
+
+.da-icon--encierro {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.da-icon--default {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.da-field-name {
+  font-size: 0.71rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.25px;
+}
+
+/* Flujo de Transición (Anterior -> Nuevo) */
+.da-flow {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.da-tag {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.12rem 0.5rem;
+  border-radius: 5px;
+  letter-spacing: 0.2px;
+  line-height: 1.25;
+}
+
+.da-tag-old {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  text-decoration: line-through;
+  opacity: 0.88;
+}
+
+.da-tag-new {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1.5px solid #86efac;
+  font-weight: 800;
+  box-shadow: 0 1px 2px rgba(21, 128, 61, 0.08);
+}
+
+.da-tag.is-empty {
+  text-decoration: none;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* Cuando anterior y nuevo son iguales: muestra Confirmado */
+.da-tag-same {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1.5px solid #86efac;
+  font-weight: 700;
+  padding: 0.12rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.74rem;
+  box-shadow: 0 1px 2px rgba(22, 101, 52, 0.05);
+}
+
+.da-tag-same svg {
+  color: #16a34a;
+}
+
+.da-tag-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  color: #14532d;
+}
+
+.da-tag-sub {
+  font-size: 0.63rem;
+  color: #15803d;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #dcfce7;
+  padding: 0.06rem 0.32rem;
+  border-radius: 3px;
+  letter-spacing: 0.2px;
+}
+
+.da-arrow {
+  display: inline-flex;
+  align-items: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* Chips de Códigos (OCT-, INC-, ECO) */
+.da-chip {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: 0.74rem;
+  padding: 0.08rem 0.42rem;
+  margin: 0 1px;
+  border-radius: 4px;
+  color: #691B31;
+  background: #fdf2f4;
+  border: 1px solid #fecdd3;
+  box-sizing: border-box;
+}
+
+.da-chip--large {
+  font-size: 0.78rem;
+  padding: 0.12rem 0.5rem;
+}
+
+/* Motivo / Justificación */
+.da-motivo {
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-top: 1px solid #fef3c7;
+  border-right: 1px solid #fef3c7;
+  border-bottom: 1px solid #fef3c7;
+  border-radius: 0 5px 5px 0;
+  padding: 0.25rem 0.5rem;
+  margin-top: 0.1rem;
+}
+
+.da-motivo-title {
+  font-size: 0.63rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #b45309;
+  letter-spacing: 0.3px;
+}
+
+.da-motivo-text {
+  margin: 0.08rem 0 0 0;
+  font-size: 0.74rem;
+  color: #1e293b;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.25;
+}
+
+.da-extra {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Formato Simple con Icono Contextual */
+.da-simple {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.da-simple-text {
+  font-size: 0.76rem;
+  color: #334155;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.da-vacio {
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-style: italic;
+}

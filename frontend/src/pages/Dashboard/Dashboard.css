@@ -203,6 +203,17 @@
   color: #ffffff;
 }
 
+/* 4. Reporte Estadístico (Dorado / Ámbar Institucional) */
+.btn-capsula--estadistico {
+  border-color: #B7791F;
+  color: #B7791F;
+}
+.btn-capsula--estadistico:not(:disabled):hover,
+.btn-capsula--estadistico:not(:disabled):focus-visible {
+  background: #B7791F;
+  color: #ffffff;
+}
+
 /* Spinner específico para botones cápsula */
 .btn-capsula .spinner {
   width: 16px;
@@ -234,6 +245,14 @@
   border-top-color: #2563EB;
 }
 .btn-capsula--programacion:hover .spinner {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+}
+.btn-capsula--estadistico .spinner {
+  border-color: rgba(183, 121, 31, 0.3);
+  border-top-color: #B7791F;
+}
+.btn-capsula--estadistico:hover .spinner {
   border-color: rgba(255, 255, 255, 0.4);
   border-top-color: #ffffff;
 }
@@ -271,6 +290,15 @@ html.dark .btn-capsula--programacion:not(:disabled):hover {
   background: #2563EB;
   color: #ffffff;
   border-color: #2563EB;
+}
+html.dark .btn-capsula--estadistico {
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+html.dark .btn-capsula--estadistico:not(:disabled):hover {
+  background: #B7791F;
+  color: #ffffff;
+  border-color: #B7791F;
 }
 
 .btn-reporte {

@@ -112,7 +112,7 @@ const ReporteOperacionalPorHoraPDF = React.forwardRef(({ data }, ref) => {
     >
       {/* 1. BANNER INSTITUCIONAL Y ENCABEZADOS */}
       <div style={{ background: COLOR_GUINDA, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', height: '60px' }}>
-        <img src="/images/sistema_de_tm.webp" alt="STM" style={{ height: '40px' }} onError={(e) => e.target.style.display = 'none'} />
+        <img src="/images/acotma_logo_connombre_contorno_v2.png" alt="ACOTMA" style={{ height: '40px', width: 'auto' }} onError={(e) => e.target.style.display = 'none'} />
         <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '800', letterSpacing: '1px' }}>ESTATUS OPERATIVO POR HORA</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <img src="/images/sitmah-logo.png" alt="SITMAH" style={{ height: '35px' }} onError={(e) => e.target.style.display = 'none'} />

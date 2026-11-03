@@ -2,6 +2,22 @@ import React from 'react';
 import stmLogo from '../../assets/logo-stm.webp';
 
 /**
+ * Formatear kilometraje según reglas:
+ * - Numérico puro
+ * - Si es entero, sin decimales (.00 eliminado, ej: 5353)
+ * - Si tiene metros/décimas, máximo 1 decimal (ej: 125400.7)
+ */
+export const formatearKilometrajeDisplay = (val) => {
+  if (val === null || val === undefined || val === '') return '';
+  const num = Number(val);
+  if (isNaN(num)) return String(val).replace(/[^0-9.]/g, '');
+  if (num % 1 === 0) {
+    return String(Math.round(num));
+  }
+  return String(Number(num.toFixed(1)));
+};
+
+/**
  * Componente estructurado idéntico al formato físico (Orientación Horizontal/Landscape).
  * Está diseñado para ser renderizado por html2canvas + jsPDF.
  */
@@ -47,15 +63,41 @@ const PrintableMaintenanceOrder = React.forwardRef(({ data }, ref) => {
             <span className="text-xl font-black text-[#6b1d33] uppercase">{data.fecha}</span>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <div className="border-2 rounded-lg px-4 py-1 flex flex-col items-center justify-center shadow-sm min-w-[120px]" style={{ backgroundColor: '#ffffff', borderColor: '#b8924b' }}>
-              <span className="font-bold text-[9px] tracking-wider text-[#6b1d33] mb-0.5">INCIDENCIA</span>
-              <span className="text-xl font-black text-[#6b1d33] leading-none">{data.incidencia}</span>
+          <div className="flex justify-end items-center gap-3">
+            <div 
+              className="border-2 rounded-xl px-6 py-2.5 flex flex-col items-center justify-center shadow-sm min-w-[150px] text-center" 
+              style={{ backgroundColor: '#ffffff', borderColor: '#b8924b', minHeight: '56px' }}
+            >
+              <span 
+                className="font-bold tracking-wider text-[#6b1d33] uppercase block text-center"
+                style={{ fontSize: '10px', lineHeight: 1.2 }}
+              >
+                INCIDENCIA
+              </span>
+              <span 
+                className="font-black text-[#6b1d33] tracking-wide block text-center"
+                style={{ fontSize: '19px', lineHeight: 1.2, marginTop: '3px' }}
+              >
+                {data.incidencia}
+              </span>
             </div>
             {data.folio && (
-              <div className="border-2 rounded-lg px-4 py-1 flex flex-col items-center justify-center shadow-sm min-w-[140px]" style={{ backgroundColor: '#ffffff', borderColor: '#b8924b' }}>
-                <span className="font-bold text-[9px] tracking-wider text-[#6b1d33] mb-0.5">FOLIO ORDEN</span>
-                <span className="text-xl font-black text-[#6b1d33] leading-none">{data.folio}</span>
+              <div 
+                className="border-2 rounded-xl px-6 py-2.5 flex flex-col items-center justify-center shadow-sm min-w-[150px] text-center" 
+                style={{ backgroundColor: '#ffffff', borderColor: '#b8924b', minHeight: '56px' }}
+              >
+                <span 
+                  className="font-bold tracking-wider text-[#6b1d33] uppercase block text-center"
+                  style={{ fontSize: '10px', lineHeight: 1.2 }}
+                >
+                  FOLIO ORDEN
+                </span>
+                <span 
+                  className="font-black text-[#6b1d33] tracking-wide block text-center"
+                  style={{ fontSize: '19px', lineHeight: 1.2, marginTop: '3px' }}
+                >
+                  {data.folio}
+                </span>
               </div>
             )}
           </div>
@@ -85,7 +127,7 @@ const PrintableMaintenanceOrder = React.forwardRef(({ data }, ref) => {
             </div>
             <div className="flex gap-2 items-end border-b pb-1" style={{ borderColor: '#d1d5db' }}>
               <span className="font-bold text-[13px] text-[#6b1d33]">KM:</span>
-              <span className="flex-1 text-lg font-semibold text-center uppercase">{data.km || ''}</span>
+              <span className="flex-1 text-lg font-semibold text-center uppercase">{formatearKilometrajeDisplay(data.km)}</span>
             </div>
           </div>
         </div>

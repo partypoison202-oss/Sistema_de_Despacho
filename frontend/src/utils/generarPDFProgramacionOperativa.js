@@ -36,8 +36,8 @@ const getLogoData = (url) => {
 
 // Precarga inmediata de logos en segundo plano
 if (typeof window !== 'undefined') {
-  getLogoData('/images/sistema_de_tm.webp').catch(() => {});
-  getLogoData('/images/sitmah_logo.webp').catch(() => {});
+  getLogoData('/images/acotma_logo_connombre_contorno_v2.png').catch(() => {});
+  getLogoData('/images/escudo_hidalgo.png').catch(() => {});
 }
 
 export const generarPDFProgramacionOperativa = async (previewData, action = 'base64', totales = null, options = {}) => {
@@ -66,7 +66,7 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
   doc.setFillColor(...dorado);
   doc.rect(0, headerAlto, pageWidth, 1.2, 'F');
 
-  const logoAltoMM = 15;
+  const logoAltoMM = 22;
   const logoY = (headerAlto - logoAltoMM) / 2;
 
   let textoX = 14;
@@ -75,8 +75,8 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
   // ── LOGOS (Carga paralela y ultra-rápida en memoria) ──
   try {
     const [logoLeft, logoRight] = await Promise.all([
-      getLogoData('/images/sistema_de_tm.webp'),
-      getLogoData('/images/sitmah_logo.webp'),
+      getLogoData('/images/acotma_logo_connombre_contorno_v2.png'),
+      getLogoData('/images/escudo_hidalgo.png'),
     ]);
 
     if (logoLeft?.base64 && logoLeft.height > 0) {

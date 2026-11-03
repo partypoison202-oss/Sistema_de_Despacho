@@ -1,9 +1,10 @@
+import DetalleAccion from '../../components/DetalleAccion/DetalleAccion';
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto, formatearFechaDiaMesAnio, getValoresTransicion } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import './Historial.css';
@@ -374,7 +375,7 @@ export default function HistorialMesaControl() {
                 </thead>
                 <tbody>
                   {cambiosFiltrados.map((c, i) => {
-                    const badgeStyle = getAccionBadgeStyle(c.tipo_accion);
+                    const badgeStyle = getAccionBadgeStyle(c.tipo_accion) || { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' };
                     return (
                       <tr key={c.id || i}>
                         <td style={{ fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>
@@ -395,24 +396,31 @@ export default function HistorialMesaControl() {
                               fontSize: '0.72rem',
                               fontWeight: '800',
                               letterSpacing: '0.03em',
-                              backgroundColor: badgeStyle.backgroundColor,
-                              color: badgeStyle.color,
-                              border: badgeStyle.border,
+                              backgroundColor: badgeStyle?.backgroundColor || '#f1f5f9',
+                              color: badgeStyle?.color || '#475569',
+                              border: badgeStyle?.border || '1px solid #cbd5e1',
                             }}
                           >
                             {formatAccion(c.tipo_accion)}
                           </span>
                         </td>
-                        <td>
-                          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600' }}>
-                            {c.estatus_anterior ? String(c.estatus_anterior).toUpperCase() : '—'}
-                          </span>
-                        </td>
-                        <td>
-                          <span style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: '700' }}>
-                            {c.estatus_nuevo ? String(c.estatus_nuevo).toUpperCase() : '—'}
-                          </span>
-                        </td>
+                        {(() => {
+                          const trans = getValoresTransicion(c);
+                          return (
+                            <>
+                              <td>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600' }}>
+                                  {trans.anterior}
+                                </span>
+                              </td>
+                              <td>
+                                <span style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: '700' }}>
+                                  {trans.nuevo}
+                                </span>
+                              </td>
+                            </>
+                          );
+                        })()}
                         <td>
                           <DetalleOperacion
                             detalles={c.detalles}

@@ -1,12 +1,13 @@
+import DetalleAccion from '../../components/DetalleAccion/DetalleAccion';
 import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
+import { formatearFechaDiaMesAnio, getValoresTransicion, formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
-import { DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import { compareRutas } from '../../utils/rutaUtils';
 import './Historial.css';
 
@@ -216,7 +217,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
     );
 
     const matchesTipo = !filtroTipo || getTipoDisplay(item).toUpperCase() === filtroTipo.toUpperCase();
-    
+
     const estLower = String(item.estatus || '').toLowerCase().trim();
     const matchesEstatus = !filtroEstatus || estLower === filtroEstatus.toLowerCase().trim();
 
@@ -480,32 +481,54 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {cambiosFiltrados.map((c, i) => (
-                      <tr key={c.id || i}>
-                        <td style={{ fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>{formatearHora(c.hora)}</td>
-                        <td style={{ fontWeight: '600', color: '#334155' }}>{getTipoDisplay(c) || '—'}</td>
-                        <td style={{ fontWeight: '800', color: '#0f172a' }}>{c.economico ? String(c.economico).padStart(3, '0') : '—'}</td>
-                        <td>
-                          <span className="estatus-badge" style={{ backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: '800' }}>
-                            {c.tipo_accion ? String(c.tipo_accion).replace(/_/g, ' ') : 'MODIFICACIÓN'}
-                          </span>
-                        </td>
-                        <td style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>{c.estatus_anterior ? String(c.estatus_anterior).toUpperCase() : '—'}</td>
-                        <td style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: '700' }}>{c.estatus_nuevo ? String(c.estatus_nuevo).toUpperCase() : '—'}</td>
-                        <td>
-                          <DetalleOperacion
-                            detalles={c.detalles}
-                            estatusAnterior={c.estatus_anterior}
-                            estatusNuevo={c.estatus_nuevo}
-                            fallback="Sin observaciones"
-                          />
-                        </td>
-                        <td style={{ fontSize: '0.8rem' }}>
-                          <span style={{ fontWeight: '700', color: '#1e293b', display: 'block' }}>{c.usuario_nombre || 'Sistema'}</span>
-                          {c.usuario_rol && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{c.usuario_rol}</span>}
-                        </td>
-                      </tr>
-                    ))}
+                    {cambiosFiltrados.map((c, i) => {
+                      const badgeStyle = getAccionBadgeStyle(c.tipo_accion);
+                      return (
+                        <tr key={c.id || i}>
+                          <td style={{ fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>{formatearHora(c.hora)}</td>
+                          <td style={{ fontWeight: '600', color: '#334155' }}>{getTipoDisplay(c) || '—'}</td>
+                          <td style={{ fontWeight: '800', color: '#0f172a' }}>{c.economico ? String(c.economico).padStart(3, '0') : '—'}</td>
+                          <td>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.72rem',
+                                fontWeight: '800',
+                                letterSpacing: '0.03em',
+                                backgroundColor: badgeStyle?.backgroundColor || '#f1f5f9',
+                                color: badgeStyle?.color || '#475569',
+                                border: badgeStyle?.border || '1px solid #cbd5e1',
+                              }}
+                            >
+                              {formatAccion(c.tipo_accion)}
+                            </span>
+                          </td>
+                          {(() => {
+                            const trans = getValoresTransicion(c);
+                            return (
+                              <>
+                                <td style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>{trans.anterior}</td>
+                                <td style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: '700' }}>{trans.nuevo}</td>
+                              </>
+                            );
+                          })()}
+                          <td>
+                            <DetalleOperacion
+                              detalles={c.detalles}
+                              estatusAnterior={c.estatus_anterior}
+                              estatusNuevo={c.estatus_nuevo}
+                              fallback="Sin observaciones"
+                            />
+                          </td>
+                          <td style={{ fontSize: '0.8rem' }}>
+                            <span style={{ fontWeight: '700', color: '#1e293b', display: 'block' }}>{c.usuario_nombre || 'Sistema'}</span>
+                            {c.usuario_rol && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{c.usuario_rol}</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

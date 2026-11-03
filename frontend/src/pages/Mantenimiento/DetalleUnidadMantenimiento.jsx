@@ -17,6 +17,30 @@ import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../context/AuthContext';
 
+const MESES_ABREV = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+const getMesActualAbrev = () => MESES_ABREV[new Date().getMonth()];
+const parsearCodigoMes = (valor) => {
+  if (!valor || typeof valor !== 'string') {
+    return { mes: getMesActualAbrev(), codigo: '' };
+  }
+  const match = valor.trim().match(/^([A-Za-z]{3})-(.*)$/);
+  if (match) {
+    const mesCand = match[1].toUpperCase();
+    if (MESES_ABREV.includes(mesCand)) {
+      return { mes: mesCand, codigo: match[2].toUpperCase() };
+    }
+  }
+  return { mes: getMesActualAbrev(), codigo: valor.trim().toUpperCase() };
+};
+
+const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
+const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
+const extraerNumeroEco = (valor) => {
+  const texto = String(valor ?? '');
+  const matchNumeros = texto.match(/\d+/);
+  return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+};
+
 export default function DetalleUnidadMantenimiento() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
@@ -68,6 +92,37 @@ export default function DetalleUnidadMantenimiento() {
   const [folioFormValue, setFolioFormValue] = useState('');
   const [fallaReportadaFormValue, setFallaReportadaFormValue] = useState('');
   const [isGuardandoFolio, setIsGuardandoFolio] = useState(false);
+  const [incidenciaMesPrefijo, setIncidenciaMesPrefijo] = useState(getMesActualAbrev());
+  const [isEditandoIncidenciaMes, setIsEditandoIncidenciaMes] = useState(false);
+
+  const [datosOperativos, setDatosOperativos] = useState({
+    conductor: 'Seleccione una unidad...',
+    ruta: 'Seleccione una unidad...',
+    corrida: '',
+    corridasPerdidas: '',
+    corridaPerdidaOtro: '',
+    tarjeton: '',
+    estatus: 'operacion',
+    motivo_estatus: null,
+    horaRealSalidaPatio: null,
+    horaSalidaPatio: null,
+    horaDespacho: null,
+  });
+
+  useEffect(() => {
+    if (isFolioModalOpen) {
+      setFolioFormValue(datosOperativos?.folio_mantenimiento || '');
+    }
+  }, [isFolioModalOpen, datosOperativos?.folio_mantenimiento]);
+
+  useEffect(() => {
+    if (isIncidenceModalOpen) {
+      const parsed = parsearCodigoMes(datosOperativos?.numero_incidencia);
+      setIncidenciaMesPrefijo(parsed.mes);
+      setIncidenciaFormValue(parsed.codigo);
+      setIsEditandoIncidenciaMes(false);
+    }
+  }, [isIncidenceModalOpen, datosOperativos?.numero_incidencia]);
 
   useEffect(() => {
     if (isFolioModalOpen) {
@@ -80,12 +135,47 @@ export default function DetalleUnidadMantenimiento() {
     };
   }, [isFolioModalOpen]);
 
+  // Copiar al portapapeles con toast de confirmación estilo SweetAlert2
+  const copiarAlPortapapeles = (texto, tipo = 'Folio') => {
+    if (!texto) return;
+    navigator.clipboard.writeText(texto);
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: `${tipo} copiado: ${texto}`,
+      showConfirmButton: false,
+      timer: 1800,
+      timerProgressBar: true
+    });
+  };
+
+  // Formateador limpio para el banner superior: si no tiene hora real registrada evita el "00:00"
+  const formatearFechaHoraBanner = (fechaStr) => {
+    if (!fechaStr) return null;
+    try {
+      const f = new Date(fechaStr);
+      if (isNaN(f.getTime())) return fechaStr;
+      const fechaParte = f.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const str = String(fechaStr).trim();
+      const esCero = (f.getHours() === 0 && f.getMinutes() === 0) && (str.length <= 10 || str.endsWith('00:00:00') || str.endsWith('00:00'));
+      if (esCero) {
+        return fechaParte;
+      }
+      return fechaParte + ', ' + f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return fechaStr;
+    }
+  };
+
   const handleGuardarFolio = async () => {
     if (isLectura) return;
-    if (!folioFormValue.trim()) {
+    const codigoLimpio = folioFormValue.trim().toUpperCase();
+    if (!codigoLimpio) {
       Swal.fire('Atención', 'Debes ingresar el número de folio.', 'warning');
       return;
     }
+    const folioCompleto = codigoLimpio;
     setIsGuardandoFolio(true);
     try {
       const token = getToken();
@@ -103,7 +193,7 @@ export default function DetalleUnidadMantenimiento() {
           tipo: tipoTransporte,
           estatus: estatusToSave,
           motivo_estatus: estatusToSave.toUpperCase(),
-          folio_mantenimiento: folioFormValue.trim(),
+          folio_mantenimiento: folioCompleto,
           fecha_folio_mantenimiento: fechaActualIso
         })
       });
@@ -113,7 +203,7 @@ export default function DetalleUnidadMantenimiento() {
           ...prev,
           estatus: estatusToSave,
           motivo_estatus: estatusToSave.toUpperCase(),
-          folio_mantenimiento: folioFormValue.trim(),
+          folio_mantenimiento: folioCompleto,
           fecha_folio_mantenimiento: fechaActualIso
         }));
         setSelectedEstado(estatusToSave);
@@ -122,7 +212,7 @@ export default function DetalleUnidadMantenimiento() {
         Swal.fire({
           icon: 'success',
           title: estatusToSave === 'percance' ? 'Unidad con Percance' : 'Unidad en Mantenimiento',
-          text: `Número de folio: ${folioFormValue.trim()}`,
+          text: `Número de folio: ${folioCompleto}`,
           timer: 1500,
           showConfirmButton: false
         });
@@ -134,7 +224,7 @@ export default function DetalleUnidadMantenimiento() {
                 ...u,
                 estado: estatusToSave,
                 estatus: estatusToSave,
-                folio_mantenimiento: folioFormValue.trim(),
+                folio_mantenimiento: folioCompleto,
               };
             }
             return u;
@@ -143,6 +233,9 @@ export default function DetalleUnidadMantenimiento() {
         queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+        queryClient.invalidateQueries({ queryKey: ['historial-mantenimiento'] });
+        queryClient.invalidateQueries({ queryKey: ['historial-folios'] });
+        queryClient.invalidateQueries({ queryKey: ['auditoria-folios-global'] });
         if (typeof BroadcastChannel !== 'undefined') {
           try {
             const bc = new BroadcastChannel('unidades_estatus_channel');
@@ -179,6 +272,8 @@ export default function DetalleUnidadMantenimiento() {
       const token = getToken();
       const currentEstatus = String(statusDestinoModal || datosOperativos.estatus || 'mantenimiento').toLowerCase();
       const estatusFinal = currentEstatus === 'percance' ? 'percance' : 'mantenimiento';
+      const codigoIncidenciaLimpio = incidenciaFormValue.trim().toUpperCase();
+      const incidenciaCompleta = codigoIncidenciaLimpio ? `${incidenciaMesPrefijo}-${codigoIncidenciaLimpio}` : null;
 
       const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
         method: 'POST',
@@ -191,19 +286,19 @@ export default function DetalleUnidadMantenimiento() {
           tipo: tipoTransporte,
           estatus: estatusFinal,
           motivo_estatus: estatusFinal.toUpperCase(),
-          numero_incidencia: incidenciaFormValue.trim() || null,
+          numero_incidencia: incidenciaCompleta,
           falla_reportada: fallaFormValue.trim() || null
         })
       });
       const data = await response.json();
       if (response.ok && (data.status === 'success' || data.success)) {
-        const hasIncidencia = incidenciaFormValue.trim().length > 0;
+        const hasIncidencia = !!incidenciaCompleta;
         
         setDatosOperativos(prev => ({
           ...prev,
           estatus: estatusFinal,
           motivo_estatus: estatusFinal.toUpperCase(),
-          numero_incidencia: incidenciaFormValue.trim(),
+          numero_incidencia: incidenciaCompleta,
           falla_reportada: fallaFormValue.trim()
         }));
         setSelectedEstado(estatusFinal);
@@ -215,7 +310,7 @@ export default function DetalleUnidadMantenimiento() {
           icon: 'success',
           title: estatusFinal === 'percance' ? 'Unidad con Percance' : 'Unidad en Mantenimiento',
           text: hasIncidencia 
-            ? `Número de incidencia asignado con éxito.`
+            ? `Número de incidencia (${incidenciaCompleta}) asignado con éxito.`
             : (estatusFinal === 'percance' ? 'La unidad se ha registrado con percance.' : 'La unidad se ha enviado a mantenimiento.'),
           timer: 1500,
           showConfirmButton: false
@@ -229,7 +324,7 @@ export default function DetalleUnidadMantenimiento() {
                 estado: estatusFinal,
                 estatus: estatusFinal,
                 motivo_estatus: estatusFinal.toUpperCase(),
-                numero_incidencia: incidenciaFormValue.trim(),
+                numero_incidencia: incidenciaCompleta,
                 falla_reportada: fallaFormValue.trim(),
                 nombre_conductor: 'No reportado hoy',
                 ruta: 'Sin ruta',
@@ -242,6 +337,9 @@ export default function DetalleUnidadMantenimiento() {
         queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+        queryClient.invalidateQueries({ queryKey: ['historial-mantenimiento'] });
+        queryClient.invalidateQueries({ queryKey: ['historial-folios'] });
+        queryClient.invalidateQueries({ queryKey: ['auditoria-folios-global'] });
         if (typeof BroadcastChannel !== 'undefined') {
           try {
             const bc = new BroadcastChannel('unidades_estatus_channel');
@@ -274,20 +372,6 @@ export default function DetalleUnidadMantenimiento() {
     setIsMaintenanceWizardOpen(true);
   };
 
-  // <-- NUEVO: agregamos motivo_estatus al estado
-  const [datosOperativos, setDatosOperativos] = useState({
-    conductor: 'Seleccione una unidad...',
-    ruta: 'Seleccione una unidad...',
-    corrida: '',
-    corridasPerdidas: '',
-    corridaPerdidaOtro: '',
-    tarjeton: '',
-    estatus: 'operacion',
-    motivo_estatus: null, // <-- NUEVO
-    horaRealSalidaPatio: null,
-    horaSalidaPatio: null,
-    horaDespacho: null,
-  });
 
   const [reemplazoActivo, setReemplazoActivo] = useState(false);
   const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
@@ -329,13 +413,6 @@ export default function DetalleUnidadMantenimiento() {
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
 
-  const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
-  const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
-  const extraerNumeroEco = (valor) => {
-    const texto = String(valor ?? '');
-    const matchNumeros = texto.match(/\d+/);
-    return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
-  };
 
   // Cerrar dropdowns del modal y selectores de unidad
   useEffect(() => {
@@ -739,6 +816,7 @@ export default function DetalleUnidadMantenimiento() {
           folio_mantenimiento: resultado.folio_mantenimiento || null,
           numero_incidencia: resultado.numero_incidencia || null,
           fecha_folio_mantenimiento: resultado.fecha_folio_mantenimiento || null,
+          fecha_registro: resultado.fecha_registro || null,
           falla_reportada: resultado.falla_reportada || null,
           diagnostico: resultado.diagnostico || null,
           firma_base64: resultado.firma_base64 || null,
@@ -811,37 +889,27 @@ export default function DetalleUnidadMantenimiento() {
     const currentEstatus = String(datosOperativos.estatus || '').toLowerCase();
     const esMismoEstatus = currentEstatus === nuevoEstatus;
 
+    // En el módulo de mantenimiento no se permite enviar directamente a operación
+    if (nuevoEstatus === 'operacion') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Operación no permitida',
+        text: 'No es posible enviar una unidad a Operación directamente desde el módulo de Mantenimiento.',
+      });
+      return;
+    }
+
     // Si es el mismo estatus, SOLO permitimos si es 'mantenimiento' o 'percance' para actualizar el motivo o folio
     if (esMismoEstatus && nuevoEstatus !== 'mantenimiento' && nuevoEstatus !== 'percance') {
       return;
     }
+
     let payloadUpdate = {
       numero_eco: null,
       tipo: tipoTransporte,
       estatus: nuevoEstatus,
       motivo_estatus: null,
     };
-
-    // Si es operación, se requiere asignación
-    if (nuevoEstatus === 'operacion') {
-      const tieneConductor = datosOperativos.conductor && datosOperativos.conductor !== 'No asignado' && datosOperativos.tarjeton;
-      const tieneRuta = datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta';
-
-      if (!tieneConductor || !tieneRuta) {
-        setModalEstatusNuevo('operacion');
-        setModalEstatusConductor(tieneConductor ? String(datosOperativos.tarjeton).trim() : '');
-        setModalEstatusRuta(tieneRuta ? datosOperativos.ruta : '');
-        setModalEstatusCorrida(datosOperativos.corrida ? datosOperativos.corrida : '');
-        setModalEstatusConductorDropdown(false);
-        setModalEstatusRutaDropdown(false);
-        setModalEstatusOpen(true);
-        return;
-      } else {
-        payloadUpdate.nombre_conductor = datosOperativos.conductor;
-        payloadUpdate.numero_tarjeton = datosOperativos.tarjeton;
-        payloadUpdate.ruta = datosOperativos.ruta;
-      }
-    }
 
     // Determinar si requiere motivo (reserva, mantenimiento, percance o actualización de motivo)
     const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento' || nuevoEstatus === 'percance' || esMismoEstatus;
@@ -1115,6 +1183,9 @@ export default function DetalleUnidadMantenimiento() {
         queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+        queryClient.invalidateQueries({ queryKey: ['historial-mantenimiento'] });
+        queryClient.invalidateQueries({ queryKey: ['historial-folios'] });
+        queryClient.invalidateQueries({ queryKey: ['auditoria-folios-global'] });
         if (typeof BroadcastChannel !== 'undefined') {
           try {
             const bc = new BroadcastChannel('unidades_estatus_channel');
@@ -1223,6 +1294,9 @@ export default function DetalleUnidadMantenimiento() {
         queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+        queryClient.invalidateQueries({ queryKey: ['historial-mantenimiento'] });
+        queryClient.invalidateQueries({ queryKey: ['historial-folios'] });
+        queryClient.invalidateQueries({ queryKey: ['auditoria-folios-global'] });
         if (typeof BroadcastChannel !== 'undefined') {
           try {
             const bc = new BroadcastChannel('unidades_estatus_channel');
@@ -1389,27 +1463,51 @@ export default function DetalleUnidadMantenimiento() {
                     <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', gap: '2px' }}>
                        <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', marginBottom: '4px' }}>
                          <div style={{ textAlign: 'right' }}>
-                           <div style={{ fontSize: '0.75rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '-2px' }}>Incidencia Asignada</div>
-                           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.1' }}>{datosOperativos.numero_incidencia || 'Sin Asignar'}</div>
-                           {datosOperativos.numero_incidencia && datosOperativos.fecha_folio_mantenimiento && (
-                             <div style={{ fontSize: '0.8rem', opacity: 0.85, fontWeight: 500 }}>
-                               {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleString('es-MX', { 
-                                 day: '2-digit', month: '2-digit', year: 'numeric',
-                                 hour: '2-digit', minute: '2-digit'
-                               })}
+                           <div style={{ fontSize: '0.72rem', opacity: 0.82, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', fontWeight: 600 }}>Incidencia Asignada</div>
+                           {datosOperativos.numero_incidencia ? (
+                             <div
+                               onClick={() => copiarAlPortapapeles(datosOperativos.numero_incidencia, 'Incidencia')}
+                               className="mantenimiento-header-copy-pill mantenimiento-header-copy-pill--incidencia"
+                               title="Haga clic para copiar la incidencia al portapapeles"
+                             >
+                               <span className="pill-code">{datosOperativos.numero_incidencia}</span>
+                               <span className="pill-icon">
+                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                 </svg>
+                               </span>
+                             </div>
+                           ) : (
+                             <div style={{ fontSize: '1.25rem', fontWeight: 'bold', lineHeight: '1.2', opacity: 0.65, fontStyle: 'italic' }}>
+                               Sin Asignar
+                             </div>
+                           )}
+                           {datosOperativos.numero_incidencia && (datosOperativos.fecha_registro || datosOperativos.fecha_folio_mantenimiento) && (
+                             <div style={{ fontSize: '0.78rem', opacity: 0.85, fontWeight: 500, marginTop: '2px' }}>
+                               {formatearFechaHoraBanner(datosOperativos.fecha_registro || datosOperativos.fecha_folio_mantenimiento)}
                              </div>
                            )}
                          </div>
                          {datosOperativos.folio_mantenimiento && (
                            <div style={{ textAlign: 'right' }}>
-                             <div style={{ fontSize: '0.75rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '-2px' }}>Folio Asignado</div>
-                             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.1' }}>{datosOperativos.folio_mantenimiento}</div>
+                             <div style={{ fontSize: '0.72rem', opacity: 0.82, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', fontWeight: 600 }}>Folio Asignado</div>
+                             <div
+                               onClick={() => copiarAlPortapapeles(datosOperativos.folio_mantenimiento, 'Folio')}
+                               className="mantenimiento-header-copy-pill mantenimiento-header-copy-pill--folio"
+                               title="Haga clic para copiar el folio al portapapeles"
+                             >
+                               <span className="pill-code">{datosOperativos.folio_mantenimiento}</span>
+                               <span className="pill-icon">
+                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                 </svg>
+                               </span>
+                             </div>
                              {datosOperativos.fecha_folio_mantenimiento && (
-                               <div style={{ fontSize: '0.8rem', opacity: 0.85, fontWeight: 500 }}>
-                                 {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleString('es-MX', { 
-                                   day: '2-digit', month: '2-digit', year: 'numeric',
-                                   hour: '2-digit', minute: '2-digit'
-                                 })}
+                               <div style={{ fontSize: '0.78rem', opacity: 0.85, fontWeight: 500, marginTop: '2px' }}>
+                                 {formatearFechaHoraBanner(datosOperativos.fecha_folio_mantenimiento)}
                                </div>
                              )}
                            </div>
@@ -1747,9 +1845,8 @@ export default function DetalleUnidadMantenimiento() {
                         <h3 className="info-card__title">Encierro Operativo</h3>
                       </div>
                       <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
                           {[
-                            { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
                             { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
                             { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' },
                             { id: 'percance', label: 'PERCANCE', color: '#b91c1c', bgActive: '#fef2f2' },
@@ -2300,9 +2397,11 @@ export default function DetalleUnidadMantenimiento() {
               <input
                 type="text"
                 value={modalEstatusCorrida}
-                onChange={(e) => setModalEstatusCorrida(e.target.value)}
+                onChange={(e) => setModalEstatusCorrida(e.target.value.replace(/\D/g, ''))}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 className="interactive-input"
-                placeholder="Ingrese la corrida..."
+                placeholder="Ingrese la corrida (solo números)..."
                 style={{
                   width: '100%',
                   padding: '0 0.85rem',
@@ -2394,8 +2493,8 @@ export default function DetalleUnidadMantenimiento() {
                 estatus: estatusWizard,
                 motivo_estatus: data.motivo,
                 numero_incidencia: data.numero_incidencia || null,
-                folio_mantenimiento: data.folio_mantenimiento,
-                fecha_folio_mantenimiento: data.fecha_folio_mantenimiento,
+                folio_mantenimiento: data.folio_mantenimiento || null,
+                fecha_folio_mantenimiento: data.folio_mantenimiento ? (data.fecha_folio_mantenimiento || null) : null,
                 falla_reportada: data.falla_reportada,
                 diagnostico: data.diagnostico,
                 firma_base64: data.firma_base64,
@@ -2423,8 +2522,8 @@ export default function DetalleUnidadMantenimiento() {
 
               // Ya no se genera el folio automáticamente en ningún caso.
               // El usuario debe hacerlo manualmente con el botón "GENERAR FOLIO"
-              let folioFinal = data.folio_mantenimiento;
-              let fechaFolioFinal = data.fecha_folio_mantenimiento;
+              let folioFinal = data.folio_mantenimiento || null;
+              let fechaFolioFinal = folioFinal ? (data.fecha_folio_mantenimiento || null) : null;
 
               // Refrescar estado local (incluyendo numero_incidencia para que se muestre en el panel)
               setDatosOperativos(prev => ({
@@ -2432,8 +2531,8 @@ export default function DetalleUnidadMantenimiento() {
                 estatus: estatusWizard,
                 motivo_estatus: data.motivo,
                 numero_incidencia: data.numero_incidencia || prev.numero_incidencia || null,
-                folio_mantenimiento: folioFinal || prev.folio_mantenimiento || null,
-                fecha_folio_mantenimiento: fechaFolioFinal || prev.fecha_folio_mantenimiento || null,
+                folio_mantenimiento: folioFinal,
+                fecha_folio_mantenimiento: fechaFolioFinal,
                 falla_reportada: data.falla_reportada || prev.falla_reportada || null,
                 diagnostico: data.diagnostico || prev.diagnostico || null,
                 firma_base64: data.firma_base64 || prev.firma_base64 || null,
@@ -2466,6 +2565,9 @@ export default function DetalleUnidadMantenimiento() {
               queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
               queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
               queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, ecoLimpio] });
+              queryClient.invalidateQueries({ queryKey: ['historial-mantenimiento'] });
+              queryClient.invalidateQueries({ queryKey: ['historial-folios'] });
+              queryClient.invalidateQueries({ queryKey: ['auditoria-folios-global'] });
 
               if (typeof BroadcastChannel !== 'undefined') {
                 try {
@@ -2510,18 +2612,18 @@ export default function DetalleUnidadMantenimiento() {
                 <label htmlFor="folioInput" className="block text-sm font-semibold text-slate-700 mb-1">
                   Asignar número de folio:
                 </label>
-                <div className="relative">
+                <div className="flex items-center w-full border border-slate-300 rounded-lg overflow-hidden focus-within:border-brand-maroon focus-within:ring-1 focus-within:ring-brand-maroon bg-white transition-all shadow-xs px-3 py-1">
                   <input
                     id="folioInput"
                     type="text"
-                    placeholder=""
+                    placeholder="Ej. 111 o F-102"
                     value={folioFormValue}
-                    onChange={(e) => setFolioFormValue(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
+                    onChange={(e) => setFolioFormValue(e.target.value.toUpperCase())}
+                    className="flex-1 py-1 text-slate-800 font-bold focus:outline-none bg-transparent uppercase tracking-wider text-base"
                     autoFocus
                   />
                 </div>
-                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe el folio (solo letras y números).</span>
+                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe el número de folio físico (números y letras en mayúsculas).</span>
               </div>
 
               <div className="flex gap-2 mt-4">
@@ -2567,16 +2669,60 @@ export default function DetalleUnidadMantenimiento() {
                 <label htmlFor="incidenciaInput" className="block text-sm font-bold text-slate-700 mb-2">
                   Asignar número de Incidencia (Opcional):
                 </label>
-                <input
-                  id="incidenciaInput"
-                  type="text"
-                  placeholder=""
-                  value={incidenciaFormValue}
-                  onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-0 text-slate-700 font-medium transition-colors"
-                  autoFocus
-                  disabled={isLectura}
-                />
+                <div className="flex items-center w-full border-2 border-slate-200 rounded-lg overflow-hidden focus-within:border-brand-maroon focus-within:ring-0 bg-white transition-colors">
+                  {isEditandoIncidenciaMes ? (
+                    <div className="bg-slate-100 border-r border-slate-300 flex items-center px-2 py-2">
+                      <input
+                        type="text"
+                        value={incidenciaMesPrefijo}
+                        maxLength={3}
+                        autoFocus
+                        disabled={isLectura}
+                        onChange={(e) => setIncidenciaMesPrefijo(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
+                        onBlur={() => {
+                          if (!incidenciaMesPrefijo.trim()) setIncidenciaMesPrefijo(getMesActualAbrev());
+                          setIsEditandoIncidenciaMes(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (!incidenciaMesPrefijo.trim()) setIncidenciaMesPrefijo(getMesActualAbrev());
+                            setIsEditandoIncidenciaMes(false);
+                          }
+                        }}
+                        className="w-14 px-1 py-1 text-center font-bold text-slate-800 bg-white border border-brand-maroon rounded text-xs focus:outline-none uppercase shadow-xs"
+                        placeholder="MES"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => !isLectura && setIsEditandoIncidenciaMes(true)}
+                      title="Haz clic para editar el mes (ej. OCT)"
+                      disabled={isLectura}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-3 border-r border-slate-300 select-none flex items-center gap-1.5 text-sm tracking-wide transition-colors cursor-pointer group disabled:cursor-not-allowed"
+                    >
+                      <span className="group-hover:text-brand-maroon">{incidenciaMesPrefijo}</span>
+                      {!isLectura && (
+                        <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-maroon transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                  <span className="text-slate-400 font-extrabold select-none pl-3 pr-1">-</span>
+                  <input
+                    id="incidenciaInput"
+                    type="text"
+                    placeholder=""
+                    value={incidenciaFormValue}
+                    onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
+                    className="flex-1 px-3 py-3 text-slate-700 font-bold uppercase focus:outline-none bg-transparent"
+                    autoFocus={!isEditandoIncidenciaMes}
+                    disabled={isLectura}
+                  />
+                </div>
+                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Haz clic en el mes para editarlo si es necesario.</span>
               </div>
 
               <div>
@@ -2587,15 +2733,15 @@ export default function DetalleUnidadMantenimiento() {
                   id="fallaInput"
                   placeholder={statusDestinoModal === 'percance' ? "Describa el percance brevemente..." : "Describa la falla brevemente..."}
                   value={fallaFormValue}
-                  maxLength={50}
+                  maxLength={100}
                   onChange={(e) => setFallaFormValue(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s.,;()]/g, '').toUpperCase())}
                   rows={4}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-0 text-slate-700 font-medium resize-none transition-colors"
                   disabled={isLectura}
                 ></textarea>
                 <div className="text-right mt-1">
-                  <span className={`text-xs font-semibold ${fallaFormValue.length >= 50 ? 'text-red-500' : 'text-slate-400'}`}>
-                    {fallaFormValue.length} / 50 letras
+                  <span className={`text-xs font-semibold ${fallaFormValue.length >= 100 ? 'text-red-500' : 'text-slate-400'}`}>
+                    {fallaFormValue.length} / 100 letras
                   </span>
                 </div>
               </div>
