@@ -66,6 +66,36 @@ class ConductorController extends Controller
     }
 
     /**
+     * Determina si un conductor está asignado actualmente en información operativa (como titular o relevo).
+     */
+    private function verificarConductorAsignadoOperativa($tarjeton): bool
+    {
+        $tarjetonClean = trim((string)($tarjeton ?? ''));
+        if ($tarjetonClean === '') {
+            return false;
+        }
+
+        $tarjetonPad = str_pad($tarjetonClean, 4, '0', STR_PAD_LEFT);
+        $tarjetonSinCeros = ltrim($tarjetonClean, '0');
+        $tarjetonesBusqueda = array_values(array_unique(array_filter([$tarjetonClean, $tarjetonPad, $tarjetonSinCeros])));
+
+        if (!Schema::hasTable('informacion_operativa')) {
+            return false;
+        }
+
+        try {
+            return DB::table('informacion_operativa')
+                ->where(function ($q) use ($tarjetonesBusqueda) {
+                    $q->whereIn('numero_tarjeton', $tarjetonesBusqueda)
+                      ->orWhereIn('relevo_tarjeton', $tarjetonesBusqueda);
+                })
+                ->exists();
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
      * Limpia de forma segura faltas erróneas registradas con fecha futura y sincroniza
      * la columna numérica 'faltas' con los registros reales pendientes de 'faltas_detalle'.
      */
@@ -199,12 +229,26 @@ class ConductorController extends Controller
             // Obtener todos los tarjetones asignados en tiempo real en despacho con lookup O(1)
             $asignacionesMap = [];
             try {
-                $asignaciones = DB::table('informacion_operativa')
+                $titulares = DB::table('informacion_operativa')
                     ->whereNotNull('numero_tarjeton')
                     ->where('numero_tarjeton', '!=', '')
                     ->pluck('numero_tarjeton');
-                foreach ($asignaciones as $t) {
-                    $asignacionesMap[trim((string)$t)] = true;
+                foreach ($titulares as $t) {
+                    $strT = trim((string)$t);
+                    $asignacionesMap[$strT] = true;
+                    $asignacionesMap[ltrim($strT, '0')] = true;
+                    $asignacionesMap[str_pad($strT, 4, '0', STR_PAD_LEFT)] = true;
+                }
+
+                $relevos = DB::table('informacion_operativa')
+                    ->whereNotNull('relevo_tarjeton')
+                    ->where('relevo_tarjeton', '!=', '')
+                    ->pluck('relevo_tarjeton');
+                foreach ($relevos as $r) {
+                    $strR = trim((string)$r);
+                    $asignacionesMap[$strR] = true;
+                    $asignacionesMap[ltrim($strR, '0')] = true;
+                    $asignacionesMap[str_pad($strR, 4, '0', STR_PAD_LEFT)] = true;
                 }
             } catch (\Throwable $e) {
                 $asignacionesMap = [];
@@ -216,6 +260,9 @@ class ConductorController extends Controller
                     $c->foto = null;
                     $c->qr_documento = null;
                 }
+                $tarjetonClean = trim((string)($c->tarjeton ?? ''));
+                $estaAsignado = isset($asignacionesMap[$tarjetonClean]);
+
                 try {
                     // Evaluar regla de 4 faltas en 30 días
                     $eval = $c->evaluarInhabilitacionFaltas();
@@ -236,13 +283,23 @@ class ConductorController extends Controller
                         } catch (\Throwable $e) {
                             // Ignorar errores de actualización en lectura
                         }
+                    } elseif ($c->estatus === 'inhabilitado' && empty($eval['inhabilitado'])) {
+                        // El operador ya no acumula 4 faltas en la ventana: reactivar a activo
+                        $c->estatus = 'activo';
+                        $c->estado_servicio = $estaAsignado ? 'en_servicio' : 'disponible';
+                        try {
+                            DB::table('conductores')->where('id', $c->id)->update([
+                                'estatus' => 'activo',
+                                'estado_servicio' => $c->estado_servicio
+                            ]);
+                        } catch (\Throwable $e) {
+                            // Ignorar errores de actualización en lectura
+                        }
                     }
                 } catch (\Throwable $e) {
                     // Ignorar error individual por registro
                 }
 
-                $tarjetonClean = trim((string)($c->tarjeton ?? ''));
-                $estaAsignado = isset($asignacionesMap[$tarjetonClean]);
                 if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
                     $c->estado_servicio = null;
                 } elseif ($c->estado_servicio !== 'maniobrista' && !in_array($c->estado_servicio, ['falta', 'incapacidad', 'permiso', 'descanso'])) {
@@ -292,21 +349,24 @@ class ConductorController extends Controller
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::warning('Error actualizando conductor inhabilitado: ' . $e->getMessage());
                 }
+            } elseif ($conductor->estatus === 'inhabilitado' && empty($eval['inhabilitado'])) {
+                $conductor->estatus = 'activo';
+                $estaAsignado = $this->verificarConductorAsignadoOperativa($conductor->tarjeton);
+                $conductor->estado_servicio = $estaAsignado ? 'en_servicio' : 'disponible';
+                try {
+                    DB::table('conductores')->where('id', $conductor->id)->update([
+                        'estatus' => 'activo',
+                        'estado_servicio' => $conductor->estado_servicio
+                    ]);
+                } catch (\Throwable $e) {
+                    // Manejo silencioso en lectura
+                }
             }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Error evaluando faltas en show conductor: ' . $e->getMessage());
         }
 
-        $tarjetonClean = trim((string)($conductor->tarjeton ?? ''));
-        $estaAsignado = false;
-        try {
-            $estaAsignado = DB::table('informacion_operativa')
-                ->where('numero_tarjeton', $tarjetonClean)
-                ->where('numero_tarjeton', '!=', '')
-                ->exists();
-        } catch (\Throwable $e) {
-            $estaAsignado = false;
-        }
+        $estaAsignado = $this->verificarConductorAsignadoOperativa($conductor->tarjeton);
 
         if ($conductor->estatus === 'baja' || $conductor->estatus === 'inhabilitado') {
             $conductor->estado_servicio = null;
@@ -999,15 +1059,27 @@ class ConductorController extends Controller
 
             $conductor->faltas_detalle = array_values($detalle);
 
-            if ($conductor->faltas > 0) {
-                $conductor->faltas = max(0, (int)$conductor->faltas - 1);
+            $pendientesCount = 0;
+            foreach ($detalle as $item) {
+                $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+                if (!$esJust && (!isset($item['estado']) || $item['estado'] !== 'retardo')) {
+                    $pendientesCount++;
+                }
             }
+            $conductor->faltas = $pendientesCount;
 
             // Reevaluar regla de 4 faltas en 30 días tras justificar
-            $eval = $conductor->evaluarInhabilitacionFaltas();
-            if ($conductor->estatus === 'inhabilitado' && !$eval['inhabilitado']) {
-                $conductor->estatus = 'activo';
-                $conductor->estado_servicio = 'disponible';
+            $conductor->limpiarMemoizedVentanaFaltas();
+            $eval = $conductor->evaluarInhabilitacionFaltas(true);
+
+            if (!$eval['inhabilitado']) {
+                if ($conductor->estatus === 'inhabilitado') {
+                    $conductor->estatus = 'activo';
+                }
+                $estaAsignado = $this->verificarConductorAsignadoOperativa($conductor->tarjeton);
+                if ($conductor->estado_servicio === 'falta' || is_null($conductor->estado_servicio) || $conductor->estado_servicio === 'disponible') {
+                    $conductor->estado_servicio = $estaAsignado ? 'en_servicio' : 'disponible';
+                }
             }
 
             $conductor->save();
@@ -1157,16 +1229,34 @@ class ConductorController extends Controller
 
         $conductor->faltas_detalle = array_values($detalle);
 
-        if ($conductor->faltas > 0) {
-            $conductor->faltas = max(0, (int)$conductor->faltas - 1);
+        // Limpiar asistencia manual si existía para la fecha del retardo
+        if (!empty($conductor->asistencias_detalle)) {
+            $arrAsist = is_string($conductor->asistencias_detalle) ? (json_decode($conductor->asistencias_detalle, true) ?: []) : (is_array($conductor->asistencias_detalle) ? $conductor->asistencias_detalle : []);
+            $conductor->asistencias_detalle = array_values(array_filter($arrAsist, fn($item) => ($item['fecha'] ?? '') !== $fechaFalta));
         }
+
+        $pendientesCount = 0;
+        foreach ($detalle as $item) {
+            $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+            if (!$esJust && (!isset($item['estado']) || $item['estado'] !== 'retardo')) {
+                $pendientesCount++;
+            }
+        }
+        $conductor->faltas = $pendientesCount;
         $conductor->retardos = (int)$conductor->retardos + 1;
 
         // Reevaluar regla de 4 faltas en 30 días tras justificar/retardo
-        $eval = $conductor->evaluarInhabilitacionFaltas();
-        if ($conductor->estatus === 'inhabilitado' && !$eval['inhabilitado']) {
-            $conductor->estatus = 'activo';
-            $conductor->estado_servicio = 'disponible';
+        $conductor->limpiarMemoizedVentanaFaltas();
+        $eval = $conductor->evaluarInhabilitacionFaltas(true);
+
+        if (!$eval['inhabilitado']) {
+            if ($conductor->estatus === 'inhabilitado') {
+                $conductor->estatus = 'activo';
+            }
+            $estaAsignado = $this->verificarConductorAsignadoOperativa($conductor->tarjeton);
+            if ($conductor->estado_servicio === 'falta' || is_null($conductor->estado_servicio) || $conductor->estado_servicio === 'disponible') {
+                $conductor->estado_servicio = $estaAsignado ? 'en_servicio' : 'disponible';
+            }
         }
 
         $conductor->save();
@@ -1276,6 +1366,16 @@ class ConductorController extends Controller
 
         $detalle[] = $nuevaFalta;
         $conductor->faltas_detalle = $detalle;
+
+        // Limpiar de asistencias_detalle y descansos_detalle si existían para la misma fecha
+        if (!empty($conductor->asistencias_detalle)) {
+            $arrAsist = is_string($conductor->asistencias_detalle) ? (json_decode($conductor->asistencias_detalle, true) ?: []) : (is_array($conductor->asistencias_detalle) ? $conductor->asistencias_detalle : []);
+            $conductor->asistencias_detalle = array_values(array_filter($arrAsist, fn($item) => ($item['fecha'] ?? '') !== $fechaLimpia));
+        }
+        if (!empty($conductor->descansos_detalle)) {
+            $arrD = is_string($conductor->descansos_detalle) ? (json_decode($conductor->descansos_detalle, true) ?: []) : (is_array($conductor->descansos_detalle) ? $conductor->descansos_detalle : []);
+            $conductor->descansos_detalle = array_values(array_filter($arrD, fn($item) => ($item['fecha'] ?? '') !== $fechaLimpia));
+        }
 
         // Recalcular conteo exacto de faltas pendientes no justificadas
         $pendientesCount = 0;
@@ -1477,17 +1577,26 @@ class ConductorController extends Controller
 
         $conductor->faltas_detalle = array_values($nuevoDetalle);
 
-        $eraJustificada = isset($eliminada['estado']) && ($eliminada['estado'] === 'justificada' || !empty($eliminada['justificada']));
-        if (!$eraJustificada && $conductor->faltas > 0) {
-            $conductor->faltas = max(0, (int)$conductor->faltas - 1);
+        $pendientesCount = 0;
+        foreach ($nuevoDetalle as $item) {
+            $esJust = (!empty($item['justificada'])) || (isset($item['estado']) && $item['estado'] === 'justificada');
+            if (!$esJust && (!isset($item['estado']) || $item['estado'] !== 'retardo')) {
+                $pendientesCount++;
+            }
         }
+        $conductor->faltas = $pendientesCount;
 
         // Reevaluar inhabilitación
-        $eval = $conductor->evaluarInhabilitacionFaltas();
-        if ($conductor->estatus === 'inhabilitado' && !$eval['inhabilitado']) {
-            $conductor->estatus = 'activo';
-            if ($conductor->estado_servicio === 'falta') {
-                $conductor->estado_servicio = 'disponible';
+        $conductor->limpiarMemoizedVentanaFaltas();
+        $eval = $conductor->evaluarInhabilitacionFaltas(true);
+
+        if (!$eval['inhabilitado']) {
+            if ($conductor->estatus === 'inhabilitado') {
+                $conductor->estatus = 'activo';
+            }
+            $estaAsignado = $this->verificarConductorAsignadoOperativa($conductor->tarjeton);
+            if ($conductor->estado_servicio === 'falta' || is_null($conductor->estado_servicio) || $conductor->estado_servicio === 'disponible') {
+                $conductor->estado_servicio = $estaAsignado ? 'en_servicio' : 'disponible';
             }
         }
 
