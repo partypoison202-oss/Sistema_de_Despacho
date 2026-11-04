@@ -956,13 +956,13 @@ class HistorialOperativoController extends Controller
             $f->cerrado = $salioDeMantenimiento;
             $f->estatus_etiqueta = $etiqueta;
 
-            // 4. Cálculo de Días en Incidencia (Independiente)
+            // 4. Cálculo de Días en Incidencia (Independiente - 24 horas naturales completas)
             $f->tiempo_incidencia = null;
             if (!empty($f->fecha_registro)) {
                 try {
                     $dtInc = Carbon::parse($f->fecha_registro);
-                    $diffHorasInc = (int) round(max(0, $dtInc->diffInHours($fechaFin, false)));
-                    $diasInc = (int) round($diffHorasInc / 24);
+                    $diffHorasInc = (int) max(0, $dtInc->diffInHours($fechaFin, false));
+                    $diasInc = (int) floor($diffHorasInc / 24);
                     
                     $txtInc = '';
                     if ($diasInc == 0) {
@@ -985,13 +985,13 @@ class HistorialOperativoController extends Controller
                 } catch (\Exception $e) {}
             }
 
-            // 5. Cálculo de Días con Folio (Independiente)
+            // 5. Cálculo de Días con Folio (Independiente - 24 horas naturales completas)
             $f->tiempo_folio = null;
             if (!empty($f->folio_mantenimiento) && !empty($f->fecha_folio_mantenimiento)) {
                 try {
                     $dtFol = Carbon::parse($f->fecha_folio_mantenimiento);
-                    $diffHorasFol = (int) round(max(0, $dtFol->diffInHours($fechaFin, false)));
-                    $diasFol = (int) round($diffHorasFol / 24);
+                    $diffHorasFol = (int) max(0, $dtFol->diffInHours($fechaFin, false));
+                    $diasFol = (int) floor($diffHorasFol / 24);
 
                     $txtFol = '';
                     if ($diasFol == 0) {
@@ -1028,7 +1028,29 @@ class HistorialOperativoController extends Controller
             $folios = $folios->filter(function ($f) use ($fecha) {
                 $fFolio = !empty($f->fecha_folio_mantenimiento) ? substr((string)$f->fecha_folio_mantenimiento, 0, 10) : null;
                 $fReg = !empty($f->fecha_registro) ? substr((string)$f->fecha_registro, 0, 10) : null;
-                return $fFolio === $fecha || $fReg === $fecha;
+                
+                // 1. Coincidencia directa de fecha de folio o registro
+                if ($fFolio === $fecha || $fReg === $fecha) {
+                    return true;
+                }
+
+                // 2. Unidad que en esa fecha ESTABA activa en taller (vigencia de estancia real):
+                // Ingresó antes o en la fecha seleccionada, y aún no salía en esa fecha
+                $fInicio = $fReg ?: $fFolio;
+                if ($fInicio && substr((string)$fInicio, 0, 10) <= $fecha) {
+                    $estAct = strtolower(trim((string)($f->estatus ?? '')));
+                    if (in_array($estAct, ['mantenimiento', 'percance'])) {
+                        return true;
+                    }
+                    if (!empty($f->fecha_salida_operacion)) {
+                        $fSalida = substr((string)$f->fecha_salida_operacion, 0, 10);
+                        if ($fSalida >= $fecha) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
             })->values();
         }
 
