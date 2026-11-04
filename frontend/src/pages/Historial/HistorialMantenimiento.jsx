@@ -227,7 +227,23 @@ export default function HistorialMantenimiento() {
 
     const fFolio = extraerFechaYMD(f.fecha_folio_mantenimiento);
     const fInc = extraerFechaYMD(f.fecha_registro);
-    return fFolio === selectedFecha || fInc === selectedFecha;
+    if (fFolio === selectedFecha || fInc === selectedFecha) return true;
+
+    // Regla de vigencia de estancia real: la unidad estaba en taller durante esa fecha
+    const fInicio = fInc || fFolio;
+    if (fInicio && fInicio <= selectedFecha) {
+      const est = String(f.estatus || '').toLowerCase().trim();
+      if (est === 'mantenimiento' || est === 'percance') {
+        return true;
+      }
+      if (f.fecha_salida_operacion) {
+        const fSal = extraerFechaYMD(f.fecha_salida_operacion);
+        if (fSal && fSal >= selectedFecha) {
+          return true;
+        }
+      }
+    }
+    return false;
   });
 
   // Lista base según el modo de alcance activo (Por Día vs Todos los Días / Historial Completo)

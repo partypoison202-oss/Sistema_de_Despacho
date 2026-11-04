@@ -2577,7 +2577,7 @@ class DespachoController extends Controller
                             'motivo'          => $bloqueada['motivo'] ?? null,
                             'motivo_estatus'  => !empty($bloqueada['motivo_estatus']) ? $bloqueada['motivo_estatus'] : strtoupper($bloqueada['estatus']),
                             'hora_salida_patio' => null,
-                            'fecha_registro'  => $fechaHoy,
+                            'fecha_registro'  => !empty($bloqueada['fecha_registro']) ? $bloqueada['fecha_registro'] : $fechaHoy,
                             'created_at'      => now(),
                             'updated_at'      => now(),
                         ];
@@ -2723,7 +2723,7 @@ class DespachoController extends Controller
                         $insertRow['hora_desincorporacion'] = null;
                         $insertRow['hora_incorporacion'] = null;
                         $insertRow['hora_encierro'] = !empty($arrayRow['hora_encierro']) ? $arrayRow['hora_encierro'] : (!empty($bloqueada['hora_encierro']) ? $bloqueada['hora_encierro'] : null);
-                        $insertRow['fecha_registro'] = $fechaHoy;
+                        $insertRow['fecha_registro'] = !empty($bloqueada['fecha_registro']) ? $bloqueada['fecha_registro'] : $fechaHoy;
 
                         $insertRow = array_intersect_key($insertRow, $targetCols);
                         DB::table('informacion_operativa')->insert($insertRow);
@@ -2830,7 +2830,7 @@ class DespachoController extends Controller
                         if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
                             $insertRow['firma_base64'] = null;
                         }
-                        $insertRow['fecha_registro'] = $fechaHoy;
+                        $insertRow['fecha_registro'] = !empty($bloqueadaObj->fecha_registro) ? $bloqueadaObj->fecha_registro : $fechaHoy;
                         $insertRow = array_intersect_key($insertRow, $targetCols);
                         DB::table('informacion_operativa')->insert($insertRow);
 
@@ -2846,7 +2846,7 @@ class DespachoController extends Controller
                             'falla'           => $fallaSnapBloq,
                             'motivo'          => $bloqArray['motivo'] ?? null,
                             'motivo_estatus'  => !empty($bloqArray['motivo_estatus']) ? $bloqArray['motivo_estatus'] : strtoupper($bloqArray['estatus'] ?? 'MANTENIMIENTO'),
-                            'fecha_registro'  => $fechaHoy,
+                            'fecha_registro'  => !empty($bloqArray['fecha_registro']) ? $bloqArray['fecha_registro'] : $fechaHoy,
                             'created_at'      => now(),
                             'updated_at'      => now(),
                         ];
@@ -3217,7 +3217,7 @@ class DespachoController extends Controller
                     $insertRow['hora_desincorporacion'] = null;
                     $insertRow['hora_incorporacion'] = null;
                     $insertRow['hora_encierro'] = !empty($arrayRow['hora_encierro']) ? $arrayRow['hora_encierro'] : (!empty($bloqueada['hora_encierro']) ? $bloqueada['hora_encierro'] : null);
-                    $insertRow['fecha_registro'] = $fechaHoy;
+                    $insertRow['fecha_registro'] = !empty($bloqueada['fecha_registro']) ? $bloqueada['fecha_registro'] : $fechaHoy;
 
                     $insertRow = array_intersect_key($insertRow, $targetCols);
                     DB::table('informacion_operativa')->insert($insertRow);
@@ -3312,7 +3312,7 @@ class DespachoController extends Controller
                     if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
                         $insertRow['firma_base64'] = null;
                     }
-                    $insertRow['fecha_registro'] = $fechaHoy;
+                    $insertRow['fecha_registro'] = !empty($bloqueadaObj->fecha_registro) ? $bloqueadaObj->fecha_registro : $fechaHoy;
                     $insertRow = array_intersect_key($insertRow, $targetCols);
                     DB::table('informacion_operativa')->insert($insertRow);
                 }

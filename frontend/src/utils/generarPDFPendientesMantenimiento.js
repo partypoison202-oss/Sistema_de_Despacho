@@ -116,17 +116,25 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
 
   const calcularDias = (fecha) => {
     if (!fecha) return '—';
-    const startDate = parsearFechaLocal(fecha);
-    if (!startDate) return '—';
+    const str = String(fecha).trim();
+    // Si contiene hora completa
+    let startMs = NaN;
+    if (str.includes(' ') || str.includes('T')) {
+      const safeStr = str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str;
+      const d = new Date(safeStr);
+      if (!isNaN(d.getTime())) startMs = d.getTime();
+    }
+    if (isNaN(startMs)) {
+      const dLocal = parsearFechaLocal(fecha);
+      if (dLocal) startMs = dLocal.getTime();
+    }
+    if (isNaN(startMs)) return '—';
 
-    // Normalizar la fecha actual a medianoche (00:00:00) para calcular días calendario exactos
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // 24 horas naturales completas transcurridas
+    const diffMs = Math.max(0, now.getTime() - startMs);
+    const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+    const dias = Math.floor(diffHoras / 24);
 
-    const diffTime = today.getTime() - startDate.getTime();
-    if (diffTime < 0) return '0';
-    
-    // Diferencia en días calendario exactos (redondeo para tolerar cambios de horario)
-    const dias = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return dias.toString();
   };
 
