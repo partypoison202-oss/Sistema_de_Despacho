@@ -97,6 +97,59 @@ const fusionarFila = (mine, base, fresh) => {
   return { merged, conflictos };
 };
 
+// Genera un resumen legible de los cambios realizados en una unidad económica para notificar al usuario en alertas
+const describirCambiosUnidad = (row, base) => {
+  const cambios = [];
+  const tipo = row.TIPO_DE_UNIDAD || row.TIPO || '';
+
+  if (!base) {
+    if (row.RUTA) cambios.push(`Ruta ${row.RUTA}`);
+    if (row.CORRIDAS) cambios.push(`Corrida ${row.CORRIDAS}`);
+    if (row.TARJETON || row.NOMBRE_CONDUCTOR) {
+      const parts = [row.TARJETON ? `Tarjetón ${row.TARJETON}` : '', row.NOMBRE_CONDUCTOR].filter(Boolean);
+      cambios.push(parts.join(' - '));
+    }
+    if (row.ESTATUS) cambios.push(`Estatus: ${row.ESTATUS}`);
+    return { tipo, texto: cambios.length > 0 ? cambios.join(', ') : 'Nueva unidad agregada' };
+  }
+
+  if (!mismoValor(row, base, 'RUTA')) {
+    cambios.push(`Ruta ${row.RUTA || '(sin ruta)'}`);
+  }
+  if (!mismoValor(row, base, 'CORRIDAS')) {
+    cambios.push(`Corrida ${row.CORRIDAS || '(sin corrida)'}`);
+  }
+  if (!mismoValor(row, base, 'TARJETON') || !mismoValor(row, base, 'NOMBRE_CONDUCTOR')) {
+    const chofer = row.NOMBRE_CONDUCTOR || '';
+    const tarj = row.TARJETON ? `Tarjetón ${row.TARJETON}` : '';
+    const info = [tarj, chofer].filter(Boolean).join(' - ');
+    cambios.push(info || 'Conductor modificado');
+  }
+  if (!mismoValor(row, base, 'ESTATUS')) {
+    cambios.push(`Estatus: ${row.ESTATUS}`);
+  }
+  if (!mismoValor(row, base, 'RELEVO_TARJETON') || !mismoValor(row, base, 'RELEVO_CONDUCTOR') || !mismoValor(row, base, 'RELEVO_HORA')) {
+    const relChofer = row.RELEVO_CONDUCTOR || (row.RELEVO_TARJETON ? `Tarj. ${row.RELEVO_TARJETON}` : '');
+    const relHora = row.RELEVO_HORA ? ` (${row.RELEVO_HORA})` : '';
+    cambios.push(`Relevo: ${relChofer}${relHora}`);
+  }
+  if (!mismoValor(row, base, 'HORA_DE_ACOPLE') || !mismoValor(row, base, 'ACOPLE')) {
+    cambios.push(`Acople: ${row.HORA_DE_ACOPLE || row.ACOPLE}`);
+  }
+  if (!mismoValor(row, base, 'HORA_ENCIERRO')) {
+    cambios.push(`Encierro: ${row.HORA_ENCIERRO}`);
+  }
+  if (!mismoValor(row, base, 'FALLA') || !mismoValor(row, base, 'MOTIVO')) {
+    cambios.push(`Motivo/Falla: ${row.FALLA || row.MOTIVO}`);
+  }
+
+  if (cambios.length === 0) {
+    cambios.push('Modificación de datos');
+  }
+
+  return { tipo, texto: cambios.join(', ') };
+};
+
 export default function CargaExcel({ isPasteles = false }) {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -829,6 +882,44 @@ export default function CargaExcel({ isPasteles = false }) {
     return doc.output('datauristring').split(',')[1];
   };
 
+  // ─── ALERTA CLARA SI FALLA EL GUARDADO ────────────────────────────────────────
+  const alertarFalloGuardado = async (modificadas, baseline, mensajeExtra = '') => {
+    const listaHtml = modificadas.map((row) => {
+      const ecoKey = normalizeEcoKey(row.ECONOMICO);
+      const base = baseline.get(ecoKey);
+      const { tipo, texto } = describirCambiosUnidad(row, base);
+      const tipoStr = tipo ? ` (${tipo})` : '';
+      return `<li style="margin-bottom: 4px;"><b>Eco ${row.ECONOMICO}</b>${tipoStr}: ${texto}</li>`;
+    }).join('');
+
+    const nombreUsuario = user?.usuario || user?.nombre_completo || 'Usuario';
+
+    const resp = await Swal.fire({
+      icon: 'warning',
+      title: 'No se guardaron los cambios',
+      html: `
+        <div style="text-align: left; font-size: 0.92rem; color: #334155; line-height: 1.5;">
+          <p style="margin-bottom: 0.6rem;">
+            El usuario <b>${nombreUsuario}</b> no pudo guardar sus cambios en las siguientes unidades:
+          </p>
+          <ul style="margin: 0.4rem 0 0.8rem 1.2rem; padding: 0; max-height: 200px; overflow-y: auto;">
+            ${listaHtml}
+          </ul>
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #c5a059; border-radius: 10px; padding: 10px 12px; margin-top: 0.6rem; font-size: 0.85rem; color: #78350f;">
+            Comunícate con el usuario <b>${nombreUsuario}</b> para pedirle que recargue la página o haga clic en <b>"Reintentar Guardar"</b>.
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonColor: '#c5a059',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Reintentar Guardar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    return resp.isConfirmed;
+  };
+
   // ─── GUARDAR DIRECTO (retorna booleano) ──────────────────────────────────────
   const handleSaveChangesDirectly = async () => {
     const tieneIncompletos = previewData.some(fila => !fila.ECONOMICO);
@@ -871,12 +962,10 @@ export default function CargaExcel({ isPasteles = false }) {
         return [normalizeEcoKey(r.ECONOMICO), r];
       }));
     } catch (e) {
-      Swal.fire({
-        icon: 'error',
-        title: 'No se pudo verificar el estado actual',
-        text: 'No se guardó nada para evitar sobrescribir cambios de otros usuarios. Intenta de nuevo.',
-        confirmButtonColor: '#6b1d33'
-      });
+      const reintentar = await alertarFalloGuardado(modificadas, baseline);
+      if (reintentar) {
+        return await handleSaveChangesDirectly();
+      }
       return false;
     }
 
@@ -961,12 +1050,10 @@ export default function CargaExcel({ isPasteles = false }) {
       queryClient.invalidateQueries({ queryKey: ['despacho-datos', tabActiva] });
       return true;
     } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message,
-        confirmButtonColor: '#6b1d33'
-      });
+      const reintentar = await alertarFalloGuardado(modificadas, baseline, error.message);
+      if (reintentar) {
+        return await handleSaveChangesDirectly();
+      }
       return false;
     }
   };
