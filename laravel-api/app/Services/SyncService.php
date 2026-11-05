@@ -14,7 +14,11 @@ class SyncService
     public static function notifyChange(): string
     {
         $version = (string) microtime(true);
-        Cache::forever(self::CACHE_KEY, $version);
+        try {
+            Cache::forever(self::CACHE_KEY, $version);
+        } catch (\Throwable $e) {
+            \Log::warning('SyncService::notifyChange cache warning: ' . $e->getMessage());
+        }
         return $version;
     }
 
@@ -23,11 +27,15 @@ class SyncService
      */
     public static function getVersion(): string
     {
-        $version = Cache::get(self::CACHE_KEY);
-        if (!$version) {
-            $version = (string) microtime(true);
-            Cache::forever(self::CACHE_KEY, $version);
+        try {
+            $version = Cache::get(self::CACHE_KEY);
+            if (!$version) {
+                $version = (string) microtime(true);
+                Cache::forever(self::CACHE_KEY, $version);
+            }
+            return (string) $version;
+        } catch (\Throwable $e) {
+            return (string) microtime(true);
         }
-        return (string) $version;
     }
 }

@@ -17,39 +17,6 @@ import './CargaExcel.css';
 import API_BASE from '../../config/api';
 import { getFechaActualLocal } from '../../utils/itinerarioUtils';
 
-// Campos que se editan juntos (si cambia uno del grupo, se considera cambiado todo el grupo).
-const GRUPOS_FILA = [
-  ['ESTATUS'],
-  ['RUTA'],
-  ['CORRIDAS'],
-  ['TARJETON', 'NOMBRE_CONDUCTOR'],
-  ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'],
-  ['TARJETON_MANIOBRISTA', 'NOMBRE_MANIOBRISTA'],
-  ['HORA_DE_ACOPLE', 'HORA_SALIDA_PATIO', 'ACOPLE'],
-  ['HORA_ENCIERRO', 'hora_encierro', 'HORA DE ENCIERRO'],
-  ['PATIO_NORTE', 'TRANSPORTE_PATIO_NORTE'],
-  ['ITINERARIO'],
-  ['HORA_INCORPORACION'],
-  ['HORA_DESINCORPORACION'],
-  ['FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS'],
-];
-
-const ETIQUETAS_GRUPO = {
-  ESTATUS: 'Estatus',
-  RUTA: 'Ruta',
-  CORRIDAS: 'Corridas',
-  TARJETON: 'Conductor titular',
-  RELEVO_TARJETON: 'Relevo',
-  TARJETON_MANIOBRISTA: 'Maniobrista',
-  HORA_DE_ACOPLE: 'Horario de salida/acople',
-  HORA_ENCIERRO: 'Hora de encierro',
-  PATIO_NORTE: 'Patio Norte',
-  ITINERARIO: 'Itinerario',
-  HORA_INCORPORACION: 'Hora de incorporación',
-  HORA_DESINCORPORACION: 'Hora de desincorporación',
-  FALLA: 'Falla/Ciclo/Motivo',
-};
-
 const valorComparable = (v) => {
   if (v === null || v === undefined || v === false) return '';
   if (typeof v === 'object') return JSON.stringify(v);
@@ -75,26 +42,6 @@ const normalizarFilaServidor = (item) => {
   row.hora_encierro = encierroVal;
   row['HORA DE ENCIERRO'] = encierroVal;
   return row;
-};
-
-// Fusiona mis cambios (mine) contra el estado actual del servidor (fresh), usando como referencia lo que
-// vi al cargar (base). Solo se aplican MIS cambios; todo lo demás se toma del servidor.
-// Si yo y otra persona cambiamos lo mismo con valores distintos, se reporta como conflicto.
-const fusionarFila = (mine, base, fresh) => {
-  const usadas = new Set(GRUPOS_FILA.flat());
-  const grupos = [...GRUPOS_FILA];
-  Object.keys(mine).forEach((k) => { if (!usadas.has(k)) grupos.push([k]); });
-
-  const merged = { ...fresh };
-  const conflictos = [];
-  grupos.forEach((g) => {
-    if (g.every((k) => mismoValor(mine, base, k))) return; // yo no lo toqué
-    const servidorCambio = g.some((k) => !mismoValor(fresh, base, k));
-    const iguales = g.every((k) => mismoValor(fresh, mine, k));
-    if (servidorCambio && !iguales) conflictos.push(g);
-    g.forEach((k) => { if (k in mine) merged[k] = mine[k]; });
-  });
-  return { merged, conflictos };
 };
 
 // Genera un resumen legible de los cambios realizados en una unidad económica para notificar al usuario en alertas
@@ -253,14 +200,12 @@ export default function CargaExcel({ isPasteles = false }) {
   const catalogManiobristas = catalogos?.maniobristas || [];
   const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
 
-  const fetchDatos = async ({ queryKey, signal, soloLectura = false }) => {
+  const fetchDatos = async ({ queryKey, signal }) => {
     const [_key, tab] = queryKey;
     const headers = getAuthHeaders();
     let url = `${API_BASE}/api/despacho/hoy`;
     if (tab === 'MANANA') url = `${API_BASE}/api/despacho/manana`;
     else if (tab === 'FESTIVO') url = `${API_BASE}/api/despacho/especifico/festivo`;
-    // Verificación previa al guardar: consulta ligera (sin procesos automáticos con escritura en el servidor)
-    else if (soloLectura) url = `${API_BASE}/api/despacho/hoy?solo_lectura=1`;
 
     const response = await fetch(url, {
       signal,
@@ -915,7 +860,7 @@ export default function CargaExcel({ isPasteles = false }) {
   };
 
   // ─── ALERTA CLARA SI FALLA EL GUARDADO ────────────────────────────────────────
-  const alertarFalloGuardado = async (modificadas, baseline, mensajeExtra = '') => {
+  const alertarFalloGuardado = async (modificadas, baseline) => {
     const listaHtml = modificadas.map((row) => {
       const ecoKey = normalizeEcoKey(row.ECONOMICO);
       const base = baseline.get(ecoKey);
@@ -924,26 +869,22 @@ export default function CargaExcel({ isPasteles = false }) {
       return `<li style="margin-bottom: 4px;"><b>Eco ${row.ECONOMICO}</b>${tipoStr}: ${texto}</li>`;
     }).join('');
 
-    const detalleError = mensajeExtra ? String(mensajeExtra).trim() : '';
+    const iconoInfo = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c5a059" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
 
     const resp = await Swal.fire({
       icon: 'warning',
-      title: 'No se pudieron guardar tus cambios',
+      title: 'No se guardaron tus cambios',
       html: `
         <div style="text-align: left; font-size: 0.92rem; color: #334155; line-height: 1.5;">
           <p style="margin-bottom: 0.6rem;">
-            Ocurrió un problema de comunicación con el servidor y tus modificaciones en las siguientes unidades siguen <b>pendientes</b>:
+            Tu conexión a internet se interrumpió antes de terminar de guardar los cambios de las siguientes unidades:
           </p>
           <ul style="margin: 0.4rem 0 0.8rem 1.2rem; padding: 0; max-height: 200px; overflow-y: auto;">
             ${listaHtml}
           </ul>
-          ${detalleError ? `
-            <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; padding: 7px 11px; margin: 0.6rem 0; font-size: 0.82rem; color: #991b1b;">
-              <b>Causa del error:</b> ${detalleError}
-            </div>
-          ` : ''}
-          <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #c5a059; border-radius: 8px; padding: 8px 12px; margin-top: 0.6rem; font-size: 0.84rem; color: #78350f;">
-            💡 <b>Tus datos no se han perdido</b>: siguen intactos en la pantalla. Haz clic en <b>"Reintentar Guardar"</b> para consolidarlos de nuevo.
+          <div style="display: flex; gap: 8px; align-items: flex-start; background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #c5a059; border-radius: 8px; padding: 8px 12px; margin-top: 0.6rem; font-size: 0.84rem; color: #78350f;">
+            ${iconoInfo}
+            <div>Revisa tu conexión y presiona <b>"Reintentar Guardar"</b>. Tus cambios siguen en pantalla, no recargues la página.</div>
           </div>
         </div>
       `,
@@ -970,7 +911,7 @@ export default function CargaExcel({ isPasteles = false }) {
       return false;
     }
 
-    // ─── Solo se envían las unidades que ESTE usuario modificó, fusionadas con el estado actual ───
+    // ─── Solo se envían las unidades que ESTE usuario modificó ───
     // Antes se enviaba la tabla completa cargada hace minutos: si otra persona/módulo había cambiado
     // otras unidades en ese lapso, este guardado las regresaba a su valor viejo ("se borran datos").
     const baseline = baselineRef.current;
@@ -991,83 +932,7 @@ export default function CargaExcel({ isPasteles = false }) {
       return false;
     }
 
-    let frescos;
-    try {
-      // Reintento automático y silencioso (hasta 3 intentos) para absorber cortes o lentitud momentánea.
-      // No se reintenta si la sesión expiró (401), porque no se resolvería sola.
-      let datosFrescos;
-      let ultimoError;
-      for (let intento = 1; intento <= 3; intento++) {
-        try {
-          datosFrescos = await fetchDatos({ queryKey: ['despacho-datos', tabActiva], soloLectura: true });
-          ultimoError = null;
-          break;
-        } catch (err) {
-          ultimoError = err;
-          if (String(err?.message || '').includes('sesión ha expirado') || intento === 3) break;
-          await new Promise((r) => setTimeout(r, 800 * intento));
-        }
-      }
-      if (ultimoError) throw ultimoError;
-      frescos = new Map(datosFrescos.map((item) => {
-        const r = normalizarFilaServidor(item);
-        return [normalizeEcoKey(r.ECONOMICO), r];
-      }));
-    } catch (e) {
-      const reintentar = await alertarFalloGuardado(modificadas, baseline, e?.message || 'Error de conexión al verificar el estado reciente');
-      if (reintentar) {
-        return await handleSaveChangesDirectly();
-      }
-      return false;
-    }
-
-    const filasAGuardar = [];
-    const conflictosPorEco = [];
-    modificadas.forEach((row) => {
-      const eco = String(row.ECONOMICO);
-      const ecoKey = normalizeEcoKey(eco);
-      const base = baseline.get(ecoKey);
-      const fresca = frescos.get(ecoKey);
-      if (!base || !fresca) {
-        filasAGuardar.push({ eco, merged: row, conflictos: [] });
-        return;
-      }
-      const { merged, conflictos } = fusionarFila(row, base, fresca);
-      filasAGuardar.push({ eco, merged, conflictos, fresca });
-      if (conflictos.length > 0) conflictosPorEco.push({ eco, conflictos });
-    });
-
-    if (conflictosPorEco.length > 0) {
-      const etiqueta = (g) => ETIQUETAS_GRUPO[g[0]] || g[0];
-      const listaHtml = conflictosPorEco
-        .map((c) => `<li><b>Eco ${c.eco}</b>: ${c.conflictos.map(etiqueta).join(', ')}</li>`)
-        .join('');
-      const decision = await Swal.fire({
-        icon: 'warning',
-        title: 'Otra persona modificó estas unidades',
-        html: `<div style="text-align: left; font-size: 0.9rem;">
-          <p>Mientras editabas, otro usuario cambió lo siguiente en las mismas unidades:</p>
-          <ul style="margin-top: 0.5rem; padding-left: 1.2rem; line-height: 1.5;">${listaHtml}</ul>
-          <p style="margin-top: 0.8rem; font-weight: 600;">¿Qué valor deseas conservar en esos campos?</p>
-        </div>`,
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonColor: '#c5a059',
-        denyButtonColor: '#6b7280',
-        cancelButtonColor: '#6b1d33',
-        confirmButtonText: 'Usar mis cambios',
-        denyButtonText: 'Conservar lo guardado',
-        cancelButtonText: 'Cancelar'
-      });
-      if (decision.isDismissed) return false;
-      if (decision.isDenied) {
-        filasAGuardar.forEach((f) => {
-          f.conflictos.forEach((g) => g.forEach((k) => { if (f.fresca && k in f.fresca) f.merged[k] = f.fresca[k]; }));
-        });
-      }
-    }
-
-    const payloadUnidades = filasAGuardar.map((f) => f.merged);
+    const payloadUnidades = modificadas;
 
     try {
       let url = `${API_BASE}/api/despacho/actualizar`;
@@ -1091,6 +956,12 @@ export default function CargaExcel({ isPasteles = false }) {
         throw new Error(result.message || result.errores.join('; '));
       }
 
+      modificadas.forEach((row) => {
+        const ecoKey = normalizeEcoKey(row.ECONOMICO);
+        if (ecoKey) {
+          baseline.set(ecoKey, JSON.parse(JSON.stringify(row)));
+        }
+      });
       setHasChanges(false);
       Swal.fire({
         icon: 'success',
@@ -1102,7 +973,7 @@ export default function CargaExcel({ isPasteles = false }) {
       queryClient.invalidateQueries({ queryKey: ['despacho-datos', tabActiva] });
       return true;
     } catch (error) {
-      const reintentar = await alertarFalloGuardado(modificadas, baseline, error.message);
+      const reintentar = await alertarFalloGuardado(modificadas, baseline);
       if (reintentar) {
         return await handleSaveChangesDirectly();
       }
