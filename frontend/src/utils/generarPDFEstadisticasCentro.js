@@ -1,4 +1,4 @@
-﻿import jsPDF from 'jspdf';
+import jsPDF from 'jspdf';
 import API_BASE from '../config/api';
 import { estaDesincorporadaPorItinerario } from './itinerarioUtils';
 
@@ -645,23 +645,17 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
 
     const formatCiclo = (num) => {
         if (!num || Number.isNaN(num) || num <= 0) return '0';
-        const entero = Math.floor(num);
-        const residuo = Math.round((num - entero) * 100) / 100;
+        const parsed = typeof num === 'number' ? num : parseCiclo(num);
+        if (!parsed || Number.isNaN(parsed) || parsed <= 0) return '0';
+        const entero = Math.floor(parsed);
+        const residuo = Math.round((parsed - entero) * 100) / 100;
         const enteroStr = entero.toLocaleString('es-MX');
 
-        if (Math.abs(residuo - 0.5) < 0.05) {
-            return entero === 0 ? '1/2' : `${enteroStr} 1/2`;
-        }
-        if (Math.abs(residuo) < 0.05) {
+        if (residuo === 0) {
             return enteroStr;
         }
-        if (Math.abs(residuo - 0.25) < 0.05) {
-            return entero === 0 ? '1/4' : `${enteroStr} 1/4`;
-        }
-        if (Math.abs(residuo - 0.75) < 0.05) {
-            return entero === 0 ? '3/4' : `${enteroStr} 3/4`;
-        }
-        return Number.isInteger(num) ? enteroStr : String(Number(num.toFixed(2)));
+        const decimalStr = String(residuo).replace(/^0\./, '');
+        return `${enteroStr}.${decimalStr}`;
     };
 
     // Helper para extraer minutos y hora formateada HH:MM
@@ -755,11 +749,14 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
             fallbackIni.hora_salida_patio || fallbackIni.HORA_SALIDA_PATIO || fallbackIni['HORA DE SALIDA DE PATIO'] ||
             fallbackIni.hora_salida_programada || fallbackIni.hora_programada || fallbackIni.HORA_PROGRAMADA ||
             u.HORA_DE_ACOPLE || u.hora_de_acople || fallbackIni.HORA_DE_ACOPLE || fallbackIni.hora_de_acople ||
-            ''
+            u.HORA_PROGRAMADA_ORIGINAL || ''
         ).trim();
 
         // Hora de acople (como fallback si no estuviera registrada hora de salida de patio)
-        const rawAcople = String(u.ACOPLE || u.acople || fallbackIni.ACOPLE || fallbackIni.acople || '').trim();
+        const rawAcople = String(
+            u.ACOPLE || u.acople || fallbackIni.ACOPLE || fallbackIni.acople ||
+            u.ACOPLE_ORIGINAL || ''
+        ).trim();
 
         const objSalidaPatio = extraerMinutosYHora(rawSalidaPatio);
         const objAcople = extraerMinutosYHora(rawAcople);
@@ -775,7 +772,24 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
             refMinutes = objAcople.minutes;
         }
 
-        if (!displayHora || refMinutes === null) return;
+        // Evaluar si fue declarada como corrida perdida mediante el botón "O2 FALTA DE T6"
+        const motivoRaw = String(
+            u.MOTIVO || u.motivo || u.MOTIVO_ESTATUS || u.motivo_estatus ||
+            u.FALLA || u.falla || fallbackIni.MOTIVO || fallbackIni.motivo ||
+            fallbackIni.MOTIVO_ESTATUS || fallbackIni.motivo_estatus || ''
+        ).trim();
+
+        const esFaltaT6 = /falta\s+de\s+t6|02\s+falta|o2\s+falta/i.test(motivoRaw) ||
+                          Boolean(u.ES_CORRIDA_PERDIDA || u.es_corrida_perdida);
+
+        if (!displayHora || refMinutes === null) {
+            if (esFaltaT6) {
+                displayHora = '--';
+                refMinutes = 0;
+            } else {
+                return;
+            }
+        }
 
         const rutaFormateada = rutaRaw ? rutaRaw.toUpperCase().replace(/^T(\d{2})$/, 'T-$1') : '';
         const tieneRuta = rutaFormateada && rutaFormateada !== 'SIN RUTA';
@@ -794,44 +808,24 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
             textoEtiqueta = 'Unidad';
         }
 
-        // 1. CORRIDAS A FUTURO: Su hora de salida programada es posterior a la hora del reporte
-        if (refMinutes > clickMinutes) {
-            todasLasCorridas.push({
-                eco: eco,
-                ruta: rutaFormateada,
-                corrida: corridaRaw,
-                etiqueta: textoEtiqueta,
-                acople: displayHora,
-                minutes: refMinutes
-            });
-            return;
-        }
-
-        // 2. Si su hora programada ya llegó o pasó, verificamos si ya fue despachada
-        const estaDespachada = checkUnidadDespachada(u);
-        if (estaDespachada) {
-            // Ya salió a circular: NO es corrida perdida
-            return;
-        }
-
-        // 3. Si NO ha salido de patio, evaluamos la tolerancia de 15 minutos:
-        // Si clickMinutes <= refMinutes + TOLERANCIA_SALIDA_MINUTOS: está en margen de gracia (no se declara perdida aún).
-        // Si clickMinutes > refMinutes + TOLERANCIA_SALIDA_MINUTOS: ¡es una corrida perdida!
-        if (clickMinutes > refMinutes + TOLERANCIA_SALIDA_MINUTOS) {
+        // 1. SI FUE MARCADA COMO CORRIDA PERDIDA (BOTÓN "O2 FALTA DE T6"):
+        // Se registra de manera definitiva como corrida perdida en el reporte estadístico
+        if (esFaltaT6) {
             const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || fallbackIni.TIPO_DE_UNIDAD || fallbackIni.tipo || '').toUpperCase();
-            const motivoRaw = String(
-                u.MOTIVO || u.motivo || u.MOTIVO_ESTATUS || u.motivo_estatus ||
-                fallbackIni.MOTIVO || fallbackIni.motivo || ''
-            ).trim();
+            const motivoFinal = motivoRaw || 'O2 FALTA DE T6';
 
-            // Si la unidad fue mandada a reserva desde el módulo de pasteles o no se le puso motivo,
-            // se categoriza por defecto como 'FALTA DE OPERADOR'
-            const motivoFinal = motivoRaw || 'FALTA DE OPERADOR';
+            const rutaFinal = (rutaFormateada && rutaFormateada !== 'SIN RUTA')
+                ? rutaFormateada
+                : (fallbackIni.RUTA && String(fallbackIni.RUTA).toUpperCase() !== 'SIN RUTA'
+                    ? String(fallbackIni.RUTA).toUpperCase().replace(/^T(\d{2})$/, 'T-$1')
+                    : (u.MANTENIMIENTO_RUTA ? String(u.MANTENIMIENTO_RUTA).toUpperCase().replace(/^T(\d{2})$/, 'T-$1') : '--'));
+
+            const corridaFinal = corridaRaw || fallbackIni.CORRIDAS || u.MANTENIMIENTO_CORRIDA || '--';
 
             corridasPerdidasDetectadas.push({
                 ECONOMICO: eco,
-                RUTA: rutaFormateada,
-                CORRIDAS: corridaRaw,
+                RUTA: rutaFinal,
+                CORRIDAS: String(corridaFinal),
                 HORA_SALIDA: displayHora,
                 ACOPLE: displayHora,
                 CICLO: '--',
@@ -844,7 +838,32 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
                 minutes: refMinutes
             });
             if (eco) ecosConCorridaPerdida.add(eco);
+            return;
         }
+
+        // 2. SI NO ES CORRIDA PERDIDA:
+        // Verificar si la unidad ya cuenta con hora real de salida de patio (ya despachada)
+        const estaDespachada = checkUnidadDespachada(u);
+        if (estaDespachada) {
+            // Ya salió a circular: no es pendiente ni corrida perdida
+            return;
+        }
+
+        // Si la unidad está en reserva o mantenimiento sin haber sido corrida perdida, no es corrida pendiente
+        const estatusNorm = String(u.ESTATUS || u.estatus || '').toLowerCase().trim();
+        if (estatusNorm === 'reserva' || estatusNorm === 'mantenimiento' || estatusNorm === 'percance') {
+            return;
+        }
+
+        // Corridas pendientes por programación (ya NO se declaran automáticamente como perdidas por tiempo)
+        todasLasCorridas.push({
+            eco: eco,
+            ruta: rutaFormateada,
+            corrida: corridaRaw,
+            etiqueta: textoEtiqueta,
+            acople: displayHora,
+            minutes: refMinutes
+        });
     });
 
     // Deduplicar corridas pendientes por unidad para la sección de observaciones
@@ -866,20 +885,23 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
     // Ciclos perdidos capturados desde despacho (unidades que sí salieron pero perdieron vueltas en ruta)
     const ciclosPerdidosDesdeDespacho = listaUnidades.filter(u => {
         const c = u.CICLO || u.ciclo;
-        return c !== null && c !== undefined && String(c).trim() !== '';
+        return c !== null && c !== undefined && String(c).trim() !== '' && String(c).trim() !== '0' && String(c).trim() !== '--' && String(c).trim() !== '-';
     }).map(u => {
         const ecoKey = normEcoKey(u.ECONOMICO || u.numero_eco);
-        const rutaRaw = String(u.RUTA || u.ruta || '').trim();
-        const rutaFormateada = rutaRaw ? rutaRaw.toUpperCase().replace(/^T(\d{2})$/, 'T-$1') : '';
-        const corridaRaw = String(u.CORRIDAS ?? u.CORRIDA ?? u.corrida ?? u.corridas ?? '').trim();
-        const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase();
+        const fallbackIni = mapaInicioPorEco.get(ecoKey) || {};
+        const rutaRaw = String(u.RUTA || u.ruta || fallbackIni.RUTA || fallbackIni.ruta || u.MANTENIMIENTO_RUTA || u.mantenimiento_ruta || '').trim();
+        const rutaFormateada = rutaRaw && rutaRaw.toUpperCase() !== 'SIN RUTA' 
+            ? rutaRaw.toUpperCase().replace(/^T(\d{2})$/, 'T-$1') 
+            : (fallbackIni.RUTA ? String(fallbackIni.RUTA).toUpperCase().replace(/^T(\d{2})$/, 'T-$1') : '--');
+        const corridaRaw = String(u.CORRIDAS ?? u.CORRIDA ?? u.corrida ?? u.corridas ?? fallbackIni.CORRIDAS ?? fallbackIni.CORRIDA ?? fallbackIni.corrida ?? '--').trim();
+        const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || fallbackIni.TIPO_DE_UNIDAD || fallbackIni.tipo || '').toUpperCase();
         const cVal = u.CICLO || u.ciclo;
 
         return {
             ECONOMICO: ecoKey,
             RUTA: rutaFormateada,
             CORRIDAS: corridaRaw,
-            HORA_SALIDA: u.HORA_SALIDA || u.hora_salida || u.ACOPLE || u.acople || '',
+            HORA_SALIDA: u.HORA_SALIDA || u.hora_salida || u.ACOPLE || u.acople || fallbackIni.hora_salida_patio || '--',
             ACOPLE: u.ACOPLE || u.acople || '',
             CICLO: formatCiclo(parseCiclo(cVal)) || String(cVal),
             ciclo: cVal,
@@ -911,18 +933,11 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
     const unidadesAlimentador = todosLosFaltantes.filter(item => !esTroncal(item));
     const unidadesTroncal = todosLosFaltantes.filter(item => esTroncal(item));
 
-    const sumFaltantes = (items) => {
-        return items.reduce((acc, item) => {
-            if (item.esCorridaPerdida) {
-                return acc + 1; // Cada corrida completa perdida cuenta como 1 corrida faltante
-            }
-            return acc + parseCiclo(item.ciclo || item.CICLO);
-        }, 0);
-    };
-
-    const faltantesAlimentador = sumFaltantes(unidadesAlimentador);
-    const faltantesTroncal = sumFaltantes(unidadesTroncal);
-    const faltantesTotal = faltantesAlimentador + faltantesTroncal;
+    // Corridas faltantes: ÚNICAMENTE corridas completas perdidas registradas con el botón de pasteles (O2 FALTA DE T6)
+    // Los ciclos perdidos de despacho NO se suman aquí; van exclusivamente en la tabla inferior de resumen.
+    const corridasFaltantesAlimentador = corridasPerdidasDetectadas.filter(item => !esTroncal(item)).length;
+    const corridasFaltantesTroncal = corridasPerdidasDetectadas.filter(item => esTroncal(item)).length;
+    const corridasFaltantesTotal = corridasFaltantesAlimentador + corridasFaltantesTroncal;
 
 
         const fecha = new Date().toLocaleDateString('es-MX', {
@@ -1382,9 +1397,9 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
     p3CursorY += 6;
 
     const cfCols = [
-        { label: 'Servicio Alimentador', val: formatCiclo(faltantesAlimentador), wLabel: 52, wVal: 26 },
-        { label: 'Servicio Troncal', val: formatCiclo(faltantesTroncal), wLabel: 52, wVal: 26 },
-        { label: 'Total', val: formatCiclo(faltantesTotal), wLabel: 52, wVal: 26 }
+        { label: 'Servicio Alimentador', val: String(corridasFaltantesAlimentador), wLabel: 52, wVal: 26 },
+        { label: 'Servicio Troncal', val: String(corridasFaltantesTroncal), wLabel: 52, wVal: 26 },
+        { label: 'Total', val: String(corridasFaltantesTotal), wLabel: 52, wVal: 26 }
     ];
 
     let cfX = p3X;
@@ -1422,16 +1437,17 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
     const tablaFaltantesCols = [
         { label: 'No', w: 16 },
         { label: 'Eco', w: 22 },
-        { label: 'Ruta', w: 38 },
-        { label: 'Corrida', w: 34 },
-        { label: 'Corrida', w: 34 },
-        { label: 'Ciclo', w: 34 },
-        { label: 'Motivo', w: 56 }
+        { label: 'Ruta', w: 34 },
+        { label: 'Corrida', w: 26 },
+        { label: 'Tipo', w: 42 },
+        { label: 'Ciclo', w: 26 },
+        { label: 'Motivo', w: 68 }
     ];
 
     let headerX = p3X;
-    pdf.setFillColor(...COLOR_GUINDA);
     tablaFaltantesCols.forEach(c => {
+        pdf.setFillColor(...COLOR_GUINDA);
+        pdf.setDrawColor(0, 0, 0);
         pdf.rect(headerX, p3CursorY, c.w, 6, 'FD');
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(8.5);
@@ -1445,22 +1461,34 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
     const faltantesFilas = todosLosFaltantes.length > 0 ? todosLosFaltantes.slice(0, maxFilasFaltantes) : [null, null];
     faltantesFilas.forEach((item, idx) => {
         let colX = p3X;
-        pdf.setFillColor(...(item ? COLOR_WHITE : COLOR_LIGHT_CELL));
         tablaFaltantesCols.forEach((c, cIdx) => {
+            pdf.setFillColor(...(item ? COLOR_WHITE : COLOR_LIGHT_CELL));
+            pdf.setDrawColor(0, 0, 0);
             pdf.rect(colX, p3CursorY, c.w, 5.5, 'FD');
             if (item) {
                 let cellText = '';
-                if (cIdx === 0) cellText = String(idx + 1);
-                else if (cIdx === 1) cellText = item.ECONOMICO ? String(item.ECONOMICO).padStart(3, '0') : '';
-                else if (cIdx === 2) cellText = String(item.RUTA || item.ruta || '');
-                else if (cIdx === 3) cellText = String(item.CORRIDAS ?? item.CORRIDA ?? item.corrida ?? '');
-                else if (cIdx === 4) cellText = String(item.HORA_SALIDA || item.ACOPLE || '');
-                else if (cIdx === 5) cellText = item.esCorridaPerdida ? '--' : (formatCiclo(parseCiclo(item.CICLO || item.ciclo)) || String(item.CICLO || item.ciclo || ''));
-                else if (cIdx === 6) cellText = String(item.MOTIVO || item.motivo || item.MOTIVO_ESTATUS || '');
+                let textColor = [0, 0, 0];
+
+                if (cIdx === 0) {
+                    cellText = String(idx + 1);
+                } else if (cIdx === 1) {
+                    cellText = item.ECONOMICO ? String(item.ECONOMICO).padStart(3, '0') : '--';
+                } else if (cIdx === 2) {
+                    cellText = String(item.RUTA || item.ruta || '--');
+                } else if (cIdx === 3) {
+                    cellText = String(item.CORRIDAS ?? item.CORRIDA ?? item.corrida ?? '--');
+                } else if (cIdx === 4) {
+                    cellText = item.esCorridaPerdida ? 'CORRIDA PERDIDA' : 'CICLO PERDIDO';
+                    textColor = item.esCorridaPerdida ? [106, 27, 51] : [55, 65, 81];
+                } else if (cIdx === 5) {
+                    cellText = item.esCorridaPerdida ? '--' : (formatCiclo(parseCiclo(item.CICLO || item.ciclo)) || String(item.CICLO || item.ciclo || '--'));
+                } else if (cIdx === 6) {
+                    cellText = String(item.MOTIVO || item.motivo || item.MOTIVO_ESTATUS || '--');
+                }
 
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(7.5);
-                pdf.setTextColor(0, 0, 0);
+                pdf.setTextColor(...textColor);
                 pdf.text(cellText, colX + c.w / 2, p3CursorY + 3.8, { align: 'center' });
             }
             colX += c.w;
@@ -1490,9 +1518,7 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
         ? ciclosRegistrados 
         : 2371.5;
     
-    const ciclosTexto = Number.isInteger(ciclosFinal)
-        ? ciclosFinal.toLocaleString('es-MX')
-        : formatCiclo(ciclosFinal);
+    const ciclosTexto = formatCiclo(ciclosFinal);
 
     const totalPendientes = corridasPendientes.length;
     const isCompactObs = totalPendientes > 5;

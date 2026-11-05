@@ -1385,10 +1385,23 @@ class DespachoController extends Controller
                 $data['itinerario'] = 'false';
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
-                $data['falla'] = null;
+                $prevInfo = $infoOperativaRegistros->get($unidad->id);
+                $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
+                    ? trim((string)$fila['FALLA'])
+                    : null;
                 $data['ciclo'] = null;
-                $data['motivo'] = null;
-                $data['motivo_estatus'] = null;
+                $data['motivo'] = (isset($fila['MOTIVO']) && trim((string)$fila['MOTIVO']) !== '')
+                    ? trim((string)$fila['MOTIVO'])
+                    : ($prevInfo->motivo ?? null);
+                $data['motivo_estatus'] = (isset($fila['MOTIVO_ESTATUS']) && trim((string)$fila['MOTIVO_ESTATUS']) !== '')
+                    ? trim((string)$fila['MOTIVO_ESTATUS'])
+                    : ($prevInfo->motivo_estatus ?? null);
+                $data['mantenimiento_ruta'] = (isset($fila['MANTENIMIENTO_RUTA']) && trim((string)$fila['MANTENIMIENTO_RUTA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_RUTA'])
+                    : ($prevInfo->mantenimiento_ruta ?? null);
+                $data['mantenimiento_corrida'] = (isset($fila['MANTENIMIENTO_CORRIDA']) && trim((string)$fila['MANTENIMIENTO_CORRIDA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CORRIDA'])
+                    : ($prevInfo->mantenimiento_corrida ?? null);
             } elseif (in_array(strtolower($data['estatus']), ['mantenimiento', 'percance'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
@@ -1906,10 +1919,23 @@ class DespachoController extends Controller
                 $data['itinerario'] = 'false';
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
-                $data['falla'] = null;
+                $prevInfo = $infoOperativaRegistros->get($unidad->id);
+                $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
+                    ? trim((string)$fila['FALLA'])
+                    : null;
                 $data['ciclo'] = null;
-                $data['motivo'] = null;
-                $data['motivo_estatus'] = null;
+                $data['motivo'] = (isset($fila['MOTIVO']) && trim((string)$fila['MOTIVO']) !== '')
+                    ? trim((string)$fila['MOTIVO'])
+                    : ($prevInfo->motivo ?? null);
+                $data['motivo_estatus'] = (isset($fila['MOTIVO_ESTATUS']) && trim((string)$fila['MOTIVO_ESTATUS']) !== '')
+                    ? trim((string)$fila['MOTIVO_ESTATUS'])
+                    : ($prevInfo->motivo_estatus ?? null);
+                $data['mantenimiento_ruta'] = (isset($fila['MANTENIMIENTO_RUTA']) && trim((string)$fila['MANTENIMIENTO_RUTA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_RUTA'])
+                    : ($prevInfo->mantenimiento_ruta ?? null);
+                $data['mantenimiento_corrida'] = (isset($fila['MANTENIMIENTO_CORRIDA']) && trim((string)$fila['MANTENIMIENTO_CORRIDA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CORRIDA'])
+                    : ($prevInfo->mantenimiento_corrida ?? null);
             } elseif (in_array(strtolower($data['estatus']), ['mantenimiento', 'percance'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
@@ -2307,10 +2333,23 @@ class DespachoController extends Controller
                 $data['itinerario'] = 'false';
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
-                $data['falla'] = null;
+                $prevInfo = $infoOperativaRegistros->get($unidad->id);
+                $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
+                    ? trim((string)$fila['FALLA'])
+                    : null;
                 $data['ciclo'] = null;
-                $data['motivo'] = null;
-                $data['motivo_estatus'] = null;
+                $data['motivo'] = (isset($fila['MOTIVO']) && trim((string)$fila['MOTIVO']) !== '')
+                    ? trim((string)$fila['MOTIVO'])
+                    : ($prevInfo->motivo ?? null);
+                $data['motivo_estatus'] = (isset($fila['MOTIVO_ESTATUS']) && trim((string)$fila['MOTIVO_ESTATUS']) !== '')
+                    ? trim((string)$fila['MOTIVO_ESTATUS'])
+                    : ($prevInfo->motivo_estatus ?? null);
+                $data['mantenimiento_ruta'] = (isset($fila['MANTENIMIENTO_RUTA']) && trim((string)$fila['MANTENIMIENTO_RUTA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_RUTA'])
+                    : ($prevInfo->mantenimiento_ruta ?? null);
+                $data['mantenimiento_corrida'] = (isset($fila['MANTENIMIENTO_CORRIDA']) && trim((string)$fila['MANTENIMIENTO_CORRIDA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CORRIDA'])
+                    : ($prevInfo->mantenimiento_corrida ?? null);
             } elseif (in_array(strtolower($data['estatus']), ['mantenimiento', 'percance'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';

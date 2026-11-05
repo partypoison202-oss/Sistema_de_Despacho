@@ -2220,31 +2220,63 @@ export default function CargaExcel({ isPasteles = false }) {
             confirmButtonColor: '#c5a059'
           });
         }}
-        onContinuarSinCambio={(nuevoEstatus) => {
+        onContinuarSinCambio={(nuevoEstatus, motivoPersonalizado) => {
           const updatedData = [...previewData];
           const outIdx = modalCambioData.outgoingIndex;
           if (outIdx !== null && outIdx !== undefined && updatedData[outIdx]) {
-            updatedData[outIdx]['ESTATUS'] = nuevoEstatus;
-            updatedData[outIdx]['RUTA'] = '';
-            updatedData[outIdx]['TARJETON'] = '';
-            updatedData[outIdx]['NOMBRE_CONDUCTOR'] = '';
-            updatedData[outIdx]['RELEVO_TARJETON'] = '';
-            updatedData[outIdx]['RELEVO_CONDUCTOR'] = '';
-            updatedData[outIdx]['RELEVO_HORA'] = '';
-            updatedData[outIdx]['HORA_DE_ACOPLE'] = '';
-            updatedData[outIdx]['HORA_SALIDA_PATIO'] = '';
-            updatedData[outIdx]['ACOPLE'] = '';
-            updatedData[outIdx]['HORA_REAL_SALIDA_PATIO'] = '';
-            updatedData[outIdx]['CORRIDAS'] = null;
-            updatedData[outIdx]['PATIO_NORTE'] = false;
-            updatedData[outIdx]['TARJETON_MANIOBRISTA'] = '';
-            updatedData[outIdx]['NOMBRE_MANIOBRISTA'] = '';
-            updatedData[outIdx]['FALLA'] = '';
-            updatedData[outIdx]['CICLO'] = '';
-            updatedData[outIdx]['MOTIVO'] = '';
-            updatedData[outIdx]['MOTIVO_ESTATUS'] = '';
+            const outgoing = { ...updatedData[outIdx] };
+            const esFaltaT6 = (nuevoEstatus || '').toLowerCase() === 'reserva';
+            const motivoTexto = motivoPersonalizado || (esFaltaT6 ? 'O2 FALTA DE T6' : '');
+
+            const rutaOriginal = outgoing.RUTA || outgoing.MANTENIMIENTO_RUTA || outgoing.mantenimiento_ruta || '';
+            const corridaOriginal = outgoing.CORRIDAS ?? outgoing.MANTENIMIENTO_CORRIDA ?? outgoing.mantenimiento_corrida ?? '';
+            const horaProgOriginal = outgoing.HORA_SALIDA_PATIO || outgoing.HORA_DE_ACOPLE || outgoing.ACOPLE || outgoing.hora_salida_patio || outgoing.hora_de_acople || '';
+            const acopleOriginal = outgoing.ACOPLE || outgoing.acople || '';
+
+            updatedData[outIdx] = {
+              ...updatedData[outIdx],
+              ESTATUS: nuevoEstatus,
+              RUTA: '',
+              CORRIDAS: null,
+              TARJETON: '',
+              NOMBRE_CONDUCTOR: '',
+              RELEVO_TARJETON: '',
+              RELEVO_CONDUCTOR: '',
+              RELEVO_HORA: '',
+              HORA_DE_ACOPLE: '',
+              HORA_SALIDA_PATIO: '',
+              ACOPLE: '',
+              HORA_REAL_SALIDA_PATIO: '',
+              PATIO_NORTE: false,
+              TARJETON_MANIOBRISTA: '',
+              NOMBRE_MANIOBRISTA: '',
+              FALLA: motivoTexto,
+              CICLO: '',
+              MOTIVO: motivoTexto,
+              MOTIVO_ESTATUS: motivoTexto,
+              motivo: motivoTexto,
+              motivo_estatus: motivoTexto,
+              MANTENIMIENTO_RUTA: rutaOriginal,
+              mantenimiento_ruta: rutaOriginal,
+              MANTENIMIENTO_CORRIDA: corridaOriginal,
+              mantenimiento_corrida: corridaOriginal,
+              HORA_PROGRAMADA_ORIGINAL: horaProgOriginal,
+              hora_salida_programada: horaProgOriginal,
+              ACOPLE_ORIGINAL: acopleOriginal,
+              ES_CORRIDA_PERDIDA: esFaltaT6,
+              es_corrida_perdida: esFaltaT6,
+            };
             setPreviewData(updatedData);
             setHasChanges(true);
+
+            if (esFaltaT6) {
+              Swal.fire({
+                icon: 'warning',
+                title: 'O2 FALTA DE T6',
+                html: `La unidad <b>Eco #${outgoing.ECONOMICO}</b> fue enviada a <b>RESERVA</b> y se registró como <b>CORRIDA PERDIDA</b> (O2 FALTA DE T6).<br/><br/><small style="color: #64748b;">Recuerda hacer clic en "Guardar cambios" para aplicar en el sistema.</small>`,
+                confirmButtonColor: '#6a1b33',
+              });
+            }
           }
           setModalCambioData({ isOpen: false, unidadSaliente: null, outgoingIndex: null, nuevoEstatus: 'mantenimiento' });
         }}

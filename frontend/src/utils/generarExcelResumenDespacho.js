@@ -212,19 +212,13 @@ export async function descargarResumenDespachoExcel(setLoading) {
 
     const formatCiclo = (num) => {
       if (!num || Number.isNaN(num) || num <= 0) return '0';
-      const entero = Math.floor(num);
-      const residuo = Math.round((num - entero) * 100) / 100;
-      if (Math.abs(residuo - 0.5) < 0.05) {
-        return entero === 0 ? '1/2' : `${entero} 1/2`;
-      }
-      if (Math.abs(residuo) < 0.05) return String(entero);
-      if (Math.abs(residuo - 0.25) < 0.05) {
-        return entero === 0 ? '1/4' : `${entero} 1/4`;
-      }
-      if (Math.abs(residuo - 0.75) < 0.05) {
-        return entero === 0 ? '3/4' : `${entero} 3/4`;
-      }
-      return Number.isInteger(num) ? String(num) : String(Number(num.toFixed(1)));
+      const parsed = typeof num === 'number' ? num : parseCiclo(num);
+      if (!parsed || Number.isNaN(parsed) || parsed <= 0) return '0';
+      const entero = Math.floor(parsed);
+      const residuo = Math.round((parsed - entero) * 100) / 100;
+      if (residuo === 0) return String(entero);
+      const decimalStr = String(residuo).replace(/^0\./, '');
+      return `${entero}.${decimalStr}`;
     };
 
     const ciclosFaltantes = listaUnidades.filter(u => { const ciclo = u.CICLO || u.ciclo; return ciclo !== null && ciclo !== undefined && String(ciclo).trim() !== ''; });
