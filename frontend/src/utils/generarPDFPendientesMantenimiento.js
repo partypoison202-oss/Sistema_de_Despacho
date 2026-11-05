@@ -116,17 +116,25 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
 
   const calcularDias = (fecha) => {
     if (!fecha) return '—';
-    const startDate = parsearFechaLocal(fecha);
-    if (!startDate) return '—';
+    const str = String(fecha).trim();
+    // Si contiene hora completa
+    let startMs = NaN;
+    if (str.includes(' ') || str.includes('T')) {
+      const safeStr = str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str;
+      const d = new Date(safeStr);
+      if (!isNaN(d.getTime())) startMs = d.getTime();
+    }
+    if (isNaN(startMs)) {
+      const dLocal = parsearFechaLocal(fecha);
+      if (dLocal) startMs = dLocal.getTime();
+    }
+    if (isNaN(startMs)) return '—';
 
-    // Normalizar la fecha actual a medianoche (00:00:00) para calcular días calendario exactos
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // 24 horas naturales completas transcurridas
+    const diffMs = Math.max(0, now.getTime() - startMs);
+    const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+    const dias = Math.floor(diffHoras / 24);
 
-    const diffTime = today.getTime() - startDate.getTime();
-    if (diffTime < 0) return '0';
-    
-    // Diferencia en días calendario exactos (redondeo para tolerar cambios de horario)
-    const dias = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return dias.toString();
   };
 
@@ -142,19 +150,27 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   let subtitulo;
   let filename;
 
+  const esFolioInvalido = (u) => {
+    if (!u.folio_mantenimiento || String(u.folio_mantenimiento).trim() === '') return true;
+    if (u.fecha_folio_mantenimiento && u.fecha_registro) {
+      try {
+        const dFol = new Date(String(u.fecha_folio_mantenimiento).replace(' ', 'T')).getTime();
+        const dInc = new Date(String(u.fecha_registro).replace(' ', 'T')).getTime();
+        if (!isNaN(dFol) && !isNaN(dInc) && dFol < dInc) return true;
+      } catch (e) {}
+    }
+    return false;
+  };
+
   if (tipo === 'pendientes') {
     // Tienen número de incidencia registrada pero NO tienen folio generado aún
-    unidadesFiltradas = unidades.filter(
-      (u) => !u.folio_mantenimiento || String(u.folio_mantenimiento).trim() === ''
-    );
+    unidadesFiltradas = unidades.filter((u) => esFolioInvalido(u));
     titulo = 'ECONÓMICOS EN MANTENIMIENTO';
     subtitulo = 'Económicos con incidencia asignada';
     filename = `Reporte_Economicos_Mantenimiento_${fechaStr.replace(/ /g, '_')}.pdf`;
   } else {
     // Ya tienen folio completo generado (en mantenimiento activo)
-    unidadesFiltradas = unidades.filter(
-      (u) => u.folio_mantenimiento && String(u.folio_mantenimiento).trim() !== ''
-    );
+    unidadesFiltradas = unidades.filter((u) => !esFolioInvalido(u));
     titulo = 'ECONÓMICOS CON FOLIO';
     subtitulo = 'Unidades con reporte de falla activo';
     filename = `Reporte_Economicos_Folio_${fechaStr.replace(/ /g, '_')}.pdf`;
@@ -229,8 +245,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
       u.numero_eco,
       String(u.tipo || '').toUpperCase(),
       String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
-      formatDate(u.fecha_folio_mantenimiento || u.fecha_registro),
-      calcularDias(u.fecha_folio_mantenimiento || u.fecha_registro),
+      formatDate(u.fecha_registro || u.fecha_folio_mantenimiento),
+      calcularDias(u.fecha_registro || u.fecha_folio_mantenimiento),
     ]);
     colStyles = {
       4: { halign: 'left', cellWidth: 50 },
@@ -247,8 +263,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
       u.numero_eco,
       String(u.tipo || '').toUpperCase(),
       String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
-      formatDate(u.fecha_folio_mantenimiento || u.fecha_registro),
-      calcularDias(u.fecha_folio_mantenimiento || u.fecha_registro),
+      formatDate(u.fecha_registro || u.fecha_folio_mantenimiento),
+      calcularDias(u.fecha_registro || u.fecha_folio_mantenimiento),
     ]);
     colStyles = {
       5: { halign: 'left', cellWidth: 50 },

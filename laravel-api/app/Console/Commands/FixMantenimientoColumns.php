@@ -135,6 +135,30 @@ class FixMantenimientoColumns extends Command
                     SELECT 3, '233', 'VAGONETA'
                     WHERE NOT EXISTS (SELECT 1 FROM unidades WHERE TRIM(numero_eco) IN ('233', '0233'));
                 END IF;
+
+                -- Restauración de folios para unidades activas en mantenimiento que hayan quedado sin folio
+                IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'bitacora_cambios_unidades') THEN
+                    UPDATE informacion_operativa io
+                    SET folio_mantenimiento = sub.folio,
+                        fecha_folio_mantenimiento = sub.fecha_folio
+                    FROM (
+                        SELECT b.unidad_id,
+                               substring(b.detalles from '(?i)FOLIO:?\\s*([A-Za-z0-9\\-]+)') as folio,
+                               COALESCE(b.created_at, b.fecha) as fecha_folio
+                        FROM bitacora_cambios_unidades b
+                        WHERE b.detalles ~* 'FOLIO:?\\s*[A-Za-z0-9\\-]+'
+                          AND b.id IN (
+                              SELECT MAX(b2.id)
+                              FROM bitacora_cambios_unidades b2
+                              WHERE b2.detalles ~* 'FOLIO:?\\s*[A-Za-z0-9\\-]+'
+                              GROUP BY b2.unidad_id
+                          )
+                    ) sub
+                    WHERE io.unidad_id = sub.unidad_id
+                      AND (io.folio_mantenimiento IS NULL OR TRIM(io.folio_mantenimiento) = '')
+                      AND sub.folio IS NOT NULL
+                      AND LOWER(io.estatus) IN ('mantenimiento', 'percance');
+                END IF;
             END $$;
         ";
 
