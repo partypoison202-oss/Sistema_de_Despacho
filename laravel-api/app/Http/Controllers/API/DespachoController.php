@@ -1154,8 +1154,12 @@ class DespachoController extends Controller
         $creados = 0;
         $errores = [];
 
-        DB::table('conductores')->update(['estado_servicio' => 'disponible']);
-        DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
+        try {
+            DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+            DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
+        } catch (\Throwable $e) {
+            \Log::warning('actualizar: fallo reseteando estado_servicio: '.$e->getMessage());
+        }
 
         $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
 
@@ -1527,7 +1531,7 @@ class DespachoController extends Controller
                         ->where('id', $registroId)
                         ->update($updateFiltered);
                     $actualizados++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     \Log::error("Fallo individual de actualización en ID {$registroId}: ".$e->getMessage());
                     $errores[] = "Error al actualizar ECO {$numeroEcoClean}: ".$e->getMessage();
                 }
@@ -1552,50 +1556,54 @@ class DespachoController extends Controller
                     } catch (\Throwable $th) {
                         \Log::warning('Error registrando bitácora creación en actualizar: '.$th->getMessage());
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     \Log::error("Fallo individual de creación para ECO {$numeroEcoClean}: ".$e->getMessage());
                     $errores[] = "Error al crear ECO {$numeroEcoClean}: ".$e->getMessage();
                 }
             }
         }
 
-        if ($parcial) {
-            // El payload solo trae unidades modificadas: recalcular quién está en servicio con TODA la tabla,
-            // para no marcar como disponibles a los conductores de unidades que no se enviaron.
-            $registrosServicio = DB::table('informacion_operativa')
-                ->select('numero_tarjeton', 'relevo_tarjeton', 'tarjeton_maniobrista')
-                ->get();
-            foreach ($registrosServicio as $rs) {
-                foreach ([$rs->numero_tarjeton, $rs->relevo_tarjeton] as $t) {
-                    $t = trim((string) $t);
-                    if ($t === '') {
-                        continue;
+        try {
+            if ($parcial) {
+                // El payload solo trae unidades modificadas: recalcular quién está en servicio con TODA la tabla,
+                // para no marcar como disponibles a los conductores de unidades que no se enviaron.
+                $registrosServicio = DB::table('informacion_operativa')
+                    ->select('numero_tarjeton', 'relevo_tarjeton', 'tarjeton_maniobrista')
+                    ->get();
+                foreach ($registrosServicio as $rs) {
+                    foreach ([$rs->numero_tarjeton, $rs->relevo_tarjeton] as $t) {
+                        $t = trim((string) $t);
+                        if ($t === '') {
+                            continue;
+                        }
+                        $cat = $conductoresMap->get($t) ?? $conductoresMap->get(ltrim($t, '0')) ?? $conductoresMap->get(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT));
+                        if ($cat) {
+                            $tarjetonesEnServicio[] = $cat->tarjeton;
+                        }
                     }
-                    $cat = $conductoresMap->get($t) ?? $conductoresMap->get(ltrim($t, '0')) ?? $conductoresMap->get(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT));
-                    if ($cat) {
-                        $tarjetonesEnServicio[] = $cat->tarjeton;
-                    }
-                }
-                $tm = trim((string) $rs->tarjeton_maniobrista);
-                if ($tm !== '') {
-                    $catM = $maniobristasMap->get($tm) ?? $maniobristasMap->get(ltrim($tm, '0')) ?? $maniobristasMap->get(str_pad(ltrim($tm, '0'), 4, '0', STR_PAD_LEFT));
-                    if ($catM) {
-                        $maniobristasEnServicio[] = $catM->tarjeton;
+                    $tm = trim((string) $rs->tarjeton_maniobrista);
+                    if ($tm !== '') {
+                        $catM = $maniobristasMap->get($tm) ?? $maniobristasMap->get(ltrim($tm, '0')) ?? $maniobristasMap->get(str_pad(ltrim($tm, '0'), 4, '0', STR_PAD_LEFT));
+                        if ($catM) {
+                            $maniobristasEnServicio[] = $catM->tarjeton;
+                        }
                     }
                 }
             }
-        }
 
-        if (! empty($tarjetonesEnServicio)) {
-            DB::table('conductores')
-                ->whereIn('tarjeton', array_unique($tarjetonesEnServicio))
-                ->update(['estado_servicio' => 'en_servicio']);
-        }
+            if (! empty($tarjetonesEnServicio)) {
+                DB::table('conductores')
+                    ->whereIn('tarjeton', array_unique($tarjetonesEnServicio))
+                    ->update(['estado_servicio' => 'en_servicio']);
+            }
 
-        if (! empty($maniobristasEnServicio)) {
-            DB::table('maniobristas')
-                ->whereIn('tarjeton', array_unique($maniobristasEnServicio))
-                ->update(['estado_servicio' => 'en_servicio']);
+            if (! empty($maniobristasEnServicio)) {
+                DB::table('maniobristas')
+                    ->whereIn('tarjeton', array_unique($maniobristasEnServicio))
+                    ->update(['estado_servicio' => 'en_servicio']);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('actualizar: fallo recalculando estado_servicio: '.$e->getMessage());
         }
 
         $eliminados = 0;
@@ -1628,10 +1636,22 @@ class DespachoController extends Controller
         }
 
         // Asegurar snapshot de inicio únicamente si aún no existe, sin sobrescribir el congelado del cambio de día operativo
-        BitacoraHelper::ensureInicioSnapshot(false);
-
-        self::procesarEncierrosAutomaticos();
-        SyncService::notifyChange();
+        // Tareas secundarias: si fallan no deben invalidar un guardado que ya se realizó.
+        try {
+            BitacoraHelper::ensureInicioSnapshot(false);
+        } catch (\Throwable $e) {
+            \Log::warning('actualizar: fallo ensureInicioSnapshot: '.$e->getMessage());
+        }
+        try {
+            self::procesarEncierrosAutomaticos();
+        } catch (\Throwable $e) {
+            \Log::warning('actualizar: fallo procesarEncierrosAutomaticos: '.$e->getMessage());
+        }
+        try {
+            SyncService::notifyChange();
+        } catch (\Throwable $e) {
+            \Log::warning('actualizar: fallo SyncService::notifyChange: '.$e->getMessage());
+        }
 
         if (count($errores) > 0) {
             return response()->json([
@@ -1919,23 +1939,24 @@ class DespachoController extends Controller
                 $data['itinerario'] = 'false';
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
-                $prevInfo = $infoOperativaRegistros->get($unidad->id);
+                $prevInfo = $infoOperativaMananaRegistros->get($unidad->id);
+                $prevHoy = $infoOperativaHoyRegistros->get($unidad->id);
                 $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
                     ? trim((string)$fila['FALLA'])
                     : null;
                 $data['ciclo'] = null;
                 $data['motivo'] = (isset($fila['MOTIVO']) && trim((string)$fila['MOTIVO']) !== '')
                     ? trim((string)$fila['MOTIVO'])
-                    : ($prevInfo->motivo ?? null);
+                    : ($prevInfo->motivo ?? ($prevHoy->motivo ?? null));
                 $data['motivo_estatus'] = (isset($fila['MOTIVO_ESTATUS']) && trim((string)$fila['MOTIVO_ESTATUS']) !== '')
                     ? trim((string)$fila['MOTIVO_ESTATUS'])
-                    : ($prevInfo->motivo_estatus ?? null);
+                    : ($prevInfo->motivo_estatus ?? ($prevHoy->motivo_estatus ?? null));
                 $data['mantenimiento_ruta'] = (isset($fila['MANTENIMIENTO_RUTA']) && trim((string)$fila['MANTENIMIENTO_RUTA']) !== '')
                     ? trim((string)$fila['MANTENIMIENTO_RUTA'])
-                    : ($prevInfo->mantenimiento_ruta ?? null);
+                    : ($prevInfo->mantenimiento_ruta ?? ($prevHoy->mantenimiento_ruta ?? null));
                 $data['mantenimiento_corrida'] = (isset($fila['MANTENIMIENTO_CORRIDA']) && trim((string)$fila['MANTENIMIENTO_CORRIDA']) !== '')
                     ? trim((string)$fila['MANTENIMIENTO_CORRIDA'])
-                    : ($prevInfo->mantenimiento_corrida ?? null);
+                    : ($prevInfo->mantenimiento_corrida ?? ($prevHoy->mantenimiento_corrida ?? null));
             } elseif (in_array(strtolower($data['estatus']), ['mantenimiento', 'percance'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
@@ -2015,7 +2036,7 @@ class DespachoController extends Controller
                         ->where('id', $registroId)
                         ->update($updateFiltered);
                     $actualizados++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     \Log::error("Fallo individual actualización MANANA ID {$registroId}: ".$e->getMessage());
                     $errores[] = "Error al actualizar ECO {$numeroEcoClean}: ".$e->getMessage();
                 }
@@ -2028,7 +2049,7 @@ class DespachoController extends Controller
                     $insertFiltered = array_intersect_key($data, $mananaCols);
                     DB::table('informacion_operativa_manana')->insert($insertFiltered);
                     $creados++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     \Log::error("Fallo individual creación MANANA ECO {$numeroEcoClean}: ".$e->getMessage());
                     $errores[] = "Error al crear ECO {$numeroEcoClean}: ".$e->getMessage();
                 }
@@ -2333,23 +2354,24 @@ class DespachoController extends Controller
                 $data['itinerario'] = 'false';
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
-                $prevInfo = $infoOperativaRegistros->get($unidad->id);
+                $prevInfo = $infoOperativaEspecificoRegistros->get($unidad->id);
+                $prevHoy = $infoOperativaHoyRegistros->get($unidad->id);
                 $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
                     ? trim((string)$fila['FALLA'])
                     : null;
                 $data['ciclo'] = null;
                 $data['motivo'] = (isset($fila['MOTIVO']) && trim((string)$fila['MOTIVO']) !== '')
                     ? trim((string)$fila['MOTIVO'])
-                    : ($prevInfo->motivo ?? null);
+                    : ($prevInfo->motivo ?? ($prevHoy->motivo ?? null));
                 $data['motivo_estatus'] = (isset($fila['MOTIVO_ESTATUS']) && trim((string)$fila['MOTIVO_ESTATUS']) !== '')
                     ? trim((string)$fila['MOTIVO_ESTATUS'])
-                    : ($prevInfo->motivo_estatus ?? null);
+                    : ($prevInfo->motivo_estatus ?? ($prevHoy->motivo_estatus ?? null));
                 $data['mantenimiento_ruta'] = (isset($fila['MANTENIMIENTO_RUTA']) && trim((string)$fila['MANTENIMIENTO_RUTA']) !== '')
                     ? trim((string)$fila['MANTENIMIENTO_RUTA'])
-                    : ($prevInfo->mantenimiento_ruta ?? null);
+                    : ($prevInfo->mantenimiento_ruta ?? ($prevHoy->mantenimiento_ruta ?? null));
                 $data['mantenimiento_corrida'] = (isset($fila['MANTENIMIENTO_CORRIDA']) && trim((string)$fila['MANTENIMIENTO_CORRIDA']) !== '')
                     ? trim((string)$fila['MANTENIMIENTO_CORRIDA'])
-                    : ($prevInfo->mantenimiento_corrida ?? null);
+                    : ($prevInfo->mantenimiento_corrida ?? ($prevHoy->mantenimiento_corrida ?? null));
             } elseif (in_array(strtolower($data['estatus']), ['mantenimiento', 'percance'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
@@ -2429,7 +2451,7 @@ class DespachoController extends Controller
                         ->where('id', $registroId)
                         ->update($updateFiltered);
                     $actualizados++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     \Log::error("Fallo individual actualización {$dia} ID {$registroId}: ".$e->getMessage());
                     $errores[] = "Error al actualizar ECO {$numeroEcoClean}: ".$e->getMessage();
                 }
@@ -2442,7 +2464,7 @@ class DespachoController extends Controller
                     $insertFiltered = array_intersect_key($data, $festivoCols);
                     DB::table($tableName)->insert($insertFiltered);
                     $creados++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     \Log::error("Fallo individual creación {$dia} ECO {$numeroEcoClean}: ".$e->getMessage());
                     $errores[] = "Error al crear ECO {$numeroEcoClean}: ".$e->getMessage();
                 }
@@ -3754,16 +3776,9 @@ class DespachoController extends Controller
      */
     public function obtenerDatosHoy()
     {
-        // Con ?solo_lectura=1 (usado por la verificación previa al guardar) se omiten los procesos automáticos
-        // con escritura (cambio de día / encierros) para que la consulta sea ligera y no falle por lentitud.
-        // Los procesos siguen ejecutándose en la carga normal de la pantalla.
-        $soloLectura = request()->boolean('solo_lectura');
+        self::verificarYEjecutarCambioDiaAutomatico();
 
-        if (! $soloLectura) {
-            self::verificarYEjecutarCambioDiaAutomatico();
-
-            self::procesarEncierrosAutomaticos();
-        }
+        self::procesarEncierrosAutomaticos();
 
         $hasRelevo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
         $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');
@@ -5165,13 +5180,13 @@ class DespachoController extends Controller
      */
     public static function procesarEncierrosAutomaticos()
     {
-        $lockKey = 'procesar_encierros_auto_cooldown';
-        if (Cache::has($lockKey)) {
-            return 0;
-        }
-        Cache::put($lockKey, true, 45);
-
         try {
+            $lockKey = 'procesar_encierros_auto_cooldown';
+            if (Cache::has($lockKey)) {
+                return 0;
+            }
+            Cache::put($lockKey, true, 45);
+
             $now = Carbon::now('America/Mexico_City');
             $horaActual = $now->format('H:i');
             $fechaHoy = $now->toDateString();
@@ -5400,7 +5415,7 @@ class DespachoController extends Controller
             }
 
             return $encerradasCount;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('Error en procesarEncierrosAutomaticos: ' . $e->getMessage());
             return 0;
         }
