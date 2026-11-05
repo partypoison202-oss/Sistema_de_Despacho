@@ -3754,9 +3754,16 @@ class DespachoController extends Controller
      */
     public function obtenerDatosHoy()
     {
-        self::verificarYEjecutarCambioDiaAutomatico();
+        // Con ?solo_lectura=1 (usado por la verificación previa al guardar) se omiten los procesos automáticos
+        // con escritura (cambio de día / encierros) para que la consulta sea ligera y no falle por lentitud.
+        // Los procesos siguen ejecutándose en la carga normal de la pantalla.
+        $soloLectura = request()->boolean('solo_lectura');
 
-        self::procesarEncierrosAutomaticos();
+        if (! $soloLectura) {
+            self::verificarYEjecutarCambioDiaAutomatico();
+
+            self::procesarEncierrosAutomaticos();
+        }
 
         $hasRelevo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
         $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');

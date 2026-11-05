@@ -113,34 +113,55 @@ const describirCambiosUnidad = (row, base) => {
     return { tipo, texto: cambios.length > 0 ? cambios.join(', ') : 'Nueva unidad agregada' };
   }
 
+  const estNuevo = String(row.ESTATUS || '').toLowerCase().trim();
+  const estBase = String(base.ESTATUS || '').toLowerCase().trim();
+
+  // Si la unidad fue dada de baja de servicio a reserva o mantenimiento (como en cambio de unidad o falta de T6)
+  if (estNuevo !== estBase && (estNuevo === 'reserva' || estNuevo === 'mantenimiento' || estNuevo === 'percance')) {
+    const motivo = row.FALLA || row.MOTIVO || row.MOTIVO_ESTATUS || '';
+    const detalleBaja = motivo ? ` (${motivo})` : ' (Servicio retirado)';
+    return { tipo, texto: `Pasó a ${estNuevo.toUpperCase()}${detalleBaja}` };
+  }
+
+  if (!mismoValor(row, base, 'ESTATUS')) {
+    cambios.push(`Estatus: ${row.ESTATUS}`);
+  }
   if (!mismoValor(row, base, 'RUTA')) {
-    cambios.push(`Ruta ${row.RUTA || '(sin ruta)'}`);
+    cambios.push(row.RUTA ? `Ruta ${row.RUTA}` : 'Ruta retirada');
   }
   if (!mismoValor(row, base, 'CORRIDAS')) {
-    cambios.push(`Corrida ${row.CORRIDAS || '(sin corrida)'}`);
+    cambios.push(row.CORRIDAS ? `Corrida ${row.CORRIDAS}` : 'Corrida retirada');
   }
   if (!mismoValor(row, base, 'TARJETON') || !mismoValor(row, base, 'NOMBRE_CONDUCTOR')) {
     const chofer = row.NOMBRE_CONDUCTOR || '';
     const tarj = row.TARJETON ? `Tarjetón ${row.TARJETON}` : '';
     const info = [tarj, chofer].filter(Boolean).join(' - ');
-    cambios.push(info || 'Conductor modificado');
-  }
-  if (!mismoValor(row, base, 'ESTATUS')) {
-    cambios.push(`Estatus: ${row.ESTATUS}`);
+    cambios.push(info || 'Conductor retirado');
   }
   if (!mismoValor(row, base, 'RELEVO_TARJETON') || !mismoValor(row, base, 'RELEVO_CONDUCTOR') || !mismoValor(row, base, 'RELEVO_HORA')) {
     const relChofer = row.RELEVO_CONDUCTOR || (row.RELEVO_TARJETON ? `Tarj. ${row.RELEVO_TARJETON}` : '');
     const relHora = row.RELEVO_HORA ? ` (${row.RELEVO_HORA})` : '';
-    cambios.push(`Relevo: ${relChofer}${relHora}`);
+    const infoRel = `${relChofer}${relHora}`.trim();
+    if (infoRel) {
+      cambios.push(`Relevo: ${infoRel}`);
+    }
   }
   if (!mismoValor(row, base, 'HORA_DE_ACOPLE') || !mismoValor(row, base, 'ACOPLE')) {
-    cambios.push(`Acople: ${row.HORA_DE_ACOPLE || row.ACOPLE}`);
+    const valAcople = row.HORA_DE_ACOPLE || row.ACOPLE || '';
+    if (valAcople) {
+      cambios.push(`Acople: ${valAcople}`);
+    }
   }
   if (!mismoValor(row, base, 'HORA_ENCIERRO')) {
-    cambios.push(`Encierro: ${row.HORA_ENCIERRO}`);
+    if (row.HORA_ENCIERRO) {
+      cambios.push(`Encierro: ${row.HORA_ENCIERRO}`);
+    }
   }
   if (!mismoValor(row, base, 'FALLA') || !mismoValor(row, base, 'MOTIVO')) {
-    cambios.push(`Motivo/Falla: ${row.FALLA || row.MOTIVO}`);
+    const mot = row.FALLA || row.MOTIVO || '';
+    if (mot) {
+      cambios.push(`Motivo: ${mot}`);
+    }
   }
 
   if (cambios.length === 0) {
@@ -232,18 +253,29 @@ export default function CargaExcel({ isPasteles = false }) {
   const catalogManiobristas = catalogos?.maniobristas || [];
   const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
 
-  const fetchDatos = async ({ queryKey, signal }) => {
+  const fetchDatos = async ({ queryKey, signal, soloLectura = false }) => {
     const [_key, tab] = queryKey;
     const headers = getAuthHeaders();
     let url = `${API_BASE}/api/despacho/hoy`;
     if (tab === 'MANANA') url = `${API_BASE}/api/despacho/manana`;
     else if (tab === 'FESTIVO') url = `${API_BASE}/api/despacho/especifico/festivo`;
+    // Verificación previa al guardar: consulta ligera (sin procesos automáticos con escritura en el servidor)
+    else if (soloLectura) url = `${API_BASE}/api/despacho/hoy?solo_lectura=1`;
 
     const response = await fetch(url, {
       signal,
       headers
     });
-    if (!response.ok) throw new Error(`Error al obtener datos de ${tab}`);
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('Tu sesión ha expirado. Por favor recarga o inicia sesión de nuevo.');
+      if (response.status === 504 || response.status === 502) throw new Error('El servidor tardó demasiado en responder (Timeout).');
+      let msg = `Error ${response.status} al consultar el estado de ${tab}`;
+      try {
+        const errJson = await response.json();
+        if (errJson?.message) msg = errJson.message;
+      } catch (_) {}
+      throw new Error(msg);
+    }
     const datos = await response.json();
     return Array.isArray(datos) ? datos : [];
   };
@@ -892,21 +924,26 @@ export default function CargaExcel({ isPasteles = false }) {
       return `<li style="margin-bottom: 4px;"><b>Eco ${row.ECONOMICO}</b>${tipoStr}: ${texto}</li>`;
     }).join('');
 
-    const nombreUsuario = user?.usuario || user?.nombre_completo || 'Usuario';
+    const detalleError = mensajeExtra ? String(mensajeExtra).trim() : '';
 
     const resp = await Swal.fire({
       icon: 'warning',
-      title: 'No se guardaron los cambios',
+      title: 'No se pudieron guardar tus cambios',
       html: `
         <div style="text-align: left; font-size: 0.92rem; color: #334155; line-height: 1.5;">
           <p style="margin-bottom: 0.6rem;">
-            El usuario <b>${nombreUsuario}</b> no pudo guardar sus cambios en las siguientes unidades:
+            Ocurrió un problema de comunicación con el servidor y tus modificaciones en las siguientes unidades siguen <b>pendientes</b>:
           </p>
           <ul style="margin: 0.4rem 0 0.8rem 1.2rem; padding: 0; max-height: 200px; overflow-y: auto;">
             ${listaHtml}
           </ul>
-          <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #c5a059; border-radius: 10px; padding: 10px 12px; margin-top: 0.6rem; font-size: 0.85rem; color: #78350f;">
-            Comunícate con el usuario <b>${nombreUsuario}</b> para pedirle que recargue la página o haga clic en <b>"Reintentar Guardar"</b>.
+          ${detalleError ? `
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; padding: 7px 11px; margin: 0.6rem 0; font-size: 0.82rem; color: #991b1b;">
+              <b>Causa del error:</b> ${detalleError}
+            </div>
+          ` : ''}
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #c5a059; border-radius: 8px; padding: 8px 12px; margin-top: 0.6rem; font-size: 0.84rem; color: #78350f;">
+            💡 <b>Tus datos no se han perdido</b>: siguen intactos en la pantalla. Haz clic en <b>"Reintentar Guardar"</b> para consolidarlos de nuevo.
           </div>
         </div>
       `,
@@ -956,13 +993,28 @@ export default function CargaExcel({ isPasteles = false }) {
 
     let frescos;
     try {
-      const datosFrescos = await fetchDatos({ queryKey: ['despacho-datos', tabActiva] });
+      // Reintento automático y silencioso (hasta 3 intentos) para absorber cortes o lentitud momentánea.
+      // No se reintenta si la sesión expiró (401), porque no se resolvería sola.
+      let datosFrescos;
+      let ultimoError;
+      for (let intento = 1; intento <= 3; intento++) {
+        try {
+          datosFrescos = await fetchDatos({ queryKey: ['despacho-datos', tabActiva], soloLectura: true });
+          ultimoError = null;
+          break;
+        } catch (err) {
+          ultimoError = err;
+          if (String(err?.message || '').includes('sesión ha expirado') || intento === 3) break;
+          await new Promise((r) => setTimeout(r, 800 * intento));
+        }
+      }
+      if (ultimoError) throw ultimoError;
       frescos = new Map(datosFrescos.map((item) => {
         const r = normalizarFilaServidor(item);
         return [normalizeEcoKey(r.ECONOMICO), r];
       }));
     } catch (e) {
-      const reintentar = await alertarFalloGuardado(modificadas, baseline);
+      const reintentar = await alertarFalloGuardado(modificadas, baseline, e?.message || 'Error de conexión al verificar el estado reciente');
       if (reintentar) {
         return await handleSaveChangesDirectly();
       }
