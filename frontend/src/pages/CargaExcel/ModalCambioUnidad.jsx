@@ -111,7 +111,7 @@ export default function ModalCambioUnidad({
   };
 
   const handleSinCambio = () => {
-    onContinuarSinCambio(nuevoEstatus);
+    onContinuarSinCambio(nuevoEstatus, nuevoEstatus === 'reserva' ? 'O2 FALTA DE T6' : '');
   };
 
   const targetLabel = nuevoEstatus === 'mantenimiento' ? 'Mantenimiento' : 'Reserva';
@@ -324,9 +324,9 @@ export default function ModalCambioUnidad({
               type="button"
               className="footer-btn btn-solo-estatus"
               onClick={handleSinCambio}
-              title={`No sustituir por otra unidad y solo asignar a ${targetLabel}`}
+              title={nuevoEstatus === 'reserva' ? 'Registrar como corrida perdida por falta de unidad (O2 FALTA DE T6) y enviar a reserva' : `Solo mandar a ${targetLabel}`}
             >
-              Solo mandar a {targetLabel}
+              {nuevoEstatus === 'reserva' ? 'O2 FALTA DE T6' : `Solo mandar a ${targetLabel}`}
             </button>
             <button
               type="button"

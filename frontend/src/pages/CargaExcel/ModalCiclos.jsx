@@ -15,13 +15,13 @@ export const parseCicloInput = (val) => {
   const str = String(val).trim();
   if (!str || str === '-' || str === '--') return Number.NaN;
 
-  // Fracción simple: "1/2", "3/4"
+  // Fracción simple histórica: "1/2", "3/4"
   if (/^\d+\/\d+$/.test(str)) {
     const [n, d] = str.split('/').map(Number);
     return d !== 0 ? n / d : Number.NaN;
   }
 
-  // Fracción mixta: "1 1/2", "20 1/2"
+  // Fracción mixta histórica: "1 1/2", "20 1/2"
   const mixedMatch = /^(\d+)\s+(\d+)\/(\d+)$/.exec(str);
   if (mixedMatch) {
     const entero = Number(mixedMatch[1]);
@@ -30,8 +30,15 @@ export const parseCicloInput = (val) => {
     return d !== 0 ? entero + (n / d) : entero;
   }
 
-  // Decimal directo: "20.5" o "20,5"
-  const numDirecto = Number(str.replace(',', '.'));
+  // Decimal directo o con comas de miles: "2,422.5", "2422.5", "20,5"
+  let norm = str;
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(str)) {
+    norm = str.replace(/,/g, '');
+  } else {
+    norm = str.replace(',', '.');
+  }
+
+  const numDirecto = Number(norm);
   if (!Number.isNaN(numDirecto)) return numDirecto;
 
   return Number.NaN;
@@ -43,19 +50,11 @@ export const formatCicloDisplay = (num) => {
   const residuo = Math.round((num - entero) * 100) / 100;
   const enteroStr = entero.toLocaleString('es-MX');
 
-  if (Math.abs(residuo - 0.5) < 0.05) {
-    return entero === 0 ? '1/2' : `${enteroStr} 1/2`;
-  }
-  if (Math.abs(residuo) < 0.05) {
+  if (residuo === 0) {
     return enteroStr;
   }
-  if (Math.abs(residuo - 0.25) < 0.05) {
-    return entero === 0 ? '1/4' : `${enteroStr} 1/4`;
-  }
-  if (Math.abs(residuo - 0.75) < 0.05) {
-    return entero === 0 ? '3/4' : `${enteroStr} 3/4`;
-  }
-  return Number.isInteger(num) ? enteroStr : String(Number(num.toFixed(2)));
+  const decimalStr = String(residuo).replace(/^0\./, '');
+  return `${enteroStr}.${decimalStr}`;
 };
 
 export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fechaTexto = '' }) {
@@ -98,8 +97,8 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
   };
 
   const handleInputChange = (e) => {
-    // Permitir dígitos, puntos, comas, diagonales y espacios para soportar enteros, decimales y fracciones
-    const valorLimpio = e.target.value.replace(/[^0-9.,/\s]/g, '');
+    // Permitir dígitos, puntos y comas para soportar enteros y decimales (fracciones ya no)
+    const valorLimpio = e.target.value.replace(/[^0-9.,]/g, '');
     setCiclos(valorLimpio);
   };
 
@@ -122,12 +121,22 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
       return;
     }
 
+    if (valorTrim.includes('/')) {
+      void Swal.fire({
+        icon: 'warning',
+        title: 'Formato no permitido',
+        text: 'Las fracciones ya no están permitidas. Por favor ingresa el valor en formato decimal (ej. 20.5).',
+        confirmButtonColor: '#6b1d33'
+      });
+      return;
+    }
+
     const numeroCiclos = parseCicloInput(valorTrim);
     if (Number.isNaN(numeroCiclos) || numeroCiclos < 0) {
       void Swal.fire({
         icon: 'warning',
         title: 'Número Inválido',
-        text: 'El número de ciclos debe ser mayor o igual a cero (ej. 20, 20.5 o 1/2).',
+        text: 'El número de ciclos debe ser mayor o igual a cero en formato decimal (ej. 20 o 20.5).',
         confirmButtonColor: '#6b1d33'
       });
       return;
@@ -151,11 +160,10 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
         setCiclosGuardados(numeroRedondeado);
         setCiclos(formatCicloDisplay(numeroRedondeado));
         const textoCiclo = formatCicloDisplay(numeroRedondeado);
-        const subtexto = Number.isInteger(numeroRedondeado) ? '' : ` (${numeroRedondeado})`;
         void Swal.fire({
           icon: 'success',
           title: '¡Ciclos Guardados!',
-          html: `Se ha registrado el número de ciclos programados: <strong>${textoCiclo}</strong>${subtexto} para la operación.`,
+          html: `Se ha registrado el número de ciclos programados: <strong>${textoCiclo}</strong> para la operación.`,
           confirmButtonColor: '#6b1d33',
           timer: 2200
         });
@@ -285,7 +293,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder={cargando ? 'Cargando ciclos...' : 'Ej. 240, 20.5 o 20 1/2'}
+                placeholder={cargando ? 'Cargando ciclos...' : 'Ej. 240, 20.5 o 2422.5'}
                 value={ciclos}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
@@ -331,7 +339,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
               )}
             </div>
             <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 'normal', marginTop: '2px' }}>
-              Puedes ingresar enteros (ej. 20), decimales (ej. 20.5) o fracciones (ej. 1/2, 20 1/2).
+              Puedes ingresar enteros (ej. 20) o decimales (ej. 20.5).
             </span>
           </label>
 
@@ -353,8 +361,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
               </svg>
               <span>
                 Valor registrado actualmente en el sistema:{' '}
-                <strong>{formatCicloDisplay(ciclosGuardados)}</strong>
-                {!Number.isInteger(ciclosGuardados) ? ` (${ciclosGuardados})` : ''} ciclos
+                <strong>{formatCicloDisplay(ciclosGuardados)}</strong> ciclos
               </span>
             </div>
           )}
