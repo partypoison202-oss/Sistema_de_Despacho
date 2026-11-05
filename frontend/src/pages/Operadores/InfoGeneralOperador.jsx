@@ -238,11 +238,11 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
           {/* Center Text */}
           <div className="text-center flex-1 mx-4">
             <h2 className="text-base font-bold text-white tracking-wide uppercase">EXPEDIENTE OPERATIVO DE LA PERSONA CONDUCTORA</h2>
-            <p className="text-[10px] text-gray-200 mt-0.5">Fecha de Emisión: {new Date().toLocaleDateString('es-MX')} | Control Operativo SITMAH T6</p>
+            <p className="text-[10px] text-gray-200 mt-0.5">Fecha de Emisión: {new Date().toLocaleDateString('es-MX')} | Control Operativo ACOTMA T6</p>
           </div>
 
           {/* Right Logo */}
-          <img src="/images/sitmah_logo.webp" alt="SITMAH" crossOrigin="anonymous" className="h-8 w-auto object-contain" />
+          <img src="/images/acotma_logo_connombre_contorno_v2.png" alt="ACOTMA" crossOrigin="anonymous" className="h-9 w-auto object-contain" />
         </div>
 
         {/* 2. Perfil del Operador (Tarjeta Horizontal Compacta) */}
