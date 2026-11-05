@@ -253,12 +253,14 @@ export default function CargaExcel({ isPasteles = false }) {
   const catalogManiobristas = catalogos?.maniobristas || [];
   const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
 
-  const fetchDatos = async ({ queryKey, signal }) => {
+  const fetchDatos = async ({ queryKey, signal, soloLectura = false }) => {
     const [_key, tab] = queryKey;
     const headers = getAuthHeaders();
     let url = `${API_BASE}/api/despacho/hoy`;
     if (tab === 'MANANA') url = `${API_BASE}/api/despacho/manana`;
     else if (tab === 'FESTIVO') url = `${API_BASE}/api/despacho/especifico/festivo`;
+    // Verificación previa al guardar: consulta ligera (sin procesos automáticos con escritura en el servidor)
+    else if (soloLectura) url = `${API_BASE}/api/despacho/hoy?solo_lectura=1`;
 
     const response = await fetch(url, {
       signal,
@@ -991,7 +993,22 @@ export default function CargaExcel({ isPasteles = false }) {
 
     let frescos;
     try {
-      const datosFrescos = await fetchDatos({ queryKey: ['despacho-datos', tabActiva] });
+      // Reintento automático y silencioso (hasta 3 intentos) para absorber cortes o lentitud momentánea.
+      // No se reintenta si la sesión expiró (401), porque no se resolvería sola.
+      let datosFrescos;
+      let ultimoError;
+      for (let intento = 1; intento <= 3; intento++) {
+        try {
+          datosFrescos = await fetchDatos({ queryKey: ['despacho-datos', tabActiva], soloLectura: true });
+          ultimoError = null;
+          break;
+        } catch (err) {
+          ultimoError = err;
+          if (String(err?.message || '').includes('sesión ha expirado') || intento === 3) break;
+          await new Promise((r) => setTimeout(r, 800 * intento));
+        }
+      }
+      if (ultimoError) throw ultimoError;
       frescos = new Map(datosFrescos.map((item) => {
         const r = normalizarFilaServidor(item);
         return [normalizeEcoKey(r.ECONOMICO), r];
