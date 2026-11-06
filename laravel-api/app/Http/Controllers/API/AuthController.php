@@ -58,14 +58,15 @@ class AuthController extends Controller
 
         // Cargar módulos del usuario (con fallback por rol si no tiene registros)
         $modulos = $this->resolverModulosUsuario($user);
+        $pantallaCargaActiva = $this->obtenerEstadoPantallaCarga();
 
         return response()->json([
             'access_token'          => $token,
             'token_type'            => 'Bearer',
-            'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
+            'pantalla_carga_activa' => $pantallaCargaActiva,
             'user'                  => array_merge($user->toArray(), [
                 'modulos'               => $modulos,
-                'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
+                'pantalla_carga_activa' => $pantallaCargaActiva,
             ]),
         ]);
     }
@@ -123,7 +124,7 @@ class AuthController extends Controller
             'status'                => 'success',
             'is_online'             => true,
             'timestamp'             => now()->timestamp,
-            'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
+            'pantalla_carga_activa' => $this->obtenerEstadoPantallaCarga(),
         ]);
     }
 
@@ -135,9 +136,17 @@ class AuthController extends Controller
         return response()->json(
             array_merge($user->toArray(), [
                 'modulos'               => $modulos,
-                'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
+                'pantalla_carga_activa' => $this->obtenerEstadoPantallaCarga(),
             ])
         );
+    }
+
+    public function estadoPantallaCarga()
+    {
+        return response()->json([
+            'status'                => 'success',
+            'pantalla_carga_activa' => $this->obtenerEstadoPantallaCarga(),
+        ]);
     }
 
     public function togglePantallaCarga(Request $request)
@@ -153,16 +162,62 @@ class AuthController extends Controller
         }
 
         $activa = (bool) $request->input('activa', false);
+        $estadoActualizado = $this->establecerEstadoPantallaCarga($activa);
+
+        return response()->json([
+            'status'                => 'success',
+            'pantalla_carga_activa' => $estadoActualizado,
+        ]);
+    }
+
+    private function asegurarTablaSistemaConfig(): void
+    {
+        if (!Cache::has('tabla_sistema_config_lista')) {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('sistema_configuracion')) {
+                \Illuminate\Support\Facades\Schema::create('sistema_configuracion', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('clave', 100)->primary();
+                    $table->string('valor', 255)->nullable();
+                    $table->timestamp('updated_at')->nullable();
+                });
+            }
+            Cache::put('tabla_sistema_config_lista', true, now()->addHours(24));
+        }
+    }
+
+    private function obtenerEstadoPantallaCarga(): bool
+    {
+        try {
+            $this->asegurarTablaSistemaConfig();
+            $valor = \Illuminate\Support\Facades\DB::table('sistema_configuracion')
+                ->where('clave', 'pantalla_carga_activa')
+                ->value('valor');
+            return $valor === '1' || $valor === 'true';
+        } catch (\Throwable $e) {
+            return (bool) Cache::get('acotma_pantalla_carga_activa', false);
+        }
+    }
+
+    private function establecerEstadoPantallaCarga(bool $activa): bool
+    {
         if ($activa) {
             Cache::put('acotma_pantalla_carga_activa', true, now()->addDays(7));
         } else {
             Cache::forget('acotma_pantalla_carga_activa');
         }
 
-        return response()->json([
-            'status'                => 'success',
-            'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
-        ]);
+        try {
+            $this->asegurarTablaSistemaConfig();
+            \Illuminate\Support\Facades\DB::table('sistema_configuracion')->updateOrInsert(
+                ['clave' => 'pantalla_carga_activa'],
+                [
+                    'valor'      => $activa ? '1' : '0',
+                    'updated_at' => now(),
+                ]
+            );
+            return $activa;
+        } catch (\Throwable $e) {
+            return (bool) Cache::get('acotma_pantalla_carga_activa', false);
+        }
     }
 
     private function getDefaultModulesByRole(string $role, string $usuario): array

@@ -218,6 +218,7 @@ Route::get('/api/fix-data', function() {
 
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/sistema/pantalla-carga', [AuthController::class, 'estadoPantallaCarga']);
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
 Route::get('/justificantes/{filename}', [ConductorController::class, 'servirJustificante']);
 Route::get('/unidades/version', [DespachoController::class, 'getVersionUnidades']);

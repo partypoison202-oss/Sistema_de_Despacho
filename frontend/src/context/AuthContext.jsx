@@ -186,8 +186,8 @@ export const AuthProvider = ({ children }) => {
 
     sendHeartbeat();
 
-    // Comprobación periódica cada 6 segundos para detección rápida
-    const timer = setInterval(sendHeartbeat, 6000);
+    // Comprobación periódica cada 3 segundos para detección rápida entre equipos
+    const timer = setInterval(sendHeartbeat, 3000);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {

@@ -799,6 +799,15 @@ return new class extends Migration
             });
         }
 
+        // ─── Configuración Global del Sistema ─────────────────────────
+        if (!Schema::hasTable('sistema_configuracion')) {
+            Schema::create('sistema_configuracion', function (Blueprint $table) {
+                $table->string('clave', 100)->primary();
+                $table->string('valor', 255)->nullable();
+                $table->timestamp('updated_at')->nullable();
+            });
+        }
+
         // ─── Trigger Sincronización Última Conexión ───────────────────
         if (Schema::hasTable('personal_access_tokens') && Schema::hasTable('usuarios')) {
             \Illuminate\Support\Facades\DB::unprepared("
@@ -836,6 +845,7 @@ return new class extends Migration
 
     public function down(): void
     {
+        Schema::dropIfExists('sistema_configuracion');
         Schema::dropIfExists('observacion_catalogos');
         Schema::dropIfExists('bitacora_cambios_unidades');
         Schema::dropIfExists('infracciones');
