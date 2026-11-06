@@ -119,11 +119,34 @@ export default function HistorialConductores() {
       case 'REINGRESO':
         return { bg: '#fef3c7', color: '#b45309', label: 'Reingreso' };
       case 'FALTA_REGISTRADA':
+      case 'REGISTRO_FALTA':
         return { bg: '#ffedd5', color: '#c2410c', label: 'Falta Registrada' };
       case 'FALTA_JUSTIFICADA':
         return { bg: '#d1fae5', color: '#047857', label: 'Falta Justificada' };
+      case 'FALTA_ELIMINADA':
+        return { bg: '#f1f5f9', color: '#475569', label: 'Falta Eliminada' };
       case 'RETARDO':
         return { bg: '#fef9c3', color: '#a16207', label: 'Retardo' };
+      case 'PERMUTA':
+        return { bg: '#f3e8ff', color: '#7e22ce', label: 'Permuta' };
+      case 'PERMISO':
+        return { bg: '#e0e7ff', color: '#3730a3', label: 'Permiso' };
+      case 'DESCANSO':
+        return { bg: '#e0f2fe', color: '#0369a1', label: 'Descanso' };
+      case 'VACACIONES':
+        return { bg: '#ccfbf1', color: '#0f766e', label: 'Vacaciones' };
+      case 'INCAPACIDAD':
+        return { bg: '#fce7f3', color: '#9d174d', label: 'Incapacidad' };
+      case 'AMONESTACION':
+        return { bg: '#fee2e2', color: '#991b1b', label: 'Amonestación' };
+      case 'ASISTENCIA':
+        return { bg: '#dcfce7', color: '#15803d', label: 'Asistencia' };
+      case 'CAMBIO_A_RESERVA':
+        return { bg: '#e0f2fe', color: '#0369a1', label: 'Cambio a Reserva' };
+      case 'CAMBIO_A_MANIOBRISTA':
+        return { bg: '#fef3c7', color: '#92400e', label: 'Cambio a Maniobrista' };
+      case 'RETIRO_CONDUCTOR':
+        return { bg: '#ffedd5', color: '#c2410c', label: 'Retiro Operativo' };
       case 'SUBIR_FOTO':
       case 'SUBIR_QR':
         return { bg: '#f3e8ff', color: '#6b21a8', label: 'Documento / Foto' };
@@ -222,7 +245,7 @@ export default function HistorialConductores() {
                   onChange={(val) => {
                     if (val) setSelectedFecha(val);
                   }}
-                  disableFuture={false}
+                  disableFuture={true}
                 />
               </div>
             </div>
@@ -285,7 +308,12 @@ export default function HistorialConductores() {
                 { id: 'BAJA', label: 'Bajas' },
                 { id: 'FALTA_REGISTRADA', label: 'Faltas' },
                 { id: 'FALTA_JUSTIFICADA', label: 'Justificadas' },
-                { id: 'RETARDO', label: 'Retardos' }
+                { id: 'RETARDO', label: 'Retardos' },
+                { id: 'PERMUTA', label: 'Permutas' },
+                { id: 'PERMISO', label: 'Permisos' },
+                { id: 'DESCANSO', label: 'Descansos' },
+                { id: 'VACACIONES', label: 'Vacaciones' },
+                { id: 'INCAPACIDAD', label: 'Incapacidades' }
               ].map(tab => (
                 <button
                   key={tab.id}

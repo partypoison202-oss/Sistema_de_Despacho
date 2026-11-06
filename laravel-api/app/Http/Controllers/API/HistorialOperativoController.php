@@ -1934,44 +1934,247 @@ class HistorialOperativoController extends Controller
             $busqueda = trim((string)$request->query('busqueda'));
             $tipoAccion = trim((string)$request->query('tipo_accion'));
 
-            // 1. Fechas únicas con actividad de conductores
-            $fechas = DB::table('bitacora_conductores')
+            $normalizarFecha = function ($raw) {
+                if (empty($raw) || $raw === 'Fecha sin registrar') return null;
+                $s = trim((string)$raw);
+                if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $s, $m)) return "{$m[1]}-{$m[2]}-{$m[3]}";
+                if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})/', $s, $m)) return "{$m[3]}-{$m[2]}-{$m[1]}";
+                try {
+                    return Carbon::parse($s)->format('Y-m-d');
+                } catch (\Throwable $e) {
+                    return null;
+                }
+            };
+
+            $parseArr = function ($json) {
+                if (empty($json)) return [];
+                if (is_array($json)) return $json;
+                if (is_string($json)) {
+                    $d = json_decode($json, true);
+                    return is_array($d) ? $d : [];
+                }
+                return [];
+            };
+
+            // 1. Fechas únicas con actividad en bitacora_conductores + detalles de conductores
+            $fechasSet = [];
+            $fechasBitacora = DB::table('bitacora_conductores')
                 ->select('fecha')
                 ->distinct()
-                ->orderBy('fecha', 'desc')
                 ->pluck('fecha');
+            foreach ($fechasBitacora as $fb) {
+                $fn = $normalizarFecha($fb);
+                if ($fn) $fechasSet[$fn] = true;
+            }
+
+            $conductoresKardex = [];
+            if (Schema::hasTable('conductores')) {
+                $colsKardex = ['id', 'tarjeton', 'nombres', 'apellidos', 'estatus'];
+                foreach ([
+                    'faltas_detalle', 'retardos_detalle', 'permutas_detalle', 'permisos_detalle',
+                    'descansos_detalle', 'vacaciones_detalle', 'incapacidades_detalle',
+                    'amonestaciones_detalle', 'fecha_baja', 'motivo_baja', 'fecha_reingreso'
+                ] as $colOpt) {
+                    if (Schema::hasColumn('conductores', $colOpt)) {
+                        $colsKardex[] = $colOpt;
+                    }
+                }
+                $conductoresKardex = DB::table('conductores')->select($colsKardex)->get();
+
+                foreach ($conductoresKardex as $c) {
+                    foreach (['faltas_detalle', 'retardos_detalle', 'permutas_detalle', 'permisos_detalle', 'descansos_detalle', 'vacaciones_detalle', 'incapacidades_detalle', 'amonestaciones_detalle'] as $campoJson) {
+                        if (!property_exists($c, $campoJson)) continue;
+                        foreach ($parseArr($c->$campoJson) as $item) {
+                            if (!is_array($item)) continue;
+                            $fItem = $normalizarFecha($item['fecha'] ?? ($item['desde'] ?? null));
+                            if ($fItem) $fechasSet[$fItem] = true;
+                            if (!empty($item['justificante_fecha'])) {
+                                $fJust = $normalizarFecha($item['justificante_fecha']);
+                                if ($fJust) $fechasSet[$fJust] = true;
+                            }
+                        }
+                    }
+                    if (!empty($c->fecha_baja)) {
+                        $fb = $normalizarFecha($c->fecha_baja);
+                        if ($fb) $fechasSet[$fb] = true;
+                    }
+                    if (!empty($c->fecha_reingreso)) {
+                        $fr = $normalizarFecha($c->fecha_reingreso);
+                        if ($fr) $fechasSet[$fr] = true;
+                    }
+                }
+            }
+
+            $fechasList = array_keys($fechasSet);
+            rsort($fechasList);
+            $fechas = collect($fechasList);
 
             if ($fechas->isEmpty()) {
-                $fechas = collect([Carbon::today()->toDateString()]);
+                $fechas = collect([Carbon::today('America/Mexico_City')->toDateString()]);
             }
 
             $fechaSel = $fecha ?: $fechas->first();
 
-            $query = DB::table('bitacora_conductores')
-                ->where('fecha', $fechaSel);
+            // 2. Obtener registros directos de bitacora_conductores para la fecha seleccionada
+            $accionesBitacora = DB::table('bitacora_conductores')
+                ->where('fecha', $fechaSel)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($a) {
+                    if ($a->tipo_accion === 'REGISTRO_FALTA') {
+                        $a->tipo_accion = 'FALTA_REGISTRADA';
+                    }
+                    return $a;
+                });
 
-            if (!empty($tipoAccion) && $tipoAccion !== 'TODAS') {
-                $query->where('tipo_accion', $tipoAccion);
+            $clavesRegistradas = [];
+            foreach ($accionesBitacora as $ab) {
+                $tarjKey = ltrim(trim((string)($ab->tarjeton ?? '')), '0') ?: '0';
+                $clavesRegistradas[$tarjKey . '|' . $ab->tipo_accion] = true;
+                if ($ab->conductor_id) {
+                    $clavesRegistradas['id_' . $ab->conductor_id . '|' . $ab->tipo_accion] = true;
+                }
             }
 
-            if (!empty($busqueda)) {
-                $q = strtolower($busqueda);
-                $query->where(function($sub) use ($q) {
-                    $sub->whereRaw("LOWER(CAST(tarjeton AS VARCHAR)) LIKE ?", ["%{$q}%"])
-                        ->orWhereRaw("LOWER(CAST(nombre_conductor AS VARCHAR)) LIKE ?", ["%{$q}%"])
-                        ->orWhereRaw("LOWER(CAST(usuario_nombre AS VARCHAR)) LIKE ?", ["%{$q}%"])
-                        ->orWhereRaw("LOWER(CAST(detalles AS VARCHAR)) LIKE ?", ["%{$q}%"])
-                        ->orWhereRaw("LOWER(CAST(tipo_accion AS VARCHAR)) LIKE ?", ["%{$q}%"]);
+            // 3. Complementar con eventos en conductores.*_detalle para la fecha seleccionada que no estén en bitacora_conductores
+            $accionesSinteticas = [];
+            foreach ($conductoresKardex as $c) {
+                $tarj = $c->tarjeton ?? 'S/N';
+                $tarjKey = ltrim(trim((string)$tarj), '0') ?: '0';
+                $nomCond = trim(($c->nombres ?? '') . ' ' . ($c->apellidos ?? '')) ?: 'Conductor';
+
+                $agregarSiNoExiste = function ($tipoAcc, $detallesTxt, $usuarioTxt, $createdAtStr, $idxSuffix) use (&$accionesSinteticas, &$clavesRegistradas, $c, $tarj, $tarjKey, $nomCond, $fechaSel) {
+                    $k1 = $tarjKey . '|' . $tipoAcc;
+                    $k2 = 'id_' . $c->id . '|' . $tipoAcc;
+                    if (isset($clavesRegistradas[$k1]) || isset($clavesRegistradas[$k2])) {
+                        return;
+                    }
+                    $accionesSinteticas[] = (object)[
+                        'id' => "kardex_{$c->id}_{$tipoAcc}_{$idxSuffix}",
+                        'conductor_id' => $c->id,
+                        'tarjeton' => $tarj,
+                        'nombre_conductor' => $nomCond,
+                        'usuario_id' => null,
+                        'usuario_nombre' => $usuarioTxt ?: 'Control de Operadores',
+                        'tipo_accion' => $tipoAcc,
+                        'detalles' => $detallesTxt,
+                        'fecha' => $fechaSel,
+                        'created_at' => $createdAtStr ?: ($fechaSel . ' 08:00:00'),
+                    ];
+                };
+
+                // Faltas / Justificadas / Retardos en faltas_detalle
+                if (property_exists($c, 'faltas_detalle')) {
+                    foreach ($parseArr($c->faltas_detalle) as $idx => $f) {
+                        if (!is_array($f)) continue;
+                        $fFecha = $normalizarFecha($f['fecha'] ?? null);
+                        $fJustFecha = !empty($f['justificante_fecha']) ? $normalizarFecha($f['justificante_fecha']) : null;
+                        $esRet = ($f['estado'] ?? '') === 'retardo';
+                        $esJust = ($f['estado'] ?? '') === 'justificada' || !empty($f['justificada']);
+
+                        if ($fFecha === $fechaSel) {
+                            if ($esRet) {
+                                $agregarSiNoExiste('RETARDO', $f['motivo'] ?? 'Retardo registrado en turno', $f['usuario'] ?? 'Control de Operadores', $f['fecha_registro'] ?? ($fechaSel . ' 08:00:00'), "f_ret_{$idx}");
+                            } elseif ($esJust) {
+                                $obsJ = $f['observaciones_justificacion'] ?? ($f['justificante_nombre'] ?? 'Justificante autorizado');
+                                $agregarSiNoExiste('FALTA_JUSTIFICADA', "Falta del {$fFecha} justificada. {$obsJ}", $f['usuario_justifico'] ?? 'Control de Operadores', $f['justificante_fecha'] ?? ($fechaSel . ' 09:00:00'), "f_just_{$idx}");
+                            } else {
+                                $agregarSiNoExiste('FALTA_REGISTRADA', "Inasistencia registrada ({$fFecha}). Motivo: " . ($f['motivo'] ?? 'Inasistencia no justificada'), $f['usuario'] ?? 'Control de Operadores', $f['fecha_registro'] ?? ($fechaSel . ' 08:00:00'), "f_pend_{$idx}");
+                            }
+                        } elseif ($esJust && $fJustFecha === $fechaSel) {
+                            $obsJ = $f['observaciones_justificacion'] ?? ($f['justificante_nombre'] ?? 'Justificante autorizado');
+                            $agregarSiNoExiste('FALTA_JUSTIFICADA', "Falta del {$fFecha} justificada el {$fJustFecha}. {$obsJ}", $f['usuario_justifico'] ?? 'Control de Operadores', $f['justificante_fecha'] ?? ($fechaSel . ' 09:00:00'), "f_justd_{$idx}");
+                        }
+                    }
+                }
+
+                // Retardos adicionales
+                if (property_exists($c, 'retardos_detalle')) {
+                    foreach ($parseArr($c->retardos_detalle) as $idx => $r) {
+                        if (!is_array($r)) continue;
+                        if ($normalizarFecha($r['fecha'] ?? null) === $fechaSel) {
+                            $agregarSiNoExiste('RETARDO', $r['motivo'] ?? 'Retardo registrado', $r['usuario'] ?? 'Control de Operadores', $r['fecha_registro'] ?? ($fechaSel . ' 08:00:00'), "ret_{$idx}");
+                        }
+                    }
+                }
+
+                // Permutas
+                if (property_exists($c, 'permutas_detalle')) {
+                    foreach ($parseArr($c->permutas_detalle) as $idx => $p) {
+                        if (!is_array($p)) continue;
+                        if ($normalizarFecha($p['fecha'] ?? null) === $fechaSel) {
+                            $tP = $p['tipo'] ?? 'PERMUTA';
+                            $agregarSiNoExiste('PERMUTA', "Permuta ({$tP}): " . ($p['motivo'] ?? 'Intercambio de turno'), $p['usuario'] ?? 'Itinerario', $p['fecha_registro'] ?? ($fechaSel . ' 08:00:00'), "perm_{$idx}");
+                        }
+                    }
+                }
+
+                // Permisos
+                if (property_exists($c, 'permisos_detalle')) {
+                    foreach ($parseArr($c->permisos_detalle) as $idx => $pm) {
+                        if (!is_array($pm)) continue;
+                        if ($normalizarFecha($pm['fecha'] ?? ($pm['desde'] ?? null)) === $fechaSel) {
+                            $agregarSiNoExiste('PERMISO', "Permiso autorizado: " . ($pm['motivo'] ?? 'Permiso operativo'), $pm['usuario'] ?? 'Control de Operadores', $pm['fecha_registro'] ?? ($fechaSel . ' 08:00:00'), "pm_{$idx}");
+                        }
+                    }
+                }
+
+                // Descansos, Vacaciones, Incapacidades, Amonestaciones
+                foreach ([
+                    'descansos_detalle' => ['DESCANSO', 'Descanso programado'],
+                    'vacaciones_detalle' => ['VACACIONES', 'Periodo vacacional'],
+                    'incapacidades_detalle' => ['INCAPACIDAD', 'Incapacidad médica'],
+                    'amonestaciones_detalle' => ['AMONESTACION', 'Amonestación administrativa'],
+                ] as $colD => [$tipoD, $defaultDesc]) {
+                    if (!property_exists($c, $colD)) continue;
+                    foreach ($parseArr($c->$colD) as $idx => $itemD) {
+                        if (!is_array($itemD)) continue;
+                        if ($normalizarFecha($itemD['fecha'] ?? null) === $fechaSel) {
+                            $agregarSiNoExiste($tipoD, $itemD['motivo'] ?? $defaultDesc, $itemD['usuario'] ?? 'Itinerario / Control', $itemD['fecha_registro'] ?? ($fechaSel . ' 08:00:00'), "{$colD}_{$idx}");
+                        }
+                    }
+                }
+
+                // Bajas y Reingresos por fecha
+                if (!empty($c->fecha_baja) && $normalizarFecha($c->fecha_baja) === $fechaSel) {
+                    $agregarSiNoExiste('BAJA', "Baja de operador. " . (!empty($c->motivo_baja) ? "Motivo: {$c->motivo_baja}" : ''), 'Control de Operadores', $fechaSel . ' 12:00:00', 'baja');
+                }
+                if (!empty($c->fecha_reingreso) && $normalizarFecha($c->fecha_reingreso) === $fechaSel) {
+                    $agregarSiNoExiste('REINGRESO', "Reingreso de operador con Tarjetón {$tarj}", 'Control de Operadores', $fechaSel . ' 12:00:00', 'reingreso');
+                }
+            }
+
+            $todasAcciones = $accionesBitacora->concat($accionesSinteticas);
+
+            // Filtrar por tipo_accion si se solicitó
+            if (!empty($tipoAccion) && $tipoAccion !== 'TODAS') {
+                $todasAcciones = $todasAcciones->filter(function ($a) use ($tipoAccion) {
+                    if ($tipoAccion === 'FALTA_REGISTRADA') {
+                        return in_array($a->tipo_accion, ['FALTA_REGISTRADA', 'REGISTRO_FALTA', 'FALTA_ELIMINADA']);
+                    }
+                    return $a->tipo_accion === $tipoAccion;
                 });
             }
 
-            $acciones = $query->orderBy('created_at', 'desc')->get();
+            // Filtrar por búsqueda si se solicitó
+            if (!empty($busqueda)) {
+                $q = mb_strtolower($busqueda, 'UTF-8');
+                $todasAcciones = $todasAcciones->filter(function ($a) use ($q) {
+                    return str_contains(mb_strtolower((string)($a->tarjeton ?? ''), 'UTF-8'), $q) ||
+                           str_contains(mb_strtolower((string)($a->nombre_conductor ?? ''), 'UTF-8'), $q) ||
+                           str_contains(mb_strtolower((string)($a->usuario_nombre ?? ''), 'UTF-8'), $q) ||
+                           str_contains(mb_strtolower((string)($a->detalles ?? ''), 'UTF-8'), $q) ||
+                           str_contains(mb_strtolower((string)($a->tipo_accion ?? ''), 'UTF-8'), $q);
+                });
+            }
+
+            $acciones = $todasAcciones->sortByDesc(fn($a) => (string)($a->created_at ?? ''))->values();
 
             $resumen = [
                 'total_acciones'   => $acciones->count(),
                 'bajas_reingresos' => $acciones->filter(fn($a) => in_array($a->tipo_accion, ['BAJA', 'REINGRESO']))->count(),
-                'faltas_retardos' => $acciones->filter(fn($a) => in_array($a->tipo_accion, ['FALTA_REGISTRADA', 'FALTA_JUSTIFICADA', 'RETARDO']))->count(),
-                'modificaciones'   => $acciones->filter(fn($a) => in_array($a->tipo_accion, ['CREACION', 'EDICION', 'SUBIR_FOTO', 'SUBIR_QR']))->count(),
+                'faltas_retardos'  => $acciones->filter(fn($a) => in_array($a->tipo_accion, ['FALTA_REGISTRADA', 'REGISTRO_FALTA', 'FALTA_JUSTIFICADA', 'FALTA_ELIMINADA', 'RETARDO']))->count(),
+                'modificaciones'   => $acciones->filter(fn($a) => in_array($a->tipo_accion, ['CREACION', 'EDICION', 'SUBIR_FOTO', 'SUBIR_QR', 'PERMUTA', 'PERMISO', 'DESCANSO', 'VACACIONES', 'INCAPACIDAD', 'AMONESTACION', 'CAMBIO_A_RESERVA', 'CAMBIO_A_MANIOBRISTA', 'RETIRO_CONDUCTOR']))->count(),
             ];
 
             return response()->json([

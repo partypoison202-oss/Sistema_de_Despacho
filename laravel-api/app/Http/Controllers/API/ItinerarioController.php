@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Conductor;
+use App\Helpers\BitacoraConductorHelper;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -45,8 +46,9 @@ class ItinerarioController extends Controller
         
         $result = [];
         foreach ($decoded as $item) {
-            if (isset($item['fecha'])) {
-                $result[$item['fecha']] = $item['motivo'] ?? '';
+            if (is_array($item) && isset($item['fecha'])) {
+                $fKey = substr(trim((string)$item['fecha']), 0, 10);
+                $result[$fKey] = $item['motivo'] ?? '';
             }
         }
         return $result;
@@ -59,8 +61,15 @@ class ItinerarioController extends Controller
             'hasta' => 'required|date|after_or_equal:desde'
         ]);
 
+        $hoyActual = Carbon::today('America/Mexico_City');
         $desde = Carbon::parse($request->input('desde'));
+        if ($desde->gt($hoyActual)) {
+            $desde = $hoyActual->copy();
+        }
         $hasta = Carbon::parse($request->input('hasta'));
+        if ($desde->gt($hasta)) {
+            $hasta = $desde->copy();
+        }
         
         // Limitar a máximo 60 días para evitar payloads gigantes
         if ($desde->diffInDays($hasta) > 60) {
@@ -234,11 +243,12 @@ class ItinerarioController extends Controller
             $faltasDecoded = is_string($conductor->faltas_detalle) ? json_decode($conductor->faltas_detalle, true) : $conductor->faltas_detalle;
             if (is_array($faltasDecoded)) {
                 foreach ($faltasDecoded as $item) {
-                    if (isset($item['fecha'])) {
+                    if (is_array($item) && isset($item['fecha'])) {
+                        $fKey = substr(trim((string)$item['fecha']), 0, 10);
                         if (isset($item['estado']) && $item['estado'] === 'retardo') {
-                            $retardos[$item['fecha']] = $item['motivo'] ?? '';
+                            $retardos[$fKey] = $item['motivo'] ?? '';
                         } else {
-                            $faltas[$item['fecha']] = $item['motivo'] ?? '';
+                            $faltas[$fKey] = $item['motivo'] ?? '';
                         }
                     }
                 }
@@ -576,6 +586,20 @@ class ItinerarioController extends Controller
             $conductor2->permutas = ((int)($conductor2->permutas ?? 0)) + $diasAgregados2;
             $conductor2->save();
 
+            $rangoTexto = $desde->toDateString() === $hasta->toDateString()
+                ? $desde->toDateString()
+                : "{$desde->toDateString()} al {$hasta->toDateString()}";
+            BitacoraConductorHelper::registrarAccion(
+                $conductor,
+                'PERMUTA',
+                "Permuta (DP - Descanso) asignada con {$conductor2->tarjeton} - {$conductor2->nombres} {$conductor2->apellidos} ({$rangoTexto})" . ($motivoBase ? ". Motivo: {$motivoBase}" : '')
+            );
+            BitacoraConductorHelper::registrarAccion(
+                $conductor2,
+                'PERMUTA',
+                "Permuta (AP - Asistencia) asignada con {$conductor->tarjeton} - {$conductor->nombres} {$conductor->apellidos} ({$rangoTexto})" . ($motivoBase ? ". Motivo: {$motivoBase}" : '')
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => "Permuta asignada correctamente: {$conductor->nombres} (DP - Descanso) y {$conductor2->nombres} (AP - Asistencia)."
@@ -674,6 +698,16 @@ class ItinerarioController extends Controller
 
                     $conductor->asistencias_detalle = $detalle;
                     $conductor->save();
+
+                    $rangoTexto = $desde->toDateString() === $hasta->toDateString()
+                        ? $desde->toDateString()
+                        : "{$desde->toDateString()} al {$hasta->toDateString()}";
+                    BitacoraConductorHelper::registrarAccion(
+                        $conductor,
+                        'ASISTENCIA',
+                        "Asistencia asignada ({$rangoTexto}). Motivo: {$motivo}"
+                    );
+
                     $totalProcesados++;
                     continue;
                 }
@@ -805,6 +839,24 @@ class ItinerarioController extends Controller
                         $conductor->retardos = ((int)($conductor->retardos ?? 0)) + $diasAgregados;
                     }
                     $conductor->save();
+
+                    $tipoBitacoraMap = [
+                        'falta' => 'FALTA_REGISTRADA',
+                        'retardo' => 'RETARDO',
+                        'descanso' => 'DESCANSO',
+                        'vacaciones' => 'VACACIONES',
+                        'incapacidad' => 'INCAPACIDAD',
+                    ];
+                    $tipoBitacora = $tipoBitacoraMap[$estado] ?? strtoupper($estado);
+                    $rangoTexto = $desde->toDateString() === $hasta->toDateString()
+                        ? $desde->toDateString()
+                        : "{$desde->toDateString()} al {$hasta->toDateString()}";
+                    BitacoraConductorHelper::registrarAccion(
+                        $conductor,
+                        $tipoBitacora,
+                        ucfirst($estado) . " registrado ({$rangoTexto}). Motivo: {$motivo}"
+                    );
+
                     $totalProcesados++;
                 }
             }
@@ -844,8 +896,9 @@ class ItinerarioController extends Controller
         
         $result = [];
         foreach ($decoded as $item) {
-            if (isset($item['fecha'])) {
-                $result[$item['fecha']] = $item;
+            if (is_array($item) && isset($item['fecha'])) {
+                $fKey = substr(trim((string)$item['fecha']), 0, 10);
+                $result[$fKey] = $item;
             }
         }
         return $result;

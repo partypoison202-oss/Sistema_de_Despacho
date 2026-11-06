@@ -4768,7 +4768,7 @@ class DespachoController extends Controller
                         'unidad_id' => $unidadId,
                         'fecha_historial' => $fechaHoy,
                         'momento' => 'INICIO',
-                        'tipo' => $unidad->tipo_transporte ?? ($info->tipo ?? 'Autobús'),
+                        'tipo' => $unidad->tipo ?? ($info->tipo ?? 'Autobús'),
                         'estatus' => 'operacion',
                         'created_at' => Carbon::now('America/Mexico_City'),
                     ], $updateHist);
