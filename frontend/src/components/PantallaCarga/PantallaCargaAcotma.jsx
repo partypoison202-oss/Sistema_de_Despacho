@@ -18,13 +18,23 @@ export default function PantallaCargaAcotma({
   mostrarFinalizar = false,
   onFinalizar,
 }) {
-  // Bloquear el scroll del fondo mientras la pantalla está activa
+  // Bloquear el scroll del fondo y atajos de escape mientras la pantalla está activa
   useEffect(() => {
     if (!visible) return undefined;
     const overflowPrevio = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
+    const bloquearTeclado = (e) => {
+      if (e.key === 'Escape' || e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener('keydown', bloquearTeclado, true);
+
     return () => {
       document.body.style.overflow = overflowPrevio;
+      window.removeEventListener('keydown', bloquearTeclado, true);
     };
   }, [visible]);
 

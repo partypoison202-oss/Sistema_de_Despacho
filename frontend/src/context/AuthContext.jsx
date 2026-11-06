@@ -1,6 +1,7 @@
-import { createContext, useState, useEffect, useRef, useMemo } from 'react';
+import { createContext, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import API_BASE from '../config/api';
 import Swal from 'sweetalert2';
+import PantallaCargaAcotma from '../components/PantallaCarga/PantallaCargaAcotma';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
@@ -38,7 +39,43 @@ export const AuthProvider = ({ children }) => {
     return localStorage.getItem('token') || null;
   });
   const [loading, setLoading] = useState(true);
+  const [pantallaCargaActiva, setPantallaCargaActiva] = useState(() => {
+    return localStorage.getItem('acotma_pantalla_carga_activa') === 'true';
+  });
   const sessionExpiredModalRef = useRef(false);
+
+  const sincronizarPantallaCarga = useCallback((activa) => {
+    const estado = Boolean(activa);
+    setPantallaCargaActiva(estado);
+    if (estado) {
+      localStorage.setItem('acotma_pantalla_carga_activa', 'true');
+    } else {
+      localStorage.removeItem('acotma_pantalla_carga_activa');
+    }
+  }, []);
+
+  const cambiarEstadoPantallaCarga = useCallback(async (activa) => {
+    sincronizarPantallaCarga(activa);
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/sistema/pantalla-carga`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ activa: Boolean(activa) }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.pantalla_carga_activa === 'boolean') {
+          sincronizarPantallaCarga(data.pantalla_carga_activa);
+        }
+      }
+    } catch {
+      // Mantiene el estado local y el próximo heartbeat lo sincronizará
+    }
+  }, [token, sincronizarPantallaCarga]);
 
   const handleSessionExpired = () => {
     // Si ya estamos en la pantalla de acceso, no mostrar modal
@@ -98,6 +135,13 @@ export const AuthProvider = ({ children }) => {
       })
       .then(data => {
         setUser(data);
+        const esAdmin =
+          String(data?.role?.codigo || '').toUpperCase().trim() === 'ADMINISTRADOR' ||
+          String(data?.role?.nombre || '').toUpperCase().trim() === 'ADMINISTRADOR';
+        localStorage.setItem('acotma_es_admin', esAdmin ? 'true' : 'false');
+        if (typeof data?.pantalla_carga_activa === 'boolean') {
+          sincronizarPantallaCarga(data.pantalla_carga_activa);
+        }
       })
       .catch(() => {
         if (!sessionExpiredModalRef.current) {
@@ -127,6 +171,14 @@ export const AuthProvider = ({ children }) => {
       .then(res => {
         if (res.status === 401) {
           handleSessionExpired();
+          return null;
+        }
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(data => {
+        if (data && typeof data.pantalla_carga_activa === 'boolean') {
+          sincronizarPantallaCarga(data.pantalla_carga_activa);
         }
       })
       .catch(() => {});
@@ -155,6 +207,13 @@ export const AuthProvider = ({ children }) => {
     setToken(authToken);
     localStorage.setItem('token', authToken);
     sessionStorage.removeItem('token'); // Limpiamos por si quedó de versiones anteriores
+    const esAdmin =
+      String(userData?.role?.codigo || '').toUpperCase().trim() === 'ADMINISTRADOR' ||
+      String(userData?.role?.nombre || '').toUpperCase().trim() === 'ADMINISTRADOR';
+    localStorage.setItem('acotma_es_admin', esAdmin ? 'true' : 'false');
+    if (typeof userData?.pantalla_carga_activa === 'boolean') {
+      sincronizarPantallaCarga(userData.pantalla_carga_activa);
+    }
   };
 
   const logout = () => {
@@ -167,6 +226,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('acotma_es_admin');
     sessionStorage.removeItem('token');
   };
 
@@ -201,13 +261,32 @@ export const AuthProvider = ({ children }) => {
     return true;
   };
 
+  const esAdministradorActual = user
+    ? (String(user.role?.codigo || '').toUpperCase().trim() === 'ADMINISTRADOR' ||
+       String(user.role?.nombre || '').toUpperCase().trim() === 'ADMINISTRADOR')
+    : localStorage.getItem('acotma_es_admin') === 'true';
+
   const contextValue = useMemo(() => ({
-    user, token, login, logout, loading, setUser, canEditModulo
-  }), [user, token, loading]);
+    user,
+    token,
+    login,
+    logout,
+    loading,
+    setUser,
+    canEditModulo,
+    pantallaCargaActiva,
+    activarPantallaCarga: () => cambiarEstadoPantallaCarga(true),
+    finalizarPantallaCarga: () => cambiarEstadoPantallaCarga(false),
+  }), [user, token, loading, pantallaCargaActiva, cambiarEstadoPantallaCarga]);
 
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
+      <PantallaCargaAcotma
+        visible={Boolean(token && pantallaCargaActiva)}
+        mostrarFinalizar={esAdministradorActual}
+        onFinalizar={() => cambiarEstadoPantallaCarga(false)}
+      />
     </AuthContext.Provider>
   );
 };

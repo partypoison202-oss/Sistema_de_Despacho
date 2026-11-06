@@ -229,6 +229,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/heartbeat', [AuthController::class, 'heartbeat']);
+    Route::post('/sistema/pantalla-carga', [AuthController::class, 'togglePantallaCarga']);
 
     // Gestión de Usuarios
     Route::get('/users/roles', [UserController::class, 'roles']);

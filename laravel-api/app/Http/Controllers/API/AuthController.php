@@ -60,9 +60,13 @@ class AuthController extends Controller
         $modulos = $this->resolverModulosUsuario($user);
 
         return response()->json([
-            'access_token' => $token,
-            'token_type'   => 'Bearer',
-            'user'         => array_merge($user->toArray(), ['modulos' => $modulos]),
+            'access_token'          => $token,
+            'token_type'            => 'Bearer',
+            'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
+            'user'                  => array_merge($user->toArray(), [
+                'modulos'               => $modulos,
+                'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
+            ]),
         ]);
     }
 
@@ -116,9 +120,10 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'status' => 'success',
-            'is_online' => true,
-            'timestamp' => now()->timestamp,
+            'status'                => 'success',
+            'is_online'             => true,
+            'timestamp'             => now()->timestamp,
+            'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
         ]);
     }
 
@@ -128,8 +133,36 @@ class AuthController extends Controller
         $modulos = $this->resolverModulosUsuario($user);
 
         return response()->json(
-            array_merge($user->toArray(), ['modulos' => $modulos])
+            array_merge($user->toArray(), [
+                'modulos'               => $modulos,
+                'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
+            ])
         );
+    }
+
+    public function togglePantallaCarga(Request $request)
+    {
+        $user = $request->user()->load('role');
+        $rolCodigo = strtoupper(trim($user->role->codigo ?? ''));
+        $rolNombre = strtoupper(trim($user->role->nombre ?? ''));
+        $esAdmin = ($rolCodigo === 'ADMINISTRADOR' || $rolNombre === 'ADMINISTRADOR');
+        $esEnrique = strtolower(trim($user->usuario ?? '')) === 'enrique_hernandez';
+
+        if (!$esAdmin && !$esEnrique) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $activa = (bool) $request->input('activa', false);
+        if ($activa) {
+            Cache::put('acotma_pantalla_carga_activa', true, now()->addDays(7));
+        } else {
+            Cache::forget('acotma_pantalla_carga_activa');
+        }
+
+        return response()->json([
+            'status'                => 'success',
+            'pantalla_carga_activa' => (bool) Cache::get('acotma_pantalla_carga_activa', false),
+        ]);
     }
 
     private function getDefaultModulesByRole(string $role, string $usuario): array
