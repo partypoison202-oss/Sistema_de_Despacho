@@ -218,6 +218,7 @@ Route::get('/api/fix-data', function() {
 
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/sistema/pantalla-carga', [AuthController::class, 'estadoPantallaCarga']);
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
 Route::get('/justificantes/{filename}', [ConductorController::class, 'servirJustificante']);
 Route::get('/unidades/version', [DespachoController::class, 'getVersionUnidades']);
@@ -229,6 +230,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/heartbeat', [AuthController::class, 'heartbeat']);
+    Route::post('/sistema/pantalla-carga', [AuthController::class, 'togglePantallaCarga']);
 
     // Gestión de Usuarios
     Route::get('/users/roles', [UserController::class, 'roles']);
