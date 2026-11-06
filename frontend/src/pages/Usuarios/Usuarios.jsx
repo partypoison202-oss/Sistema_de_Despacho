@@ -982,7 +982,7 @@ export default function Usuarios() {
         </div>
 
         <PantallaCargaAcotma
-          visible={Boolean(loading && (!usuarios || usuarios.length === 0))}
+          visible={Boolean(loading && (!users || users.length === 0))}
           debajoHeader={true}
           mensaje="Cargando datos de usuarios..."
           subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
