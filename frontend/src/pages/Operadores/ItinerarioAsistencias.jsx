@@ -7,6 +7,13 @@ import ModalAsignarFechas from './ModalAsignarFechas';
 import { generarPDFItinerario } from '../../utils/generarPDFItinerario';
 
 export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
+  const formatLocalYMD = (d = new Date()) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const [desde, setDesde] = useState(() => {
     const d = new Date();
     if (d.getDate() <= 15) {
@@ -14,12 +21,11 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
     } else {
       d.setDate(16);
     }
-    return d.toISOString().split('T')[0];
+    return formatLocalYMD(d);
   });
   
   const [hasta, setHasta] = useState(() => {
-    const d = new Date();
-    return d.toISOString().split('T')[0];
+    return formatLocalYMD(new Date());
   });
   
   const [data, setData] = useState({ fechas: [], matriz: [] });
@@ -405,7 +411,20 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
               <svg className="w-3.5 h-3.5 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
               <span>Desde:</span>
             </label>
-            <AppleDatePicker value={desde} onChange={setDesde} disableFuture={true} />
+            <AppleDatePicker
+              value={desde}
+              onChange={(val) => {
+                if (!val) return;
+                const hoyMax = formatLocalYMD(new Date());
+                const nuevoDesde = val > hoyMax ? hoyMax : val;
+                setDesde(nuevoDesde);
+                if (nuevoDesde > hasta) {
+                  setHasta(nuevoDesde);
+                }
+              }}
+              disableFuture={true}
+              maxDate={formatLocalYMD(new Date())}
+            />
           </div>
           <div className="filter-group">
             <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">

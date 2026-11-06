@@ -726,6 +726,16 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
     const corridasPerdidasDetectadas = [];
     const ecosConCorridaPerdida = new Set();
 
+    // Identificar unidades sustituidas por reemplazos en operación (para no duplicar como corrida perdida)
+    const ecosReemplazados = new Set();
+    universoUnidades.forEach(unit => {
+        const mot = String(unit.MOTIVO_ESTATUS || unit.motivo_estatus || unit.MOTIVO || unit.motivo || '').toUpperCase();
+        const match = mot.match(/REEMPLAZO DE ECO\s*#?\s*(\w+)/i);
+        if (match) {
+            ecosReemplazados.add(normEcoKey(match[1]));
+        }
+    });
+
     universoUnidades.forEach(u => {
         const rawEco = String(u.ECONOMICO || u.numero_eco || '').trim();
         const ecoKey = normEcoKey(rawEco);
@@ -772,7 +782,7 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
             refMinutes = objAcople.minutes;
         }
 
-        // Evaluar si fue declarada como corrida perdida mediante el botón "O2 FALTA DE T6"
+        // Evaluar motivos y estatus
         const motivoRaw = String(
             u.MOTIVO || u.motivo || u.MOTIVO_ESTATUS || u.motivo_estatus ||
             u.FALLA || u.falla || fallbackIni.MOTIVO || fallbackIni.motivo ||
@@ -782,8 +792,20 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
         const esFaltaT6 = /falta\s+de\s+t6|02\s+falta|o2\s+falta/i.test(motivoRaw) ||
                           Boolean(u.ES_CORRIDA_PERDIDA || u.es_corrida_perdida);
 
+        const estatusNorm = String(u.ESTATUS || u.estatus || '').toLowerCase().trim();
+        const esNoOperativa = estatusNorm === 'reserva' || estatusNorm === 'mantenimiento' || estatusNorm === 'percance';
+        const rutaProgOriginal = String(u.MANTENIMIENTO_RUTA || u.mantenimiento_ruta || fallbackIni.RUTA || fallbackIni.ruta || '').trim();
+        const tieneRutaProgramada = rutaProgOriginal && rutaProgOriginal.toUpperCase() !== 'SIN RUTA';
+        const fueReemplazada = Boolean(eco && ecosReemplazados.has(eco));
+        const estaDespachada = checkUnidadDespachada(u);
+
+        // Se considera corrida perdida si:
+        // A) Fue marcada con el botón "O2 FALTA DE T6", O
+        // B) La unidad tenía ruta programada en apertura pero quedó en mantenimiento/reserva/percance sin operar y no fue sustituida
+        const esCorridaPerdida = esFaltaT6 || (esNoOperativa && tieneRutaProgramada && !fueReemplazada && !estaDespachada);
+
         if (!displayHora || refMinutes === null) {
-            if (esFaltaT6) {
+            if (esCorridaPerdida) {
                 displayHora = '--';
                 refMinutes = 0;
             } else {
@@ -808,11 +830,13 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
             textoEtiqueta = 'Unidad';
         }
 
-        // 1. SI FUE MARCADA COMO CORRIDA PERDIDA (BOTÓN "O2 FALTA DE T6"):
-        // Se registra de manera definitiva como corrida perdida en el reporte estadístico
-        if (esFaltaT6) {
+        // 1. SI ES CORRIDA PERDIDA (BOTÓN "O2 FALTA DE T6" O UNIDAD PROGRAMADA EN TALLER/RESERVA SIN REEMPLAZO):
+        if (esCorridaPerdida) {
             const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || fallbackIni.TIPO_DE_UNIDAD || fallbackIni.tipo || '').toUpperCase();
-            const motivoFinal = motivoRaw || 'O2 FALTA DE T6';
+            let motivoFinal = motivoRaw;
+            if (!motivoFinal || motivoFinal.toUpperCase() === 'MANTENIMIENTO') {
+                motivoFinal = u.FALLA || u.falla || (esFaltaT6 ? 'O2 FALTA DE T6' : (estatusNorm === 'mantenimiento' ? 'MANTENIMIENTO' : 'SIN ASIGNAR'));
+            }
 
             const rutaFinal = (rutaFormateada && rutaFormateada !== 'SIN RUTA')
                 ? rutaFormateada
@@ -843,15 +867,12 @@ export const generarPDFEstadisticasCentro = async (totales = null, modelData = n
 
         // 2. SI NO ES CORRIDA PERDIDA:
         // Verificar si la unidad ya cuenta con hora real de salida de patio (ya despachada)
-        const estaDespachada = checkUnidadDespachada(u);
         if (estaDespachada) {
-            // Ya salió a circular: no es pendiente ni corrida perdida
             return;
         }
 
         // Si la unidad está en reserva o mantenimiento sin haber sido corrida perdida, no es corrida pendiente
-        const estatusNorm = String(u.ESTATUS || u.estatus || '').toLowerCase().trim();
-        if (estatusNorm === 'reserva' || estatusNorm === 'mantenimiento' || estatusNorm === 'percance') {
+        if (esNoOperativa) {
             return;
         }
 

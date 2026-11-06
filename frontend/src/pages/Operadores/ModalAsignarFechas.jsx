@@ -840,7 +840,12 @@ export default function ModalAsignarFechas({
           ) : (
             <div className="space-y-1 relative z-[40]">
               <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">FECHA</label>
-              <AppleDatePicker value={fechaDesde} onChange={setFechaDesde} disableFuture={false} showIcon={false} />
+              <AppleDatePicker
+                value={fechaDesde}
+                onChange={setFechaDesde}
+                disableFuture={estado === 'falta' || estado === 'retardo' || estado === 'asistencia'}
+                showIcon={false}
+              />
             </div>
           )}
 

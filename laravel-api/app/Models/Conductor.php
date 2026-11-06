@@ -71,6 +71,9 @@ class Conductor extends Model
         'accidentes_siniestros_detalle',
         'faltas_detalle',
         'retardos_detalle',
+        'descansos_detalle',
+        'vacaciones_detalle',
+        'incapacidades_detalle',
         'asistencias_detalle'
     ];
 
@@ -82,6 +85,9 @@ class Conductor extends Model
         'accidentes_siniestros_detalle' => 'array',
         'faltas_detalle' => 'array',
         'retardos_detalle' => 'array',
+        'descansos_detalle' => 'array',
+        'vacaciones_detalle' => 'array',
+        'incapacidades_detalle' => 'array',
         'asistencias_detalle' => 'array',
     ];
 

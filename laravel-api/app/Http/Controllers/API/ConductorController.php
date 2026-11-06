@@ -48,6 +48,21 @@ class ConductorController extends Controller
                         $table->text('faltas_detalle')->nullable();
                     });
                 }
+                if (!Schema::hasColumn('conductores', 'descansos_detalle')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->text('descansos_detalle')->nullable();
+                    });
+                }
+                if (!Schema::hasColumn('conductores', 'vacaciones_detalle')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->text('vacaciones_detalle')->nullable();
+                    });
+                }
+                if (!Schema::hasColumn('conductores', 'incapacidades_detalle')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->text('incapacidades_detalle')->nullable();
+                    });
+                }
                 if (!Schema::hasColumn('conductores', 'asistencias_detalle')) {
                     Schema::table('conductores', function (Blueprint $table) {
                         $table->json('asistencias_detalle')->nullable();
@@ -1770,7 +1785,12 @@ class ConductorController extends Controller
                                ->where('hora_salida', '!=', '')
                                ->where('hora_salida', '!=', '00:00:00')
                                ->where('hora_salida', '!=', '00:00');
-                        })->orWhere(DB::raw('LOWER(estatus)'), 'operacion');
+                        })->orWhere(function($q4) {
+                            $q4->whereNotNull('hora_salida_patio')
+                               ->where('hora_salida_patio', '!=', '')
+                               ->where('hora_salida_patio', '!=', '00:00:00')
+                               ->where('hora_salida_patio', '!=', '00:00');
+                        })->orWhereIn(DB::raw('LOWER(estatus)'), ['operacion', 'encierro', 'corrida_finalizada']);
                     })
                     ->select('fecha_historial', 'numero_tarjeton', 'relevo_tarjeton', 'nombre_conductor', 'relevo_conductor')
                     ->get();
@@ -1912,10 +1932,28 @@ class ConductorController extends Controller
                 }
             }
 
-            // Faltas del conductor
+            // Permutas (AP -> Asistencia, DP -> Descanso)
+            $permutasAPMap = [];
+            $permutasDPMap = [];
+            foreach ($parseArray($c->permutas_detalle) as $p) {
+                $pFecha = $p['fecha'] ?? null;
+                if ($pFecha) {
+                    $pDate = substr((string)$pFecha, 0, 10);
+                    $pTipo = strtoupper((string)($p['tipo'] ?? ''));
+                    if ($pTipo === 'AP') {
+                        $permutasAPMap[$pDate] = true;
+                    } elseif ($pTipo === 'DP') {
+                        $permutasDPMap[$pDate] = true;
+                    }
+                }
+            }
+
+            // Faltas del conductor (excluyendo retardos)
             $faltasFechasMap = [];
             foreach ($parseArray($c->faltas_detalle) as $f) {
                 $fFecha = $f['fecha'] ?? null;
+                $fEstado = $f['estado'] ?? 'pendiente';
+                if ($fEstado === 'retardo') continue;
                 if ($fFecha && $fFecha !== 'Fecha sin registrar') {
                     $faltasFechasMap[substr((string)$fFecha, 0, 10)] = true;
                 }
@@ -1960,7 +1998,7 @@ class ConductorController extends Controller
 
                 $codigo = null;
 
-                $tieneAsistencia = isset($asistenciasFechasMap[$dateStr]);
+                $tieneAsistencia = isset($asistenciasFechasMap[$dateStr]) || isset($permutasAPMap[$dateStr]);
                 if (!$tieneAsistencia) {
                     foreach ($candidatosCond as $cand) {
                         if (isset($historialMap[$cand][$dateStr])) {
@@ -1979,7 +2017,10 @@ class ConductorController extends Controller
                     $tieneAsistencia = true;
                 }
 
-                if ($tieneAsistencia) {
+                if (isset($permutasDPMap[$dateStr])) {
+                    $codigo = 'D';
+                    $countD++;
+                } elseif ($tieneAsistencia) {
                     $codigo = 'A';
                     $countA++;
                 } elseif (isset($faltasFechasMap[$dateStr])) {
@@ -2041,6 +2082,28 @@ class ConductorController extends Controller
     }
 
     /**
+     * Normaliza cualquier cadena de fecha (YYYY-MM-DD, DD/MM/YYYY, ISO) al formato YYYY-MM-DD.
+     */
+    private function normalizarFechaEvento($rawFecha): ?string
+    {
+        if (empty($rawFecha) || $rawFecha === 'Fecha sin registrar') {
+            return null;
+        }
+        $str = trim((string)$rawFecha);
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $str, $m)) {
+            return "{$m[1]}-{$m[2]}-{$m[3]}";
+        }
+        if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})/', $str, $m)) {
+            return "{$m[3]}-{$m[2]}-{$m[1]}";
+        }
+        try {
+            return Carbon::parse($str)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
      * Obtiene el historial operativo y administrativo completo de un conductor en un rango de fechas.
      */
     public function getHistorialCompleto(Request $request, $id)
@@ -2048,39 +2111,58 @@ class ConductorController extends Controller
         try {
             $this->ensureColumnsExist();
 
-            // 1. Buscar conductor por ID o por Tarjetón
-            $conductor = Conductor::where('id', $id)
-                ->orWhere('tarjeton', $id)
-                ->first();
+            // 1. Buscar conductor de forma segura en PostgreSQL por ID primario o por candidatos de Tarjetón
+            $conductor = is_numeric($id) ? Conductor::find((int)$id) : null;
+            if (!$conductor) {
+                $candidatosBusqueda = PlataformaController::obtenerCandidatosTarjeton((string)$id);
+                if (!empty($candidatosBusqueda)) {
+                    $conductor = Conductor::whereIn('tarjeton', $candidatosBusqueda)->first();
+                } else {
+                    $conductor = Conductor::where('tarjeton', (string)$id)->first();
+                }
+            }
 
             if (!$conductor) {
                 return response()->json(['error' => 'Persona conductora no encontrada'], 404);
             }
 
-            // 2. Rango de fechas
+            // 2. Rango de fechas (el "desde" no puede superar el día actual)
+            $hoyActual = Carbon::today('America/Mexico_City')->startOfDay();
             $desdeParam = $request->query('desde');
             $hastaParam = $request->query('hasta');
 
             if ($desdeParam) {
                 $desde = Carbon::parse($desdeParam)->startOfDay();
+                if ($desde->gt($hoyActual)) {
+                    $desde = $hoyActual->copy();
+                }
             } else {
-                $desde = Carbon::today()->subDays(30)->startOfDay();
+                $desde = $hoyActual->copy()->subDays(30)->startOfDay();
             }
 
             if ($hastaParam) {
                 $hasta = Carbon::parse($hastaParam)->endOfDay();
             } else {
-                $hasta = Carbon::today()->endOfDay();
+                $hasta = Carbon::today('America/Mexico_City')->endOfDay();
             }
 
             if ($desde->gt($hasta)) {
-                $tmp = $desde;
-                $desde = $hasta;
-                $hasta = $tmp;
+                $hasta = $desde->copy()->endOfDay();
             }
 
             $desdeStr = $desde->toDateString();
             $hastaStr = $hasta->toDateString();
+            $hoyStr = Carbon::today('America/Mexico_City')->toDateString();
+
+            // Si hoy cae en el periodo, sincronizar asistencias activas de hoy
+            if ($hoyStr >= $desdeStr && $hoyStr <= $hastaStr) {
+                try {
+                    DespachoController::sincronizarAsistenciasHoy();
+                    $conductor = $conductor->fresh() ?: $conductor;
+                } catch (\Throwable $e) {
+                    // Silencioso
+                }
+            }
 
             $period = CarbonPeriod::create($desdeStr, $hastaStr);
             $fechasPeriodo = [];
@@ -2089,8 +2171,31 @@ class ConductorController extends Controller
             }
 
             $tarjetonRaw = trim((string)($conductor->tarjeton ?? ''));
+            $candidatosTarjeton = PlataformaController::obtenerCandidatosTarjeton($tarjetonRaw);
+            $candidatosTarjetonMap = array_fill_keys($candidatosTarjeton, true);
             $tarjetonNum = (string)(int)preg_replace('/\D/', '', $tarjetonRaw);
-            $nombreNorm = $this->normalizarTexto($conductor->nombres . ' ' . $conductor->apellidos);
+            $nombreNorm = $this->normalizarTexto(($conductor->nombres ?? '') . ' ' . ($conductor->apellidos ?? ''));
+            $nombreNormInv = $this->normalizarTexto(($conductor->apellidos ?? '') . ' ' . ($conductor->nombres ?? ''));
+            $tokensCond = DespachoController::tokenizarNombre(($conductor->nombres ?? '') . ' ' . ($conductor->apellidos ?? ''));
+
+            $coincideConductor = function ($tarjRegistro, $nombreRegistro) use ($tarjetonRaw, $candidatosTarjetonMap, $tarjetonNum, $nombreNorm, $nombreNormInv, $tokensCond) {
+                $tReg = trim((string)($tarjRegistro ?? ''));
+                if ($tReg !== '') {
+                    if ($tarjetonRaw !== '' && $tReg === $tarjetonRaw) return true;
+                    if (isset($candidatosTarjetonMap[$tReg])) return true;
+                    $tRegNum = (string)(int)preg_replace('/\D/', '', $tReg);
+                    if ($tarjetonNum !== '0' && $tarjetonNum !== '' && $tRegNum === $tarjetonNum) return true;
+                }
+                $nReg = trim((string)($nombreRegistro ?? ''));
+                if ($nReg !== '' && !in_array(strtolower($nReg), ['sin conductor', 'seleccione', 's/c', 'null', 'falta de unidad'])) {
+                    $nRegTokens = DespachoController::tokenizarNombre($nReg);
+                    if ($tokensCond !== '' && $nRegTokens === $tokensCond) return true;
+                    $nRegNorm = $this->normalizarTexto($nReg);
+                    if ($nombreNorm !== '' && strlen($nombreNorm) >= 5 && str_contains($nRegNorm, $nombreNorm)) return true;
+                    if ($nombreNormInv !== '' && strlen($nombreNormInv) >= 5 && str_contains($nRegNorm, $nombreNormInv)) return true;
+                }
+                return false;
+            };
 
             $eventos = [];
 
@@ -2099,69 +2204,79 @@ class ConductorController extends Controller
                 try {
                     $historialQuery = DB::table('historial_operativo')
                         ->leftJoin('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                        ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                         ->whereBetween('historial_operativo.fecha_historial', [$desdeStr, $hastaStr])
                         ->select(
                             'historial_operativo.*',
-                            'unidades.numero_economico as unidad_economico',
-                            'unidades.tipo_transporte as unidad_tipo'
+                            'unidades.numero_eco as unidad_economico',
+                            DB::raw("COALESCE(unidades.tipo, transportes.nombre, historial_operativo.tipo, 'Autobús') as unidad_tipo")
                         );
 
                     $registrosHistorial = $historialQuery->get();
+                    $despachosPorDiaUnidad = [];
 
                     foreach ($registrosHistorial as $h) {
-                        $fechaH = $h->fecha_historial;
-                        $tTitular = trim((string)($h->numero_tarjeton ?? ''));
-                        $tTitularNum = (string)(int)preg_replace('/\D/', '', $tTitular);
-                        $nTitularNorm = $this->normalizarTexto($h->nombre_conductor ?? '');
+                        $fechaH = $this->normalizarFechaEvento($h->fecha_historial);
+                        if (!$fechaH) continue;
 
-                        $tRelevo = trim((string)($h->relevo_tarjeton ?? ''));
-                        $tRelevoNum = (string)(int)preg_replace('/\D/', '', $tRelevo);
-                        $nRelevoNorm = $this->normalizarTexto($h->relevo_conductor ?? '');
+                        $estatusH = strtolower(trim((string)($h->estatus ?? '')));
+                        // Ignorar registros donde la unidad estuvo en mantenimiento/taller y no tuvo hora de salida
+                        $horaReal = trim((string)($h->hora_real_salida_patio ?? ''));
+                        $horaSalRaw = trim((string)($h->hora_salida ?? ($h->hora_salida_patio ?? '')));
+                        $tuvoSalida = ($horaReal !== '' && $horaReal !== '00:00:00' && $horaReal !== '00:00') ||
+                                      ($horaSalRaw !== '' && $horaSalRaw !== '00:00:00' && $horaSalRaw !== '00:00');
+                        if (in_array($estatusH, ['mantenimiento', 'taller']) && !$tuvoSalida) {
+                            continue;
+                        }
 
-                        $esTitular = ($tarjetonRaw && $tTitular === $tarjetonRaw) ||
-                                     ($tarjetonNum !== '0' && $tTitularNum === $tarjetonNum) ||
-                                     ($nombreNorm && $nTitularNorm && str_contains($nTitularNorm, $nombreNorm));
-
-                        $esRelevo = ($tarjetonRaw && $tRelevo === $tarjetonRaw) ||
-                                    ($tarjetonNum !== '0' && $tRelevoNum === $tarjetonNum) ||
-                                    ($nombreNorm && $nRelevoNorm && str_contains($nRelevoNorm, $nombreNorm));
+                        $esTitular = $coincideConductor($h->numero_tarjeton ?? null, $h->nombre_conductor ?? null);
+                        $esRelevo = !$esTitular && $coincideConductor($h->relevo_tarjeton ?? null, $h->relevo_conductor ?? null);
 
                         if ($esTitular || $esRelevo) {
                             $eco = $h->unidad_economico ?? 'S/N';
                             $tipoTrans = $h->unidad_tipo ?? $h->tipo ?? 'Autobús';
                             $ruta = $h->ruta ?: 'Ruta asignada';
-                            $horaSal = $h->hora_salida ?: ($h->hora_programada ?: 'En horario');
+                            $horaSalEfectiva = $horaReal ?: ($horaSalRaw ?: ($h->hora_programada ?? 'En horario'));
                             $subtipo = $esRelevo ? 'RELEVO' : 'DESPACHO_REGULAR';
                             $titulo = $esRelevo ? "Asistencia en Relevo (Unidad {$eco})" : "Asistencia en Despacho (Unidad {$eco})";
-                            $detalles = "Ruta: {$ruta} | Salida: {$horaSal}";
+                            $detalles = "Ruta: {$ruta} | Salida: {$horaSalEfectiva}";
                             if (!empty($h->momento)) $detalles .= " | Momento: {$h->momento}";
                             if (!empty($h->observaciones)) $detalles .= " | Obs: {$h->observaciones}";
 
-                            $eventos[] = [
-                                'id' => 'despacho_' . $h->id,
-                                'fecha' => $fechaH,
-                                'created_at' => $h->fecha_registro ?? $h->created_at ?? ($fechaH . ' 06:00:00'),
-                                'tipo' => 'ASISTENCIA',
-                                'subtipo' => $subtipo,
-                                'titulo' => $titulo,
-                                'descripcion' => "Servicio de transporte despachado en Ruta {$ruta}",
-                                'detalles' => $detalles,
-                                'origen' => 'Despacho Operativo',
-                                'usuario' => 'Despacho',
-                                'badge_color' => '#15803d',
-                                'badge_bg' => '#dcfce7',
-                                'icono' => 'bus',
-                                'meta' => [
-                                    'unidad' => $eco,
-                                    'tipo_transporte' => $tipoTrans,
-                                    'ruta' => $ruta,
-                                    'hora_salida' => $h->hora_salida,
-                                    'hora_programada' => $h->hora_programada,
-                                    'es_relevo' => $esRelevo,
-                                    'observaciones' => $h->observaciones
-                                ]
-                            ];
+                            $dedupKey = "{$fechaH}_{$eco}_{$subtipo}";
+                            $esPreferente = $tuvoSalida || strtoupper((string)($h->momento ?? '')) !== 'INICIO';
+
+                            if (!isset($despachosPorDiaUnidad[$dedupKey]) || $esPreferente) {
+                                $despachosPorDiaUnidad[$dedupKey] = [
+                                    'id' => 'despacho_' . $h->id,
+                                    'fecha' => $fechaH,
+                                    'created_at' => $h->fecha_registro ?? $h->created_at ?? ($fechaH . ' 06:00:00'),
+                                    'tipo' => 'ASISTENCIA',
+                                    'subtipo' => $subtipo,
+                                    'titulo' => $titulo,
+                                    'descripcion' => "Servicio de transporte despachado en Ruta {$ruta} ({$tipoTrans})",
+                                    'detalles' => $detalles,
+                                    'origen' => 'Despacho Operativo',
+                                    'usuario' => 'Despacho',
+                                    'badge_color' => '#15803d',
+                                    'badge_bg' => '#dcfce7',
+                                    'icono' => 'bus',
+                                    'meta' => [
+                                        'unidad' => $eco,
+                                        'tipo_transporte' => $tipoTrans,
+                                        'ruta' => $ruta,
+                                        'hora_salida' => $horaSalEfectiva,
+                                        'hora_programada' => $h->hora_programada ?? null,
+                                        'es_relevo' => $esRelevo,
+                                        'observaciones' => $h->observaciones ?? null
+                                    ]
+                                ];
+                            }
                         }
+                    }
+
+                    foreach ($despachosPorDiaUnidad as $evDespacho) {
+                        $eventos[] = $evDespacho;
                     }
                 } catch (\Throwable $e) {
                     \Log::error('Error consultando historial_operativo en historial conductor: ' . $e->getMessage());
@@ -2169,53 +2284,46 @@ class ConductorController extends Controller
             }
 
             // 4. Asistencia hoy en informacion_operativa
-            $hoyStr = Carbon::today()->toDateString();
             if ($hoyStr >= $desdeStr && $hoyStr <= $hastaStr && Schema::hasTable('informacion_operativa')) {
                 try {
                     $hoyOps = DB::table('informacion_operativa')
                         ->leftJoin('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                        ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                         ->select(
                             'informacion_operativa.*',
-                            'unidades.numero_economico as unidad_economico',
-                            'unidades.tipo_transporte as unidad_tipo'
+                            'unidades.numero_eco as unidad_economico',
+                            DB::raw("COALESCE(unidades.tipo, transportes.nombre, informacion_operativa.tipo, 'Autobús') as unidad_tipo")
                         )
                         ->get();
 
                     foreach ($hoyOps as $op) {
-                        $tTitular = trim((string)($op->numero_tarjeton ?? ''));
-                        $tTitularNum = (string)(int)preg_replace('/\D/', '', $tTitular);
-                        $nTitularNorm = $this->normalizarTexto($op->nombre_conductor ?? '');
+                        $estatusOp = strtolower(trim((string)($op->estatus ?? '')));
+                        if (in_array($estatusOp, ['mantenimiento', 'taller'])) {
+                            continue;
+                        }
 
-                        $tRelevo = trim((string)($op->relevo_tarjeton ?? ''));
-                        $tRelevoNum = (string)(int)preg_replace('/\D/', '', $tRelevo);
-                        $nRelevoNorm = $this->normalizarTexto($op->relevo_conductor ?? '');
-
-                        $esTitular = ($tarjetonRaw && $tTitular === $tarjetonRaw) ||
-                                     ($tarjetonNum !== '0' && $tTitularNum === $tarjetonNum) ||
-                                     ($nombreNorm && $nTitularNorm && str_contains($nTitularNorm, $nombreNorm));
-
-                        $esRelevo = ($tarjetonRaw && $tRelevo === $tarjetonRaw) ||
-                                    ($tarjetonNum !== '0' && $tRelevoNum === $tarjetonNum) ||
-                                    ($nombreNorm && $nRelevoNorm && str_contains($nRelevoNorm, $nombreNorm));
+                        $esTitular = $coincideConductor($op->numero_tarjeton ?? null, $op->nombre_conductor ?? null);
+                        $esRelevo = !$esTitular && $coincideConductor($op->relevo_tarjeton ?? null, $op->relevo_conductor ?? null);
 
                         if ($esTitular || $esRelevo) {
                             $eco = $op->unidad_economico ?? 'S/N';
                             $tipoTrans = $op->unidad_tipo ?? 'Autobús';
                             $ruta = $op->ruta ?: 'Ruta activa hoy';
+                            $horaSalHoy = $op->hora_real_salida_patio ?? ($op->hora_salida_patio ?? ($op->hora_salida ?? null));
 
-                            // Solo agregar si no fue agregado previamente
+                            // Solo agregar si no fue agregado previamente para hoy y esta unidad
                             $yaExiste = collect($eventos)->contains(fn($ev) => $ev['fecha'] === $hoyStr && $ev['tipo'] === 'ASISTENCIA' && ($ev['meta']['unidad'] ?? '') === $eco);
 
                             if (!$yaExiste) {
                                 $eventos[] = [
                                     'id' => 'hoy_despacho_' . $op->id,
                                     'fecha' => $hoyStr,
-                                    'created_at' => Carbon::now()->toDateTimeString(),
+                                    'created_at' => Carbon::now('America/Mexico_City')->toDateTimeString(),
                                     'tipo' => 'ASISTENCIA',
                                     'subtipo' => $esRelevo ? 'RELEVO_HOY' : 'DESPACHO_HOY',
                                     'titulo' => $esRelevo ? "Asistencia en Relevo Hoy (Unidad {$eco})" : "Asistencia Activa Hoy (Unidad {$eco})",
-                                    'descripcion' => "Asignación activa en Despacho en Ruta {$ruta}",
-                                    'detalles' => "Ruta: {$ruta} | Estado: Activo en servicio",
+                                    'descripcion' => "Asignación activa en Despacho en Ruta {$ruta} ({$tipoTrans})",
+                                    'detalles' => "Ruta: {$ruta}" . ($horaSalHoy ? " | Salida: {$horaSalHoy}" : '') . " | Estado: Activo en servicio",
                                     'origen' => 'Despacho en Vivo',
                                     'usuario' => 'Despacho',
                                     'badge_color' => '#15803d',
@@ -2225,6 +2333,7 @@ class ConductorController extends Controller
                                         'unidad' => $eco,
                                         'tipo_transporte' => $tipoTrans,
                                         'ruta' => $ruta,
+                                        'hora_salida' => $horaSalHoy,
                                         'es_relevo' => $esRelevo
                                     ]
                                 ];
@@ -2249,30 +2358,32 @@ class ConductorController extends Controller
 
             $faltasDetalle = $parseArray($conductor->faltas_detalle);
             $retardosDetalle = $parseArray($conductor->retardos_detalle);
-            $permutasDetalle = $parseArray($conductor->permutas_detalle);
-            $permisosDetalle = $parseArray($conductor->permisos_detalle);
+            $permutasDetalle = array_merge($parseArray($conductor->permutas_detalle), $parseArray($conductor->detalle_permutas ?? null));
+            $permisosDetalle = array_merge($parseArray($conductor->permisos_detalle), $parseArray($conductor->detalle_permisos ?? null));
             $descansosDetalle = $parseArray($conductor->descansos_detalle);
             $vacacionesDetalle = $parseArray($conductor->vacaciones_detalle);
             $incapacidadesDetalle = $parseArray($conductor->incapacidades_detalle);
             $amonestacionesDetalle = $parseArray($conductor->amonestaciones_detalle);
-            $accidentesDetalle = $parseArray($conductor->accidentes_siniestros_detalle);
+            $accidentesDetalle = array_merge($parseArray($conductor->accidentes_siniestros_detalle), $parseArray($conductor->detalle_accidentes ?? null));
+            $reconocimientosDetalle = $parseArray($conductor->reconocimientos_detalle);
             $asistenciasDetalle = $parseArray($conductor->asistencias_detalle);
 
             // A0. Asistencias registradas en Despacho / asistencias_detalle
             foreach ($asistenciasDetalle as $idx => $as) {
-                $asFecha = $as['fecha'] ?? null;
-                if (!$asFecha || $asFecha === 'Fecha sin registrar') continue;
-                $asFechaStr = substr((string)$asFecha, 0, 10);
-                if ($asFechaStr < $desdeStr || $asFechaStr > $hastaStr) continue;
+                if (!is_array($as)) continue;
+                $asFechaStr = $this->normalizarFechaEvento($as['fecha'] ?? null);
+                if (!$asFechaStr || $asFechaStr < $desdeStr || $asFechaStr > $hastaStr) continue;
 
                 $yaExiste = collect($eventos)->contains(fn($ev) => $ev['fecha'] === $asFechaStr && $ev['tipo'] === 'ASISTENCIA');
                 if (!$yaExiste) {
-                    $eco = $as['unidad'] ?? 'S/N';
+                    $eco = $as['unidad'] ?? ($as['numero_eco'] ?? 'S/N');
                     $ruta = $as['ruta'] ?? 'Ruta despachada';
                     $esRelevo = !empty($as['es_relevo']);
                     $horaSal = $as['hora_salida'] ?? null;
-                    $titulo = $esRelevo ? "Asistencia en Relevo (Unidad {$eco})" : "Asistencia en Despacho (Unidad {$eco})";
-                    $detalles = "Ruta: {$ruta}" . ($horaSal ? " | Salida: {$horaSal}" : '');
+                    $titulo = ($eco && $eco !== 'S/N')
+                        ? ($esRelevo ? "Asistencia en Relevo (Unidad {$eco})" : "Asistencia en Despacho (Unidad {$eco})")
+                        : "Asistencia Registrada";
+                    $detalles = ($eco && $eco !== 'S/N' ? "Unidad: {$eco} | " : '') . "Ruta: {$ruta}" . ($horaSal ? " | Salida: {$horaSal}" : '');
 
                     $eventos[] = [
                         'id' => $as['id'] ?? ('asistencia_det_' . $idx),
@@ -2283,8 +2394,8 @@ class ConductorController extends Controller
                         'titulo' => $titulo,
                         'descripcion' => $as['motivo'] ?? "Servicio despachado en Ruta {$ruta}",
                         'detalles' => $detalles,
-                        'origen' => 'Despacho Operativo',
-                        'usuario' => 'Despacho',
+                        'origen' => 'Despacho / Itinerario',
+                        'usuario' => $as['usuario'] ?? 'Despacho',
                         'badge_color' => '#15803d',
                         'badge_bg' => '#dcfce7',
                         'icono' => 'bus',
@@ -2295,10 +2406,9 @@ class ConductorController extends Controller
 
             // A. Faltas y Faltas Justificadas
             foreach ($faltasDetalle as $idx => $f) {
-                $fFecha = $f['fecha'] ?? null;
-                if (!$fFecha || $fFecha === 'Fecha sin registrar') continue;
-                $fFechaStr = substr((string)$fFecha, 0, 10);
-                if ($fFechaStr < $desdeStr || $fFechaStr > $hastaStr) continue;
+                if (!is_array($f)) continue;
+                $fFechaStr = $this->normalizarFechaEvento($f['fecha'] ?? null);
+                if (!$fFechaStr || $fFechaStr < $desdeStr || $fFechaStr > $hastaStr) continue;
 
                 $esRetardo = (isset($f['estado']) && $f['estado'] === 'retardo');
                 $esJustificada = (isset($f['estado']) && $f['estado'] === 'justificada') || !empty($f['justificada']);
@@ -2312,7 +2422,7 @@ class ConductorController extends Controller
                         'subtipo' => 'RETARDO',
                         'titulo' => 'Retardo Registrado',
                         'descripcion' => $f['motivo'] ?? 'Llegada tarde a turno operativo',
-                        'detalles' => 'Incidencia de retardo registrada',
+                        'detalles' => $f['observaciones_justificacion'] ?? 'Incidencia de retardo registrada',
                         'origen' => 'Control de Operadores',
                         'usuario' => $f['usuario'] ?? 'Administrador',
                         'badge_color' => '#a16207',
@@ -2321,16 +2431,17 @@ class ConductorController extends Controller
                         'meta' => $f
                     ];
                 } elseif ($esJustificada) {
-                    $motivoJust = $f['motivo_justificacion'] ?? ($f['justificante'] ?? 'Justificante presentado y autorizado');
+                    $motivoJust = $f['observaciones_justificacion'] ?? ($f['motivo_justificacion'] ?? ($f['justificante_nombre'] ?? ($f['justificante'] ?? 'Justificante presentado y autorizado')));
+                    $fechaJust = $f['justificante_fecha'] ?? ($f['fecha_justificacion'] ?? null);
                     $eventos[] = [
                         'id' => $f['id'] ?? ('falta_j_' . $idx),
                         'fecha' => $fFechaStr,
-                        'created_at' => $f['fecha_justificacion'] ?? ($f['fecha_registro'] ?? ($fFechaStr . ' 08:00:00')),
+                        'created_at' => $fechaJust ?: ($f['fecha_registro'] ?? ($fFechaStr . ' 08:00:00')),
                         'tipo' => 'FALTA_JUSTIFICADA',
                         'subtipo' => 'JUSTIFICADA',
                         'titulo' => 'Falta Justificada',
                         'descripcion' => $f['motivo'] ?? 'Inasistencia con justificación autorizada',
-                        'detalles' => "Justificante: {$motivoJust}" . (!empty($f['fecha_justificacion']) ? " (Fecha de justificación: {$f['fecha_justificacion']})" : ''),
+                        'detalles' => "Justificante: {$motivoJust}" . (!empty($fechaJust) ? " (Justificada el: {$fechaJust})" : ''),
                         'origen' => 'Control de Operadores',
                         'usuario' => $f['usuario_justifico'] ?? ($f['usuario'] ?? 'Administrador'),
                         'badge_color' => '#047857',
@@ -2360,10 +2471,9 @@ class ConductorController extends Controller
 
             // B. Retardos adicionales de retardos_detalle
             foreach ($retardosDetalle as $idx => $r) {
-                $rFecha = $r['fecha'] ?? null;
-                if (!$rFecha || $rFecha === 'Fecha sin registrar') continue;
-                $rFechaStr = substr((string)$rFecha, 0, 10);
-                if ($rFechaStr < $desdeStr || $rFechaStr > $hastaStr) continue;
+                if (!is_array($r)) continue;
+                $rFechaStr = $this->normalizarFechaEvento($r['fecha'] ?? null);
+                if (!$rFechaStr || $rFechaStr < $desdeStr || $rFechaStr > $hastaStr) continue;
 
                 $rId = $r['id'] ?? null;
                 $yaExiste = collect($eventos)->contains(fn($ev) => $ev['tipo'] === 'RETARDO' && ($ev['id'] === $rId || $ev['fecha'] === $rFechaStr));
@@ -2390,10 +2500,9 @@ class ConductorController extends Controller
 
             // C. Permutas
             foreach ($permutasDetalle as $idx => $p) {
-                $pFecha = $p['fecha'] ?? null;
-                if (!$pFecha) continue;
-                $pFechaStr = substr((string)$pFecha, 0, 10);
-                if ($pFechaStr < $desdeStr || $pFechaStr > $hastaStr) continue;
+                if (!is_array($p)) continue;
+                $pFechaStr = $this->normalizarFechaEvento($p['fecha'] ?? null);
+                if (!$pFechaStr || $pFechaStr < $desdeStr || $pFechaStr > $hastaStr) continue;
 
                 $tipoP = $p['tipo'] ?? 'PERMUTA';
                 $esAP = ($tipoP === 'AP');
@@ -2423,10 +2532,9 @@ class ConductorController extends Controller
 
             // D. Permisos
             foreach ($permisosDetalle as $idx => $pm) {
-                $pmFecha = $pm['fecha'] ?? ($pm['desde'] ?? null);
-                if (!$pmFecha) continue;
-                $pmFechaStr = substr((string)$pmFecha, 0, 10);
-                if ($pmFechaStr < $desdeStr || $pmFechaStr > $hastaStr) continue;
+                if (!is_array($pm)) continue;
+                $pmFechaStr = $this->normalizarFechaEvento($pm['fecha'] ?? ($pm['desde'] ?? null));
+                if (!$pmFechaStr || $pmFechaStr < $desdeStr || $pmFechaStr > $hastaStr) continue;
 
                 $eventos[] = [
                     'id' => $pm['id'] ?? ('permiso_' . $idx),
@@ -2448,10 +2556,9 @@ class ConductorController extends Controller
 
             // E. Descansos
             foreach ($descansosDetalle as $idx => $d) {
-                $dFecha = $d['fecha'] ?? null;
-                if (!$dFecha) continue;
-                $dFechaStr = substr((string)$dFecha, 0, 10);
-                if ($dFechaStr < $desdeStr || $dFechaStr > $hastaStr) continue;
+                if (!is_array($d)) continue;
+                $dFechaStr = $this->normalizarFechaEvento($d['fecha'] ?? null);
+                if (!$dFechaStr || $dFechaStr < $desdeStr || $dFechaStr > $hastaStr) continue;
 
                 $eventos[] = [
                     'id' => $d['id'] ?? ('descanso_' . $idx),
@@ -2473,10 +2580,9 @@ class ConductorController extends Controller
 
             // F. Vacaciones
             foreach ($vacacionesDetalle as $idx => $v) {
-                $vFecha = $v['fecha'] ?? null;
-                if (!$vFecha) continue;
-                $vFechaStr = substr((string)$vFecha, 0, 10);
-                if ($vFechaStr < $desdeStr || $vFechaStr > $hastaStr) continue;
+                if (!is_array($v)) continue;
+                $vFechaStr = $this->normalizarFechaEvento($v['fecha'] ?? null);
+                if (!$vFechaStr || $vFechaStr < $desdeStr || $vFechaStr > $hastaStr) continue;
 
                 $eventos[] = [
                     'id' => $v['id'] ?? ('vacaciones_' . $idx),
@@ -2498,10 +2604,9 @@ class ConductorController extends Controller
 
             // G. Incapacidades
             foreach ($incapacidadesDetalle as $idx => $inc) {
-                $incFecha = $inc['fecha'] ?? null;
-                if (!$incFecha) continue;
-                $incFechaStr = substr((string)$incFecha, 0, 10);
-                if ($incFechaStr < $desdeStr || $incFechaStr > $hastaStr) continue;
+                if (!is_array($inc)) continue;
+                $incFechaStr = $this->normalizarFechaEvento($inc['fecha'] ?? null);
+                if (!$incFechaStr || $incFechaStr < $desdeStr || $incFechaStr > $hastaStr) continue;
 
                 $eventos[] = [
                     'id' => $inc['id'] ?? ('incapacidad_' . $idx),
@@ -2523,10 +2628,9 @@ class ConductorController extends Controller
 
             // H. Amonestaciones y Sanciones
             foreach ($amonestacionesDetalle as $idx => $am) {
-                $amFecha = $am['fecha'] ?? null;
-                if (!$amFecha) continue;
-                $amFechaStr = substr((string)$amFecha, 0, 10);
-                if ($amFechaStr < $desdeStr || $amFechaStr > $hastaStr) continue;
+                if (!is_array($am)) continue;
+                $amFechaStr = $this->normalizarFechaEvento($am['fecha'] ?? null);
+                if (!$amFechaStr || $amFechaStr < $desdeStr || $amFechaStr > $hastaStr) continue;
 
                 $eventos[] = [
                     'id' => $am['id'] ?? ('amonestacion_' . $idx),
@@ -2546,27 +2650,82 @@ class ConductorController extends Controller
                 ];
             }
 
+            // H2. Accidentes / Siniestros
+            foreach ($accidentesDetalle as $idx => $acc) {
+                if (!is_array($acc)) continue;
+                $accFechaStr = $this->normalizarFechaEvento($acc['fecha'] ?? null);
+                if (!$accFechaStr || $accFechaStr < $desdeStr || $accFechaStr > $hastaStr) continue;
+
+                $eventos[] = [
+                    'id' => $acc['id'] ?? ('accidente_' . $idx),
+                    'fecha' => $accFechaStr,
+                    'created_at' => $acc['fecha_registro'] ?? ($accFechaStr . ' 08:00:00'),
+                    'tipo' => 'AMONESTACION',
+                    'subtipo' => 'ACCIDENTE / SINIESTRO',
+                    'titulo' => 'Accidente / Siniestro Registrado',
+                    'descripcion' => $acc['motivo'] ?? ($acc['descripcion'] ?? ($acc['observaciones'] ?? 'Siniestro vial registrado en expediente')),
+                    'detalles' => !empty($acc['unidad']) ? "Unidad: {$acc['unidad']}" : 'Registrado en expediente de siniestros',
+                    'origen' => 'Control de Operadores',
+                    'usuario' => $acc['usuario'] ?? 'Administrador',
+                    'badge_color' => '#b91c1c',
+                    'badge_bg' => '#fee2e2',
+                    'icono' => 'alert-triangle',
+                    'meta' => $acc
+                ];
+            }
+
+            // H3. Reconocimientos
+            foreach ($reconocimientosDetalle as $idx => $rec) {
+                if (!is_array($rec)) continue;
+                $recFechaStr = $this->normalizarFechaEvento($rec['fecha'] ?? null);
+                if (!$recFechaStr || $recFechaStr < $desdeStr || $recFechaStr > $hastaStr) continue;
+
+                $eventos[] = [
+                    'id' => $rec['id'] ?? ('reconocimiento_' . $idx),
+                    'fecha' => $recFechaStr,
+                    'created_at' => $rec['fecha_registro'] ?? ($recFechaStr . ' 08:00:00'),
+                    'tipo' => 'BITACORA',
+                    'subtipo' => 'RECONOCIMIENTO',
+                    'titulo' => 'Reconocimiento al Desempeño',
+                    'descripcion' => $rec['motivo'] ?? ($rec['observaciones'] ?? 'Reconocimiento otorgado al operador'),
+                    'detalles' => 'Asentado en expediente del operador',
+                    'origen' => 'Control de Operadores',
+                    'usuario' => $rec['usuario'] ?? 'Administrador',
+                    'badge_color' => '#15803d',
+                    'badge_bg' => '#dcfce7',
+                    'icono' => 'award',
+                    'meta' => $rec
+                ];
+            }
+
             // I. Auditoría / Bitácora de Conductor
             if (Schema::hasTable('bitacora_conductores')) {
                 try {
                     $bitacoras = DB::table('bitacora_conductores')
-                        ->where(function ($q) use ($conductor) {
-                            $q->where('conductor_id', $conductor->id)
-                              ->orWhere('tarjeton', $conductor->tarjeton);
+                        ->where(function ($q) use ($conductor, $candidatosTarjeton) {
+                            $q->where('conductor_id', $conductor->id);
+                            if (!empty($candidatosTarjeton)) {
+                                $q->orWhereIn('tarjeton', $candidatosTarjeton);
+                            } elseif (!empty($conductor->tarjeton)) {
+                                $q->orWhere('tarjeton', $conductor->tarjeton);
+                            }
                         })
                         ->whereBetween('fecha', [$desdeStr, $hastaStr])
                         ->orderBy('created_at', 'desc')
                         ->get();
 
                     foreach ($bitacoras as $b) {
-                        if (in_array($b->tipo_accion, ['CREACION', 'EDICION', 'BAJA', 'REINGRESO', 'SUBIR_FOTO', 'SUBIR_QR'])) {
+                        if (in_array($b->tipo_accion, [
+                            'CREACION', 'EDICION', 'BAJA', 'REINGRESO', 'SUBIR_FOTO', 'SUBIR_QR',
+                            'FALTA_ELIMINADA', 'CAMBIO_A_RESERVA', 'CAMBIO_A_MANIOBRISTA', 'RETIRO_CONDUCTOR'
+                        ])) {
                             $eventos[] = [
                                 'id' => 'bitacora_' . $b->id,
                                 'fecha' => $b->fecha,
                                 'created_at' => $b->created_at,
                                 'tipo' => 'BITACORA',
                                 'subtipo' => $b->tipo_accion,
-                                'titulo' => 'Auditoría: ' . $b->tipo_accion,
+                                'titulo' => 'Auditoría: ' . str_replace('_', ' ', $b->tipo_accion),
                                 'descripcion' => $b->detalles ?: "Acción de {$b->tipo_accion} en expediente",
                                 'detalles' => "Usuario auditor: " . ($b->usuario_nombre ?? 'Sistema'),
                                 'origen' => 'Auditoría Operativa',
@@ -2590,11 +2749,11 @@ class ConductorController extends Controller
                 return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
             });
 
-            // Resumen Estadístico
-            $totAsistencias = collect($eventos)->whereIn('tipo', ['ASISTENCIA', 'PERMUTA_AP'])->count();
-            $totFaltasInj = collect($eventos)->where('tipo', 'FALTA')->count();
-            $totFaltasJust = collect($eventos)->where('tipo', 'FALTA_JUSTIFICADA')->count();
-            $totDescansos = collect($eventos)->whereIn('tipo', ['DESCANSO', 'PERMUTA_DP'])->count();
+            // Resumen Estadístico (contabilizando días únicos de asistencia para evitar doble conteo el mismo día)
+            $totAsistencias = collect($eventos)->whereIn('tipo', ['ASISTENCIA', 'PERMUTA_AP'])->pluck('fecha')->unique()->count();
+            $totFaltasInj = collect($eventos)->where('tipo', 'FALTA')->pluck('fecha')->unique()->count();
+            $totFaltasJust = collect($eventos)->where('tipo', 'FALTA_JUSTIFICADA')->pluck('fecha')->unique()->count();
+            $totDescansos = collect($eventos)->whereIn('tipo', ['DESCANSO', 'PERMUTA_DP'])->pluck('fecha')->unique()->count();
             $totPermutasAP = collect($eventos)->where('tipo', 'PERMUTA_AP')->count();
             $totPermutasDP = collect($eventos)->where('tipo', 'PERMUTA_DP')->count();
             $totPermisos = collect($eventos)->where('tipo', 'PERMISO')->count();
@@ -2602,7 +2761,7 @@ class ConductorController extends Controller
             $totIncapacidades = collect($eventos)->where('tipo', 'INCAPACIDAD')->count();
             $totRetardos = collect($eventos)->where('tipo', 'RETARDO')->count();
             $totAmonestaciones = collect($eventos)->where('tipo', 'AMONESTACION')->count();
-            $totDespachosRelevo = collect($eventos)->where('subtipo', 'RELEVO')->count();
+            $totDespachosRelevo = collect($eventos)->whereIn('subtipo', ['RELEVO', 'RELEVO_HOY'])->count();
 
             $divisorLaboral = $totAsistencias + $totFaltasInj;
             $tasaAsistencia = $divisorLaboral > 0 ? round(($totAsistencias / $divisorLaboral) * 100, 1) : 100.0;
@@ -2676,7 +2835,7 @@ class ConductorController extends Controller
                     'tarjeton' => $conductor->tarjeton,
                     'nombres' => $conductor->nombres,
                     'apellidos' => $conductor->apellidos,
-                    'nombre_completo' => $conductor->nombre ?: ($conductor->nombres . ' ' . $conductor->apellidos),
+                    'nombre_completo' => $conductor->nombre ?: trim(($conductor->nombres ?? '') . ' ' . ($conductor->apellidos ?? '')),
                     'foto' => $conductor->foto,
                     'tipo_tarjeton' => $conductor->tipo_tarjeton,
                     'estatus' => $conductor->estatus,
@@ -2687,6 +2846,7 @@ class ConductorController extends Controller
                     'jornada' => $conductor->jornada,
                     'telefono' => $conductor->telefono,
                     'fecha_ingreso' => $conductor->fecha_ingreso,
+                    'fecha_reingreso' => $conductor->fecha_reingreso,
                     'inhabilitacion_info' => $conductor->evaluarInhabilitacionFaltas(),
                 ],
                 'rango' => [
@@ -2695,6 +2855,7 @@ class ConductorController extends Controller
                     'dias_totales' => count($fechasPeriodo),
                 ],
                 'resumen' => [
+                    'dias_totales' => count($fechasPeriodo),
                     'asistencias' => $totAsistencias,
                     'faltas_injustificadas' => $totFaltasInj,
                     'faltas_justificadas' => $totFaltasJust,

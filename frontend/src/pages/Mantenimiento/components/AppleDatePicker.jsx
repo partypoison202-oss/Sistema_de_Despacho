@@ -89,28 +89,67 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
 
+  const today = new Date();
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const parsedMinDate = (() => {
+    if (!minDate) return null;
+    const parts = String(minDate).split('-');
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  })();
+
+  const parsedMaxDate = (() => {
+    if (!maxDate) return null;
+    const parts = String(maxDate).split('-');
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  })();
+
+  const effectiveMaxDate = (() => {
+    if (disableFuture && parsedMaxDate) {
+      return parsedMaxDate < todayDateOnly ? parsedMaxDate : todayDateOnly;
+    }
+    if (disableFuture) return todayDateOnly;
+    return parsedMaxDate;
+  })();
+
+  const effectiveMinDate = (() => {
+    if (disablePast && parsedMinDate) {
+      return parsedMinDate > todayDateOnly ? parsedMinDate : todayDateOnly;
+    }
+    if (disablePast) return todayDateOnly;
+    return parsedMinDate;
+  })();
+
+  const isPrevMonthDisabled = !!effectiveMinDate && (
+    currentMonth.getFullYear() < effectiveMinDate.getFullYear() ||
+    (currentMonth.getFullYear() === effectiveMinDate.getFullYear() && currentMonth.getMonth() <= effectiveMinDate.getMonth())
+  );
+
+  const isNextMonthDisabled = !!effectiveMaxDate && (
+    currentMonth.getFullYear() > effectiveMaxDate.getFullYear() ||
+    (currentMonth.getFullYear() === effectiveMaxDate.getFullYear() && currentMonth.getMonth() >= effectiveMaxDate.getMonth())
+  );
+
   const handlePrevMonth = (e) => {
     e.stopPropagation();
+    if (isPrevMonthDisabled) return;
     const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-    const today = new Date();
-    if (disablePast && (prevMonth.getFullYear() < today.getFullYear() || (prevMonth.getFullYear() === today.getFullYear() && prevMonth.getMonth() < today.getMonth()))) {
-      return;
-    }
     setCurrentMonth(prevMonth);
   };
 
   const handleNextMonth = (e) => {
     e.stopPropagation();
+    if (isNextMonthDisabled) return;
     const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-    const today = new Date();
-    if (disableFuture && (nextMonth.getFullYear() > today.getFullYear() || (nextMonth.getFullYear() === today.getFullYear() && nextMonth.getMonth() > today.getMonth()))) {
-      return;
-    }
     setCurrentMonth(nextMonth);
   };
 
   const handleSelectDate = (day) => {
     const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    if (effectiveMaxDate && selectedDate > effectiveMaxDate) return;
+    if (effectiveMinDate && selectedDate < effectiveMinDate) return;
     const yyyy = selectedDate.getFullYear();
     const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const dd = String(selectedDate.getDate()).padStart(2, '0');
@@ -161,43 +200,28 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     }
   }
 
-  const today = new Date();
-
   for (let i = 1; i <= daysInMonth; i++) {
     const isSelected = selYear === currentMonth.getFullYear() && selMonth === currentMonth.getMonth() && selDay === i;
     const isToday = today.getDate() === i && today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
     const currentDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
-    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
-    const isFuture = disableFuture && currentDate > todayDateOnly;
-    const isPast = disablePast && currentDate < todayDateOnly;
-    
-    // Custom date constraints
-    let isBeforeMin = false;
-    let isAfterMax = false;
-    
-    if (minDate) {
-      const [mYear, mMonth, mDay] = minDate.split('-');
-      const minD = new Date(parseInt(mYear), parseInt(mMonth) - 1, parseInt(mDay));
-      isBeforeMin = currentDate < minD;
-    }
-    
-    if (maxDate) {
-      const [mxYear, mxMonth, mxDay] = maxDate.split('-');
-      const maxD = new Date(parseInt(mxYear), parseInt(mxMonth) - 1, parseInt(mxDay));
-      isAfterMax = currentDate > maxD;
-    }
+    const isBeforeMin = !!effectiveMinDate && currentDate < effectiveMinDate;
+    const isAfterMax = !!effectiveMaxDate && currentDate > effectiveMaxDate;
 
-    const isDisabled = isFuture || isPast || isBeforeMin || isAfterMax;
+    const isDisabled = isBeforeMin || isAfterMax;
 
     days.push(
       <button
         key={`day-${i}`}
         type="button"
         disabled={isDisabled}
-        onClick={(e) => { e.stopPropagation(); handleSelectDate(i); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isDisabled) handleSelectDate(i);
+        }}
+        style={isDisabled ? { opacity: 0.3, cursor: 'not-allowed', pointerEvents: 'none', textDecoration: 'line-through' } : undefined}
         className={`w-8 h-8 flex items-center justify-center rounded-full text-xs transition-all duration-150
-          ${isDisabled ? 'opacity-30 cursor-not-allowed text-slate-400 font-normal' : 'active:scale-90 font-semibold cursor-pointer'}
+          ${isDisabled ? 'opacity-30 cursor-not-allowed text-slate-400 font-normal line-through pointer-events-none' : 'active:scale-90 font-semibold cursor-pointer'}
           ${!isDisabled && isSelected 
             ? 'bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
             : !isDisabled && isToday 
@@ -256,8 +280,8 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             <button 
               type="button" 
               onClick={handlePrevMonth} 
-              disabled={disablePast && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth()}
-              className={`p-1.5 rounded-full transition-all ${disablePast && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth() ? 'opacity-30 cursor-not-allowed text-slate-400' : 'hover:bg-slate-100 text-[#6b1d33] active:scale-95'}`}
+              disabled={isPrevMonthDisabled}
+              className={`p-1.5 rounded-full transition-all ${isPrevMonthDisabled ? 'opacity-30 cursor-not-allowed text-slate-400 pointer-events-none' : 'hover:bg-slate-100 text-[#6b1d33] active:scale-95'}`}
               title="Mes anterior"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -286,8 +310,8 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             <button 
               type="button" 
               onClick={handleNextMonth} 
-              disabled={disableFuture && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth()}
-              className={`p-1.5 rounded-full transition-all ${disableFuture && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth() ? 'opacity-30 cursor-not-allowed text-slate-400' : 'hover:bg-slate-100 text-[#6b1d33] active:scale-95'}`}
+              disabled={isNextMonthDisabled}
+              className={`p-1.5 rounded-full transition-all ${isNextMonthDisabled ? 'opacity-30 cursor-not-allowed text-slate-400 pointer-events-none' : 'hover:bg-slate-100 text-[#6b1d33] active:scale-95'}`}
               title="Mes siguiente"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -358,20 +382,35 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             >
               {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - 80 + i).map(year => {
                 const isSelected = year === currentMonth.getFullYear();
+                const isYearAfterMax = !!effectiveMaxDate && year > effectiveMaxDate.getFullYear();
+                const isYearBeforeMin = !!effectiveMinDate && year < effectiveMinDate.getFullYear();
+                const isYearDisabled = isYearAfterMax || isYearBeforeMin;
                 return (
                   <button
                     key={year}
                     type="button"
+                    disabled={isYearDisabled}
                     onClick={(e) => {
                       e.stopPropagation();
-                      const newDate = new Date(year, currentMonth.getMonth(), 1);
+                      if (isYearDisabled) return;
+                      let targetMonth = currentMonth.getMonth();
+                      if (effectiveMaxDate && year === effectiveMaxDate.getFullYear() && targetMonth > effectiveMaxDate.getMonth()) {
+                        targetMonth = effectiveMaxDate.getMonth();
+                      }
+                      if (effectiveMinDate && year === effectiveMinDate.getFullYear() && targetMonth < effectiveMinDate.getMonth()) {
+                        targetMonth = effectiveMinDate.getMonth();
+                      }
+                      const newDate = new Date(year, targetMonth, 1);
                       setCurrentMonth(newDate);
                       setView(mode === 'month' ? 'months' : 'days');
                     }}
+                    style={isYearDisabled ? { opacity: 0.3, cursor: 'not-allowed', pointerEvents: 'none', textDecoration: 'line-through' } : undefined}
                     className={`py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
-                      isSelected 
-                        ? 'selected-year bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
-                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                      isYearDisabled
+                        ? 'opacity-30 cursor-not-allowed text-slate-400 line-through pointer-events-none'
+                        : isSelected 
+                          ? 'selected-year bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     {year}

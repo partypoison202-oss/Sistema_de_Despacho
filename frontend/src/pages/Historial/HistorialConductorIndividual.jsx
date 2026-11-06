@@ -18,14 +18,21 @@ export default function HistorialConductorIndividual() {
   const [isConductorSelectorOpen, setIsConductorSelectorOpen] = useState(false);
   const conductorDropdownRef = useRef(null);
 
+  const formatLocalYMD = (d = new Date()) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   // Rango de fechas por defecto: últimos 30 días
   const [desde, setDesde] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return d.toISOString().split('T')[0];
+    return formatLocalYMD(d);
   });
   const [hasta, setHasta] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+    return formatLocalYMD(new Date());
   });
 
   const [filtroTipoEvento, setFiltroTipoEvento] = useState('TODOS');
@@ -101,7 +108,7 @@ export default function HistorialConductorIndividual() {
   // Presets de rangos de fecha rápidos
   const aplicarRangoRapido = (tipo) => {
     const hoy = new Date();
-    const hoyStr = hoy.toISOString().split('T')[0];
+    const hoyStr = formatLocalYMD(hoy);
 
     if (tipo === 'HOY') {
       setDesde(hoyStr);
@@ -109,25 +116,25 @@ export default function HistorialConductorIndividual() {
     } else if (tipo === '7_DIAS') {
       const d = new Date();
       d.setDate(d.getDate() - 7);
-      setDesde(d.toISOString().split('T')[0]);
+      setDesde(formatLocalYMD(d));
       setHasta(hoyStr);
     } else if (tipo === '30_DIAS') {
       const d = new Date();
       d.setDate(d.getDate() - 30);
-      setDesde(d.toISOString().split('T')[0]);
+      setDesde(formatLocalYMD(d));
       setHasta(hoyStr);
     } else if (tipo === 'ESTE_MES') {
       const d = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-      setDesde(d.toISOString().split('T')[0]);
+      setDesde(formatLocalYMD(d));
       setHasta(hoyStr);
     } else if (tipo === 'MES_ANTERIOR') {
       const inicioMesAnt = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
       const finMesAnt = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
-      setDesde(inicioMesAnt.toISOString().split('T')[0]);
-      setHasta(finMesAnt.toISOString().split('T')[0]);
+      setDesde(formatLocalYMD(inicioMesAnt));
+      setHasta(formatLocalYMD(finMesAnt));
     } else if (tipo === 'ANIO_ACTUAL') {
       const inicioAnio = new Date(hoy.getFullYear(), 0, 1);
-      setDesde(inicioAnio.toISOString().split('T')[0]);
+      setDesde(formatLocalYMD(inicioAnio));
       setHasta(hoyStr);
     }
   };
@@ -579,7 +586,20 @@ export default function HistorialConductorIndividual() {
                 <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.03em' }}>
                   Desde:
                 </span>
-                <AppleDatePicker value={desde} onChange={setDesde} disableFuture={false} />
+                <AppleDatePicker
+                  value={desde}
+                  onChange={(val) => {
+                    if (!val) return;
+                    const hoyMax = formatLocalYMD(new Date());
+                    const nuevoDesde = val > hoyMax ? hoyMax : val;
+                    setDesde(nuevoDesde);
+                    if (nuevoDesde > hasta) {
+                      setHasta(nuevoDesde);
+                    }
+                  }}
+                  disableFuture={true}
+                  maxDate={formatLocalYMD(new Date())}
+                />
               </div>
 
               <div>
@@ -788,7 +808,7 @@ export default function HistorialConductorIndividual() {
               minWidth: '180px'
             }}>
               <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
-                Tasa de Asistencia ({resumenIndividual?.dias_totales || 0} Días)
+                Tasa de Asistencia ({resumenIndividual?.dias_totales || historialIndividualData?.rango?.dias_totales || 0} Días)
               </span>
               <div style={{
                 fontSize: '1.6rem',
