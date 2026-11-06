@@ -3,12 +3,22 @@ import { AuthContext } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import UserAvatar from '../../components/UserAvatar/UserAvatar';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './Usuarios.css';
 import API_BASE from '../../config/api';
 import * as XLSX from 'xlsx-js-style';
 
 export default function Usuarios() {
   const { token, user: currentUser, setUser } = useContext(AuthContext);
+
+  // Prueba de la pantalla de carga institucional (botón visible solo para Enrique_Hernandez)
+  const [pruebaCargaVisible, setPruebaCargaVisible] = useState(false);
+  const esUsuarioPruebaCarga =
+    String(currentUser?.usuario || '').trim().toLowerCase() === 'enrique_hernandez' ||
+    currentUser?.nombre_completo === 'Enrique Hernandez Hernandez';
+  const esAdministradorActual =
+    String(currentUser?.role?.codigo || '').toUpperCase().trim() === 'ADMINISTRADOR' ||
+    String(currentUser?.role?.nombre || '').toUpperCase().trim() === 'ADMINISTRADOR';
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -943,6 +953,17 @@ export default function Usuarios() {
           </div>
 
           <div className="usuarios-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+            {esUsuarioPruebaCarga && (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setPruebaCargaVisible(true)}
+                style={{ backgroundColor: '#6b1d33', color: '#fff' }}
+                title="Probar la pantalla de carga institucional"
+              >
+                Cargando...
+              </button>
+            )}
             {currentUser && ['Jeanet García Chávez', 'Israel Moreno Gómez', 'Enrique Hernandez Hernandez'].includes(currentUser.nombre_completo) && (
               <button
                 className="btn-primary"
@@ -1491,6 +1512,12 @@ export default function Usuarios() {
           </div>
         </div>
       )}
+
+      <PantallaCargaAcotma
+        visible={pruebaCargaVisible}
+        mostrarFinalizar={esAdministradorActual}
+        onFinalizar={() => setPruebaCargaVisible(false)}
+      />
     </div>
   );
 }

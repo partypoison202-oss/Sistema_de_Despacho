@@ -1,0 +1,127 @@
+/* Pantalla de carga institucional ACOTMA - versión blanca traslúcida */
+.pantalla-carga-acotma {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: pantallaCargaFadeIn 0.3s ease;
+  user-select: none;
+}
+
+.pantalla-carga-acotma__pista {
+  position: relative;
+  width: 340px;
+  max-width: 90vw;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pantalla-carga-acotma__bus {
+  width: 140px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 16px rgba(107, 29, 51, 0.35));
+  animation: pantallaCargaTransito 2.2s infinite ease-in-out;
+  will-change: transform, opacity;
+}
+
+.pantalla-carga-acotma__textos {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 1rem;
+}
+
+.pantalla-carga-acotma__mensaje {
+  color: #6b1d33;
+  font-weight: 900;
+  font-size: 1.25rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.pantalla-carga-acotma__subtitulo {
+  margin-top: 0.4rem;
+  color: #c5a059;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.pantalla-carga-acotma__leyenda {
+  margin-top: 0.15rem;
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+}
+
+.pantalla-carga-acotma__finalizar {
+  margin-top: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.4rem;
+  border: none;
+  border-radius: 0.75rem;
+  background-color: #6b1d33;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(107, 29, 51, 0.3);
+  transition: background-color 0.2s ease, transform 0.15s ease;
+  animation: pantallaCargaFadeIn 0.4s ease;
+}
+
+.pantalla-carga-acotma__finalizar:hover {
+  background-color: #8d2846;
+  transform: translateY(-1px);
+}
+
+.pantalla-carga-acotma__finalizar:active {
+  transform: translateY(0);
+}
+
+@keyframes pantallaCargaTransito {
+  0% {
+    transform: translateX(-180px) scale(0.96);
+    opacity: 0;
+  }
+  20% {
+    transform: translateX(-60px) scale(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translateX(60px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(180px) scale(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes pantallaCargaFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pantalla-carga-acotma__bus {
+    animation: none;
+  }
+}
+

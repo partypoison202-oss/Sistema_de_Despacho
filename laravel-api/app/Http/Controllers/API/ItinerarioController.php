@@ -73,61 +73,72 @@ class ItinerarioController extends Controller
             $fechas[] = $date->format('Y-m-d');
         }
 
-        // Mapeo de asistencias de Despacho (historial_operativo e informacion_operativa)
+        // Mapeo de asistencias de Despacho (historial_operativo, programacion_inicial e informacion_operativa)
         $historialMap = [];      // [tarjetonKey][YYYY-MM-DD] = true
         $nombreMap = [];         // [nombreNormalizado][YYYY-MM-DD] = true
         $nombreTokensMap = [];   // [nombreTokens][YYYY-MM-DD] = true
+        $hoy = Carbon::today('America/Mexico_City')->format('Y-m-d');
+        $horaActual = Carbon::now('America/Mexico_City')->format('H:i');
 
+        // Helper para registrar coincidencias de un conductor en una fecha
+        $registrarAsistenciaMapeo = function ($tarjeton, $nombre, $fecha) use (&$historialMap, &$nombreMap, &$nombreTokensMap) {
+            if (!empty($tarjeton)) {
+                $candidatos = PlataformaController::obtenerCandidatosTarjeton($tarjeton);
+                foreach ($candidatos as $cand) {
+                    $historialMap[$cand][$fecha] = true;
+                }
+                $tNum = (string)(int)preg_replace('/\D/', '', (string)$tarjeton);
+                if ($tNum !== '0') {
+                    $historialMap[$tNum][$fecha] = true;
+                }
+            }
+            if (!empty($nombre)) {
+                $nNorm = $this->normalizarNombre($nombre);
+                $nTokens = $this->normalizarNombreTokens($nombre);
+                if ($nNorm) {
+                    $nombreMap[$nNorm][$fecha] = true;
+                }
+                if ($nTokens) {
+                    $nombreTokensMap[$nTokens][$fecha] = true;
+                }
+            }
+        };
+
+        // 1. Historial Operativo (asistencias de días pasados y presentes)
         try {
-            $registrosHistorial = DB::table('historial_operativo')
-                ->whereBetween('fecha_historial', [$desde->toDateString(), $hasta->toDateString()])
-                ->select(['fecha_historial', 'numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor'])
-                ->get();
+            if (Schema::hasTable('historial_operativo')) {
+                $colsHist = array_flip(Schema::getColumnListing('historial_operativo'));
+                $queryCols = ['fecha_historial', 'numero_tarjeton', 'nombre_conductor'];
+                if (isset($colsHist['relevo_tarjeton'])) $queryCols[] = 'relevo_tarjeton';
+                if (isset($colsHist['relevo_conductor'])) $queryCols[] = 'relevo_conductor';
+                if (isset($colsHist['relevo_hora'])) $queryCols[] = 'relevo_hora';
 
-            foreach ($registrosHistorial as $h) {
-                $fecha = $h->fecha_historial;
+                $registrosHistorial = DB::table('historial_operativo')
+                    ->whereBetween('fecha_historial', [$desde->toDateString(), $hasta->toDateString()])
+                    ->select($queryCols)
+                    ->get();
 
-                if (!empty($h->numero_tarjeton)) {
-                    $candidatos = PlataformaController::obtenerCandidatosTarjeton($h->numero_tarjeton);
-                    foreach ($candidatos as $cand) {
-                        $historialMap[$cand][$fecha] = true;
-                    }
-                    $tNum = (string)(int)preg_replace('/\D/', '', (string)$h->numero_tarjeton);
-                    if ($tNum !== '0') {
-                        $historialMap[$tNum][$fecha] = true;
-                    }
-                }
+                foreach ($registrosHistorial as $h) {
+                    $fecha = $h->fecha_historial;
 
-                if (!empty($h->nombre_conductor)) {
-                    $nNorm = $this->normalizarNombre($h->nombre_conductor);
-                    $nTokens = $this->normalizarNombreTokens($h->nombre_conductor);
-                    if ($nNorm) {
-                        $nombreMap[$nNorm][$fecha] = true;
-                    }
-                    if ($nTokens) {
-                        $nombreTokensMap[$nTokens][$fecha] = true;
-                    }
-                }
+                    // Conductor titular
+                    $registrarAsistenciaMapeo($h->numero_tarjeton ?? null, $h->nombre_conductor ?? null, $fecha);
 
-                if (!empty($h->relevo_tarjeton)) {
-                    $candidatosRel = PlataformaController::obtenerCandidatosTarjeton($h->relevo_tarjeton);
-                    foreach ($candidatosRel as $candRel) {
-                        $historialMap[$candRel][$fecha] = true;
-                    }
-                    $tNumRel = (string)(int)preg_replace('/\D/', '', (string)$h->relevo_tarjeton);
-                    if ($tNumRel !== '0') {
-                        $historialMap[$tNumRel][$fecha] = true;
-                    }
-                }
+                    // Relevo:
+                    // En días pasados (< hoy): si estuvo asignado en el historial, ya operó su turno
+                    // En el día de hoy (== hoy): aplica la regla de horario (horaActual >= relevo_hora)
+                    $relTarj = $h->relevo_tarjeton ?? null;
+                    $relNom = $h->relevo_conductor ?? null;
+                    $relHora = trim((string)($h->relevo_hora ?? ''));
 
-                if (!empty($h->relevo_conductor)) {
-                    $nNormRel = $this->normalizarNombre($h->relevo_conductor);
-                    $nTokensRel = $this->normalizarNombreTokens($h->relevo_conductor);
-                    if ($nNormRel) {
-                        $nombreMap[$nNormRel][$fecha] = true;
-                    }
-                    if ($nTokensRel) {
-                        $nombreTokensMap[$nTokensRel][$fecha] = true;
+                    if (!empty($relTarj) || !empty($relNom)) {
+                        if ($fecha < $hoy) {
+                            $registrarAsistenciaMapeo($relTarj, $relNom, $fecha);
+                        } elseif ($fecha === $hoy) {
+                            if (empty($relHora) || $horaActual >= $relHora) {
+                                $registrarAsistenciaMapeo($relTarj, $relNom, $fecha);
+                            }
+                        }
                     }
                 }
             }
@@ -135,59 +146,75 @@ class ItinerarioController extends Controller
             \Log::error('Error consultando historial_operativo en Itinerario: ' . $e->getMessage());
         }
 
-        $hoy = Carbon::today()->format('Y-m-d');
+        // 2. Programación Inicial (respaldo esencial para días pasados o aperturas que no generaron fila en historial)
+        try {
+            if (Schema::hasTable('programacion_inicial')) {
+                $colsProg = array_flip(Schema::getColumnListing('programacion_inicial'));
+                $queryColsProg = ['fecha', 'numero_tarjeton', 'nombre_conductor'];
+                if (isset($colsProg['relevo_tarjeton'])) $queryColsProg[] = 'relevo_tarjeton';
+                if (isset($colsProg['relevo_conductor'])) $queryColsProg[] = 'relevo_conductor';
+                if (isset($colsProg['relevo_hora'])) $queryColsProg[] = 'relevo_hora';
 
-        // Si hoy cae en el rango, sincronizar asistencias activas e incluir informacion_operativa
+                $registrosProg = DB::table('programacion_inicial')
+                    ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])
+                    ->select($queryColsProg)
+                    ->get();
+
+                foreach ($registrosProg as $p) {
+                    $fechaP = $p->fecha;
+
+                    // Conductor titular
+                    $registrarAsistenciaMapeo($p->numero_tarjeton ?? null, $p->nombre_conductor ?? null, $fechaP);
+
+                    // Relevo
+                    $relTarjP = $p->relevo_tarjeton ?? null;
+                    $relNomP = $p->relevo_conductor ?? null;
+                    $relHoraP = trim((string)($p->relevo_hora ?? ''));
+
+                    if (!empty($relTarjP) || !empty($relNomP)) {
+                        if ($fechaP < $hoy) {
+                            $registrarAsistenciaMapeo($relTarjP, $relNomP, $fechaP);
+                        } elseif ($fechaP === $hoy) {
+                            if (empty($relHoraP) || $horaActual >= $relHoraP) {
+                                $registrarAsistenciaMapeo($relTarjP, $relNomP, $fechaP);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Error consultando programacion_inicial en Itinerario: ' . $e->getMessage());
+        }
+
+        // 3. Información Operativa de HOY (en tiempo real)
         if ($hoy >= $desde->toDateString() && $hoy <= $hasta->toDateString()) {
             try {
                 DespachoController::sincronizarAsistenciasHoy();
 
-                $hoyOps = DB::table('informacion_operativa')
-                    ->select(['numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor', 'hora_real_salida_patio', 'estatus'])
-                    ->get();
+                if (Schema::hasTable('informacion_operativa')) {
+                    $colsInfo = array_flip(Schema::getColumnListing('informacion_operativa'));
+                    $queryColsInfo = ['numero_tarjeton', 'nombre_conductor', 'hora_real_salida_patio', 'estatus'];
+                    if (isset($colsInfo['relevo_tarjeton'])) $queryColsInfo[] = 'relevo_tarjeton';
+                    if (isset($colsInfo['relevo_conductor'])) $queryColsInfo[] = 'relevo_conductor';
+                    if (isset($colsInfo['relevo_hora'])) $queryColsInfo[] = 'relevo_hora';
 
-                foreach ($hoyOps as $op) {
-                    if (!empty($op->numero_tarjeton)) {
-                        $candidatos = PlataformaController::obtenerCandidatosTarjeton($op->numero_tarjeton);
-                        foreach ($candidatos as $cand) {
-                            $historialMap[$cand][$hoy] = true;
-                        }
-                        $tNum = (string)(int)preg_replace('/\D/', '', (string)$op->numero_tarjeton);
-                        if ($tNum !== '0') {
-                            $historialMap[$tNum][$hoy] = true;
-                        }
-                    }
+                    $hoyOps = DB::table('informacion_operativa')
+                        ->select($queryColsInfo)
+                        ->get();
 
-                    if (!empty($op->nombre_conductor)) {
-                        $nNorm = $this->normalizarNombre($op->nombre_conductor);
-                        $nTokens = $this->normalizarNombreTokens($op->nombre_conductor);
-                        if ($nNorm) {
-                            $nombreMap[$nNorm][$hoy] = true;
-                        }
-                        if ($nTokens) {
-                            $nombreTokensMap[$nTokens][$hoy] = true;
-                        }
-                    }
+                    foreach ($hoyOps as $op) {
+                        // Conductor titular de hoy
+                        $registrarAsistenciaMapeo($op->numero_tarjeton ?? null, $op->nombre_conductor ?? null, $hoy);
 
-                    if (!empty($op->relevo_tarjeton)) {
-                        $candidatosRel = PlataformaController::obtenerCandidatosTarjeton($op->relevo_tarjeton);
-                        foreach ($candidatosRel as $candRel) {
-                            $historialMap[$candRel][$hoy] = true;
-                        }
-                        $tNumRel = (string)(int)preg_replace('/\D/', '', (string)$op->relevo_tarjeton);
-                        if ($tNumRel !== '0') {
-                            $historialMap[$tNumRel][$hoy] = true;
-                        }
-                    }
+                        // Relevo de hoy: asistencia activa si ya llegó su hora programada de relevo
+                        $relTarj = $op->relevo_tarjeton ?? null;
+                        $relNom = $op->relevo_conductor ?? null;
+                        $relHora = trim((string)($op->relevo_hora ?? ''));
 
-                    if (!empty($op->relevo_conductor)) {
-                        $nNormRel = $this->normalizarNombre($op->relevo_conductor);
-                        $nTokensRel = $this->normalizarNombreTokens($op->relevo_conductor);
-                        if ($nNormRel) {
-                            $nombreMap[$nNormRel][$hoy] = true;
-                        }
-                        if ($nTokensRel) {
-                            $nombreTokensMap[$nTokensRel][$hoy] = true;
+                        if (!empty($relTarj) || !empty($relNom)) {
+                            if (empty($relHora) || $horaActual >= $relHora) {
+                                $registrarAsistenciaMapeo($relTarj, $relNom, $hoy);
+                            }
                         }
                     }
                 }
