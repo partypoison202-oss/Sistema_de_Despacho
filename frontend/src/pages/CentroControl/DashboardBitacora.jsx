@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
 import { formatAccion } from '../../utils/historialHelper';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import './DashboardBitacora.css';
 import Swal from 'sweetalert2';
 
@@ -186,9 +187,8 @@ export default function DashboardBitacora() {
 
         <section className="dashboard-bitacora-content">
           {cargando ? (
-            <div className="bitacora-loading">
-              <div className="spinner"></div>
-              <p>Cargando registros...</p>
+            <div className="bitacora-loading flex items-center justify-center p-8 min-h-[300px]">
+              <LoaderBusAcotma />
             </div>
           ) : registros.length > 0 ? (
             <div className="bitacora-table-wrapper">

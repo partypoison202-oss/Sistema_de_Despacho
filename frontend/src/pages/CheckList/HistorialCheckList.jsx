@@ -12,6 +12,7 @@ import API_BASE from '../../config/api';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import HistorialSearchBar from '../Historial/HistorialSearchBar';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 
 
 // ── Íconos ────────────────────────────────────────────────────────────────────
@@ -623,7 +624,9 @@ export default function HistorialCheckList() {
                     </div>
 
                     {cargando ? (
-                        <div className="p-10 text-center text-gray-500">Cargando registros...</div>
+                        <div className="p-8 text-center bg-white rounded-xl border border-slate-200 flex items-center justify-center min-h-[300px]">
+                            <LoaderBusAcotma />
+                        </div>
                     ) : totalChecklists > 0 ? (
                         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                             <table className="w-full text-left text-sm border-collapse">

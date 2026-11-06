@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import LoaderBusAcotma from './LoaderBusAcotma';
 import './PantallaCargaAcotma.css';
+
+export { LoaderBusAcotma };
 
 /**
  * Pantalla de carga institucional ACOTMA (versión blanca traslúcida).
@@ -9,13 +12,19 @@ import './PantallaCargaAcotma.css';
  * Props:
  *  - visible: boolean -> muestra u oculta la pantalla.
  *  - mensaje: string -> texto principal (por defecto "Cargando...").
+ *  - subtitulo: string -> subtítulo secundario.
+ *  - avisoLento: string -> mensaje si la conexión se demora.
  *  - mostrarFinalizar: boolean -> muestra el botón "Finalizar" (solo administradores).
  *  - onFinalizar: function -> acción al presionar "Finalizar".
  */
 export default function PantallaCargaAcotma({
   visible = false,
-  mensaje = 'Cargando...',
+  mensaje = null,
+  subtitulo = null,
+  avisoLento = null,
   mostrarFinalizar = false,
+  debajoHeader = false,
+  soloBus = false,
   onFinalizar,
 }) {
   // Bloquear el scroll del fondo y atajos de escape mientras la pantalla está activa
@@ -41,7 +50,12 @@ export default function PantallaCargaAcotma({
   if (!visible) return null;
 
   return createPortal(
-    <div className="pantalla-carga-acotma" role="status" aria-live="polite" aria-busy="true">
+    <div
+      className={`pantalla-carga-acotma ${debajoHeader ? 'pantalla-carga-acotma--debajo-header' : ''}`}
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       <div className="pantalla-carga-acotma__pista">
         <img
           src="/images/acotma_logo_solo.png"
@@ -51,15 +65,29 @@ export default function PantallaCargaAcotma({
         />
       </div>
 
-      <div className="pantalla-carga-acotma__textos">
-        <div className="pantalla-carga-acotma__mensaje">{mensaje}</div>
-        <div className="pantalla-carga-acotma__subtitulo">
-          APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO
+      {(!soloBus && (mensaje || subtitulo)) ? (
+        <div className="pantalla-carga-acotma__textos">
+          {mensaje && <div className="pantalla-carga-acotma__mensaje">{mensaje}</div>}
+          {subtitulo && <div className="pantalla-carga-acotma__subtitulo">{subtitulo}</div>}
+          <div className="pantalla-carga-acotma__leyenda">
+            Sistema de Transporte Metropolitano
+          </div>
+
+          {avisoLento && (
+            <div className="pantalla-carga-acotma__aviso-lento">
+              <span className="pantalla-carga-acotma__punto-aviso"></span>
+              {avisoLento}
+            </div>
+          )}
         </div>
-        <div className="pantalla-carga-acotma__leyenda">
-          Sistema de Transporte Metropolitano
+      ) : avisoLento ? (
+        <div className="pantalla-carga-acotma__textos">
+          <div className="pantalla-carga-acotma__aviso-lento">
+            <span className="pantalla-carga-acotma__punto-aviso"></span>
+            {avisoLento}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {mostrarFinalizar && (
         <button

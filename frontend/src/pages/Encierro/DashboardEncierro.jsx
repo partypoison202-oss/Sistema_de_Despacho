@@ -9,6 +9,7 @@ import API_BASE from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import { descargarReportesGeneralesConAlerta } from '../../utils/reporteGeneralUtils';
 
 export default function DashboardEncierro() {
@@ -39,8 +40,8 @@ export default function DashboardEncierro() {
   const { data: conteos = {}, isLoading: cargando } = useQuery({
     queryKey: ['conteo-unidades-encierro-global'],
     queryFn: fetchConteos,
-    staleTime: 0,        // Siempre datos frescos al cargar el dashboard
-    refetchInterval: 5000, // Refrescar cada 5s para que los cambios en Despacho se reflejen rápido
+    staleTime: 5000,
+    refetchInterval: 5000,
   });
 
   const normalizarNumeroEco = (eco) => {
@@ -169,6 +170,12 @@ export default function DashboardEncierro() {
 
   return (
     <>
+      <PantallaCargaAcotma
+        visible={cargando}
+        debajoHeader={true}
+        mensaje="Cargando encierro de unidades..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
       <div className="dashboard">
         <Header />
         <main className="dashboard__main">

@@ -13,6 +13,8 @@ import ModalReservaT6 from './ModalReservaT6';
 import ModalCambioUnidad from './ModalCambioUnidad';
 import ModalComparativaAlimentadoras from './ModalComparativaAlimentadoras';
 import ModalCiclos from './ModalCiclos';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
 import { getFechaActualLocal } from '../../utils/itinerarioUtils';
@@ -1973,11 +1975,16 @@ export default function CargaExcel({ isPasteles = false }) {
           </div>
         </div>
 
-        {cargandoTabla && previewData.length === 0 ? (
-          <div className="excel-card-table-loading" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-            <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '3rem', height: '3rem', marginBottom: '1rem', display: 'inline-block' }}></span>
-            <h3 style={{ color: '#4b5563', margin: 0 }}>Cargando programación diaria...</h3>
-            <p style={{ color: '#9ca3af', marginTop: '0.5rem' }}>Obteniendo los registros de hoy</p>
+        <PantallaCargaAcotma
+          visible={Boolean(cargandoTabla && previewData.length === 0)}
+          debajoHeader={true}
+          mensaje="Cargando programación operativa..."
+          subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+        />
+
+        {cargandoTabla ? (
+          <div className="excel-card-table-loading bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex items-center justify-center min-h-[360px]">
+            <LoaderBusAcotma />
           </div>
         ) : (
           <ExcelPreview

@@ -247,7 +247,15 @@
 .sum-val-i { font-weight: bold; color: #1e40af; background-color: #eff6ff !important; }
 .sum-val-f { font-weight: bold; color: #991b1b; background-color: #fef2f2 !important; }
 
-.itinerario-loading, .no-results {
+.itinerario-loading {
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.no-results {
   padding: 3rem;
   text-align: center;
   color: #6b7280;

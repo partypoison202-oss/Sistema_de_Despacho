@@ -5,6 +5,7 @@ import GlobalClock from './components/GlobalClock/GlobalClock';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { lazy, Suspense } from 'react';
+import PantallaCargaAcotma from './components/PantallaCarga/PantallaCargaAcotma';
 
 function RealtimeSyncManager() {
   // Sincronización / versionado en tiempo real desactivado para evitar sobrecarga y problemas de despliegue
@@ -81,28 +82,13 @@ const DashboardMesaControl   = lazy(() => lazyRetry(() => import('./pages/Mesade
 const DetalleUnidadMesaControl = lazy(() => lazyRetry(() => import('./pages/MesadeControl/DetalleUnidadMesaControl')));
 const ControlCombustible     = lazy(() => lazyRetry(() => import('./pages/Combustible/ControlCombustible')));
 
-// ── Spinner de carga mientras se descarga el chunk de la ruta ─────────────────
+// ── Pantalla de carga institucional ACOTMA mientras se descarga el chunk de la ruta ───
 function PageLoader() {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      background: '#0b162c',
-      flexDirection: 'column',
-      gap: '1rem'
-    }}>
-      <div style={{
-        width: '40px',
-        height: '40px',
-        border: '4px solid rgba(106,27,51,0.3)',
-        borderTopColor: '#6A1B33',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite'
-      }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+    <PantallaCargaAcotma
+      visible={true}
+      soloBus={true}
+    />
   );
 }
 

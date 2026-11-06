@@ -4,7 +4,18 @@ import Swal from 'sweetalert2';
 import PantallaCargaAcotma from '../components/PantallaCarga/PantallaCargaAcotma';
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const AuthContext = createContext();
+export const AuthContext = createContext({
+  user: null,
+  token: null,
+  logout: () => {},
+  login: () => {},
+  loading: false,
+  setUser: () => {},
+  canEditModulo: () => false,
+  pantallaCargaActiva: false,
+  activarPantallaCarga: () => {},
+  finalizarPantallaCarga: () => {},
+});
 
 // ── Mapa: código de módulo → ruta frontend ────────────────────────────────
 export const MODULO_RUTAS = {
@@ -284,6 +295,7 @@ export const AuthProvider = ({ children }) => {
       {children}
       <PantallaCargaAcotma
         visible={Boolean(token && pantallaCargaActiva)}
+        debajoHeader={true}
         mostrarFinalizar={esAdministradorActual}
         onFinalizar={() => cambiarEstadoPantallaCarga(false)}
       />

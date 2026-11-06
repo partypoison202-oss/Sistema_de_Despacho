@@ -3,6 +3,7 @@ import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ROUTES, getPositionOnRoute, getRouteEndpoints } from './config/patioRoutes';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './PatioDashboard.css';
 
 // --- Cálculo de rumbo entre dos puntos {top,left} en % ---------------------
@@ -805,12 +806,12 @@ const PatioDashboard = () => {
             onMouseMove={handleUserActivity}
             onTouchStart={handleUserActivity}
           >
-            {loading && (
-              <div className="map-loading-overlay">
-                <span className="light-spinner" />
-                <p>Cargando información del patio...</p>
-              </div>
-            )}
+            <PantallaCargaAcotma
+              visible={loading}
+              debajoHeader={true}
+              mensaje="Cargando información del patio..."
+              subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+            />
 
             <div className="floating-fleet-tabs">
               {fleets.map((f) => (

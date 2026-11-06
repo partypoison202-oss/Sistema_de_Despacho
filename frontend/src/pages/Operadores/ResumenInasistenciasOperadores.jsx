@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import API_BASE from '../../config/api';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 
 export default function ResumenInasistenciasOperadores({ getAuthHeaders }) {
   const [mesSeleccionado, setMesSeleccionado] = useState(() => {
@@ -129,9 +130,8 @@ export default function ResumenInasistenciasOperadores({ getAuthHeaders }) {
       {/* TABLA DE RESUMEN Y DÍAS */}
       <div className="overflow-x-auto border border-slate-300 rounded-xl shadow-inner max-h-[600px] overflow-y-auto">
         {loading ? (
-          <div className="p-12 text-center text-slate-400 font-bold text-xs">
-            <div className="w-8 h-8 border-3 border-[#6b1d33] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            Cargando matriz de inasistencias...
+          <div className="p-8 flex items-center justify-center">
+            <LoaderBusAcotma />
           </div>
         ) : (
           <table className="w-full border-collapse text-[11px] text-slate-800 select-none">

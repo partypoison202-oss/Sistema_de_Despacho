@@ -10,6 +10,7 @@ import { generarPDFHistorialConductor } from '../../utils/generarPDFHistorialCon
 import { formatearFechaDiaMesAnio } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import { DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import './Historial.css';
 
 export default function HistorialConductorIndividual() {
@@ -1020,9 +1021,8 @@ export default function HistorialConductorIndividual() {
 
         {/* Tabla Detallada vs Calendario */}
         {isLoadingHistorial ? (
-          <div className="historial-loading">
-            <div className="spinner"></div>
-            <p>Cargando expediente e historial del conductor...</p>
+          <div className="historial-loading flex items-center justify-center p-8 min-h-[320px]">
+            <LoaderBusAcotma />
           </div>
         ) : modoVisualizacion === 'LISTA' ? (
           <div className="historial-table-container">

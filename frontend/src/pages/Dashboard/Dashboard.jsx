@@ -9,6 +9,7 @@ import { descargarReportesGeneralesConAlerta, descargarProgramacionOperativaDesp
 import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import API_BASE from '../../config/api';
 
 export default function Dashboard() {
@@ -195,6 +196,12 @@ export default function Dashboard() {
 
   return (
     <>
+      <PantallaCargaAcotma
+        visible={cargando}
+        debajoHeader={true}
+        mensaje="Cargando despacho de unidades..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
       <div className="dashboard">
         <Header />
         <main className="dashboard__main">

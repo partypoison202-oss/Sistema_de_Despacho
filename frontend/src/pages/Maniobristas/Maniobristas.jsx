@@ -4,6 +4,8 @@ import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
 import API_BASE from '../../config/api';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './Maniobristas.css';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
@@ -462,10 +464,16 @@ export default function Operadores() {
           </div>
         </div>
 
+        <PantallaCargaAcotma
+          visible={Boolean(loading && (!maniobristas || maniobristas.length === 0))}
+          debajoHeader={true}
+          mensaje="Cargando lista de maniobristas..."
+          subtitulo="SITMAH - ACOTMA"
+        />
+
         {loading ? (
-          <div className="maniobristas-loading">
-            <span className="spinner"></span>
-            <p>Cargando lista de maniobristas...</p>
+          <div className="maniobristas-table-card flex items-center justify-center p-8 min-h-[300px]">
+            <LoaderBusAcotma />
           </div>
         ) : (
           <div className="maniobristas-table-card">

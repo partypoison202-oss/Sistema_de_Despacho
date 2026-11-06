@@ -8,6 +8,7 @@ import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import ModalMonitoreoConductores from './ModalMonitoreoConductores';
 import ModalProgramacionApertura from './ModalProgramacionApertura';
 
@@ -121,7 +122,14 @@ export default function DashboardMesaControl() {
   });
 
   return (
-    <div className="mantenimiento"> {/* Usamos la misma clase que Mantenimiento para heredar estilos */}
+    <>
+      <PantallaCargaAcotma
+        visible={cargando}
+        debajoHeader={true}
+        mensaje="Cargando mesa de control..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
+      <div className="mantenimiento"> {/* Usamos la misma clase que Mantenimiento para heredar estilos */}
       <Header />
       <main className="mantenimiento__main">
         <p className="page-eyebrow">MONITOREO Y GESTIÓN</p>
@@ -240,5 +248,6 @@ export default function DashboardMesaControl() {
         }}
       />
     </div>
+    </>
   );
 }

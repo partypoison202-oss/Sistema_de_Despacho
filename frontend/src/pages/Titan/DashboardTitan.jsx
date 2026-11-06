@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import API_BASE from '../../config/api';
 import '../CentroControl/CentroControl.css';
 import './Titan.css';
@@ -223,6 +224,12 @@ const DashboardTitan = () => {
 
   return (
     <div className="centro-control-container" onClick={() => setExpandedModel(null)}>
+      <PantallaCargaAcotma
+        visible={cargando}
+        debajoHeader={true}
+        mensaje="Cargando unidades Titán..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
       <Header title="TITÁN - Unidades en Operación" />
 
       <main className="dashboard__main" style={{ textAlign: 'center' }}>

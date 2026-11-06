@@ -1,0 +1,99 @@
+/* Animación del autobús transitando de izquierda a derecha en tablas y módulos */
+@keyframes busTransitoRuta {
+  0% {
+    transform: translateX(-140px) scale(0.96);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(-50px) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(50px) scale(1);
+  }
+  100% {
+    transform: translateX(140px) scale(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes busFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loader-bus-acotma {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  width: 100%;
+  text-align: center;
+  user-select: none;
+  animation: busFadeIn 0.3s ease;
+}
+
+.loader-bus-acotma--compacto {
+  padding: 1.25rem 0.75rem;
+}
+
+.loader-bus-acotma__pista {
+  position: relative;
+  width: 320px;
+  max-width: 90%;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.loader-bus-acotma--compacto .loader-bus-acotma__pista {
+  width: 240px;
+  height: 70px;
+}
+
+.loader-bus-acotma__bus {
+  width: 125px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(107, 29, 51, 0.28));
+  animation: busTransitoRuta 2.2s infinite ease-in-out;
+  will-change: transform, opacity;
+}
+
+.loader-bus-acotma--compacto .loader-bus-acotma__bus {
+  width: 90px;
+}
+
+.loader-bus-acotma__mensaje {
+  margin-top: 0.6rem;
+  color: #6b1d33;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.loader-bus-acotma--compacto .loader-bus-acotma__mensaje {
+  font-size: 0.88rem;
+  letter-spacing: 0.08em;
+}
+
+.loader-bus-acotma__subtitulo {
+  margin-top: 0.3rem;
+  color: #c5a059;
+  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+

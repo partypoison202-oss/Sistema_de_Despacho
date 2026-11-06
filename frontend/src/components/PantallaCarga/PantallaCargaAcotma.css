@@ -1,8 +1,8 @@
-/* Pantalla de carga institucional ACOTMA - versión blanca traslúcida */
+/* Pantalla de carga institucional ACOTMA - versión traslúcida con blur oficial */
 .pantalla-carga-acotma {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: 999;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -10,8 +10,34 @@
   background-color: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  animation: pantallaCargaFadeIn 0.3s ease;
+  animation: pantallaCargaFadeIn 0.25s ease;
   user-select: none;
+}
+
+/* Cuando se despliega dentro de un módulo respetando la barra superior guinda */
+.pantalla-carga-acotma--debajo-header {
+  top: 80px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+@media (max-width: 768px) {
+  .pantalla-carga-acotma--debajo-header {
+    top: 70px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pantalla-carga-acotma--debajo-header {
+    top: 60px;
+  }
+}
+
+@media (max-width: 400px) {
+  .pantalla-carga-acotma--debajo-header {
+    top: 58px;
+  }
 }
 
 .pantalla-carga-acotma__pista {
@@ -60,11 +86,41 @@
 }
 
 .pantalla-carga-acotma__leyenda {
-  margin-top: 0.15rem;
-  color: #94a3b8;
-  font-weight: 500;
-  font-size: 0.75rem;
-  letter-spacing: 0.03em;
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.pantalla-carga-acotma__aviso-lento {
+  margin-top: 1rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  background-color: rgba(254, 243, 199, 0.8);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 0.8rem;
+  color: #92400e;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  animation: pantallaCargaFadeIn 0.4s ease;
+}
+
+.pantalla-carga-acotma__punto-aviso {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  display: inline-block;
+  animation: pantallaCargaPunto 1.4s infinite ease-in-out;
+}
+
+@keyframes pantallaCargaPunto {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 .pantalla-carga-acotma__finalizar {

@@ -1,6 +1,7 @@
 import { useContext, useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext, getDefaultRoute } from '../context/AuthContext';
+import PantallaCargaAcotma from './PantallaCarga/PantallaCargaAcotma';
 
 export const ROLE_DEFAULT_MODULES = {
   DESPACHO: ['despacho', 'historial'],
@@ -23,7 +24,7 @@ export const ROLE_DEFAULT_MODULES = {
 };
 
 export default function ProtectedRoute({ children, allowedRoles, allowedModules }) {
-  const { user, token, loading } = useContext(AuthContext);
+  const { user = null, token = null, loading = false } = useContext(AuthContext) || {};
   const location = useLocation();
   const [showSlowWarning, setShowSlowWarning] = useState(false);
 
@@ -41,23 +42,15 @@ export default function ProtectedRoute({ children, allowedRoles, allowedModules 
 
   if (loading) {
     return (
-      <div className="page-loader-container">
-        <div className="page-loader-spinner"></div>
-        <div className="page-loader-text">Cargando...</div>
-        {showSlowWarning && (
-          <div style={{
-            marginTop: '1.5rem',
-            fontSize: '0.85rem',
-            color: '#9ca3af',
-            textAlign: 'center',
-            maxWidth: '280px',
-            lineHeight: '1.4',
-            animation: 'fadeInUp 0.5s ease'
-          }}>
-            La conexión está lenta.<br/>Se está intentando procesar, por favor espera...
-          </div>
-        )}
-      </div>
+      <PantallaCargaAcotma
+        visible={true}
+        soloBus={true}
+        avisoLento={
+          showSlowWarning
+            ? 'La conexión está lenta. Se está intentando procesar, por favor espera...'
+            : null
+        }
+      />
     );
   }
 

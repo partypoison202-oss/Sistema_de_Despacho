@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 import UnitSelector from './components/UnitSelector';
@@ -1352,6 +1353,12 @@ export default function DetalleUnidadMantenimiento() {
 
   return (
     <div className="layout-container">
+      <PantallaCargaAcotma
+        visible={cargandoUnidades && unidadesList.length === 0}
+        debajoHeader={true}
+        mensaje={isInspeccion ? `Cargando unidades ${configActual?.title || ''}...` : `Cargando mantenimiento ${configActual?.title || ''}...`}
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
       <Header
         title={selectedOption || 'Seleccione Unidad'}
         eyebrow={isInspeccion 

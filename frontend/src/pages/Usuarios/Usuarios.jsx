@@ -3,6 +3,8 @@ import { AuthContext } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import UserAvatar from '../../components/UserAvatar/UserAvatar';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './Usuarios.css';
 import API_BASE from '../../config/api';
 import * as XLSX from 'xlsx-js-style';
@@ -979,21 +981,16 @@ export default function Usuarios() {
           </div>
         </div>
 
+        <PantallaCargaAcotma
+          visible={Boolean(loading && (!usuarios || usuarios.length === 0))}
+          debajoHeader={true}
+          mensaje="Cargando datos de usuarios..."
+          subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+        />
+
         {loading ? (
-          <div className="loading-state">
-            <span
-              className="spinner"
-              style={{
-                borderColor: 'rgba(96, 26, 42, 0.2)',
-                borderTopColor: 'var(--color-maroon)',
-                width: '3rem',
-                height: '3rem',
-                borderWidth: '4px',
-              }}
-            ></span>
-            <p style={{ marginTop: '1rem', color: '#666', fontWeight: 'bold' }}>
-              Cargando datos de usuarios...
-            </p>
+          <div className="loading-state flex items-center justify-center p-8 min-h-[320px]">
+            <LoaderBusAcotma />
           </div>
         ) : (
           <div className="table-responsive">

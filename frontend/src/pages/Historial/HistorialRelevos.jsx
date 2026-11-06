@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import './Historial.css';
 
 export default function HistorialRelevos() {
@@ -298,10 +299,8 @@ export default function HistorialRelevos() {
         />
 
         {cargando ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
-            <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
-            <h3 style={{ color: '#4b5563', margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>Cargando historial de relevos...</h3>
-            <p style={{ color: '#9ca3af', marginTop: '0.5rem', fontSize: '0.85rem' }}>Consultando base de datos de la operación</p>
+          <div className="historial-loading flex items-center justify-center p-8 min-h-[320px]">
+            <LoaderBusAcotma />
           </div>
         ) : activeTab === 'tabla' ? (
           <div>

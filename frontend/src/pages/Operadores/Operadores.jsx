@@ -13,6 +13,8 @@ import EstadisticasOperadores from './EstadisticasOperadores';
 import GestionFaltasOperadores from './GestionFaltasOperadores';
 import ItinerarioAsistencias from './ItinerarioAsistencias';
 import ModalAsignarFechas from './ModalAsignarFechas';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 
 
 // Helper para comprimir imágenes antes de enviarlas al servidor (evita errores 413 de Nginx y optimiza memoria)
@@ -376,7 +378,7 @@ const mostrarAlertaErrorConductores = (err) => {
 };
 
 export default function Operadores() {
-  const { user } = useContext(AuthContext);
+  const { user = null } = useContext(AuthContext) || {};
   const [modalFaltasOpen, setModalFaltasOpen] = useState(false);
   const [selectedConductorForFalta, setSelectedConductorForFalta] = useState('');
   const [selectedEstadoForAsignar, setSelectedEstadoForAsignar] = useState('falta');
@@ -1358,10 +1360,16 @@ export default function Operadores() {
           </div>
         )}
 
+        <PantallaCargaAcotma
+          visible={Boolean(loading && conductores.length === 0)}
+          debajoHeader={true}
+          mensaje="Cargando lista de T6..."
+          subtitulo="GESTIÓN DE PERSONAS CONDUCTORAS"
+        />
+
         {(loading && conductores.length === 0 && activeTab !== 'itinerario') ? (
-          <div className="operadores-loading">
-            <span className="spinner"></span>
-            <p>Cargando lista de T6...</p>
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex items-center justify-center min-h-[340px]">
+            <LoaderBusAcotma />
           </div>
         ) : activeTab === 'catalogo' ? (
           <div>

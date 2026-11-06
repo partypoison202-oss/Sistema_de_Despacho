@@ -6,6 +6,7 @@ import TransportCard from '../../components/TransportCard';
 import { generarPDFPendientesMantenimiento } from '../../utils/generarPDFPendientesMantenimiento';
 import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
 import { transportModules } from '../../config/transportModules';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './Mantenimiento.css';
 import '../CentroControl/CentroControl.css';
 import Swal from 'sweetalert2';
@@ -330,6 +331,12 @@ export default function Mantenimiento() {
 
   return (
     <>
+      <PantallaCargaAcotma
+        visible={cargando}
+        debajoHeader={true}
+        mensaje={isInspeccion ? "Cargando control de combustible..." : "Cargando mantenimiento vehicular..."}
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
       <div className="mantenimiento">
         <Header />
         <main className="mantenimiento__main">

@@ -9,7 +9,7 @@ import Swal from 'sweetalert2';
 import './Header.css';
 
 export default function Header({ title, eyebrow, hideLogos, hideBackButton = false, hasUnsavedChanges = false, onSaveAndExit = null }) {
-  const { user, logout } = useContext(AuthContext);
+  const { user = null, logout = () => {} } = useContext(AuthContext) || {};
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showAjustes, setShowAjustes] = useState(false);
   const [showGestionRutas, setShowGestionRutas] = useState(false);

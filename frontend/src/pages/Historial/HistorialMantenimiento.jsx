@@ -8,6 +8,7 @@ import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto, interpretarCambioMantenimiento, parseDetallesModificacion, formatearFechaDiaMesAnio } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import './Historial.css';
 
 export default function HistorialMantenimiento() {
@@ -1346,10 +1347,8 @@ export default function HistorialMantenimiento() {
         )}
 
         {cargando ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
-            <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
-            <h3 style={{ color: '#4b5563', margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>Cargando información...</h3>
-            <p style={{ color: '#9ca3af', marginTop: '0.5rem', fontSize: '0.85rem' }}>Buscando registros en la base de datos</p>
+          <div className="historial-loading flex items-center justify-center p-8 min-h-[320px]">
+            <LoaderBusAcotma />
           </div>
         ) : activeTab === 'cambios' ? (
           <div className="table-responsive">
