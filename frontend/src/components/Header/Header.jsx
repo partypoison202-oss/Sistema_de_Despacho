@@ -166,9 +166,9 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
               {showProfileMenu && (
                 <div className="app-header__profile-menu">
                   <div className="profile-info">
-                    <span className="profile-name">{user.nombre_completo}</span>
-                    <span className="profile-username">@{user.usuario}</span>
-                    <span className="profile-role">{user.role.nombre}</span>
+                    <span className="profile-name">{user?.nombre_completo || user?.usuario}</span>
+                    <span className="profile-username">@{user?.usuario}</span>
+                    <span className="profile-role">{user?.role?.nombre || 'Usuario'}</span>
                   </div>
                   <hr />
                   <button className="profile-menu-btn" onClick={() => {
@@ -185,7 +185,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   }}>
                     Ajustes
                   </button>
-                  {user.role.codigo === 'ADMINISTRADOR' && (
+                  {user?.role?.codigo === 'ADMINISTRADOR' && (
                     <button className="profile-menu-btn" onClick={() => {
                       setShowProfileMenu(false);
                       setShowGestionRutas(true);
@@ -193,7 +193,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                       Gestión de Rutas
                     </button>
                   )}
-                  {((user.modulos && user.modulos.some(m => (typeof m === 'object' ? m.modulo_codigo : m) === 'operadores')) || user.role.codigo === 'ADMINISTRADOR') && (
+                  {((user?.modulos && user.modulos.some(m => (typeof m === 'object' ? m.modulo_codigo : m) === 'operadores')) || user?.role?.codigo === 'ADMINISTRADOR') && (
                     <button className="profile-menu-btn" onClick={() => {
                       handleConfirmExit(() => {
                         setShowProfileMenu(false);
@@ -203,7 +203,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                       Gestión de T6
                     </button>
                   )}
-                  {((user.modulos && user.modulos.some(m => (typeof m === 'object' ? m.modulo_codigo : m) === 'maniobristas')) || user.role.codigo === 'ADMINISTRADOR') && (
+                  {((user?.modulos && user.modulos.some(m => (typeof m === 'object' ? m.modulo_codigo : m) === 'maniobristas')) || user?.role?.codigo === 'ADMINISTRADOR') && (
                     <button className="profile-menu-btn" onClick={() => {
                       handleConfirmExit(() => {
                         setShowProfileMenu(false);
@@ -213,7 +213,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                       Gestión de Maniobristas
                     </button>
                   )}
-                  {user.role.codigo === 'ADMINISTRADOR' && (
+                  {user?.role?.codigo === 'ADMINISTRADOR' && (
                     <button className="profile-menu-btn" onClick={() => {
                       handleConfirmExit(() => {
                         setShowProfileMenu(false);

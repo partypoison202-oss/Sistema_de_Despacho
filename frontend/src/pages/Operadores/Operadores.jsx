@@ -385,6 +385,7 @@ export default function Operadores() {
   const [busquedaFaltas, setBusquedaFaltas] = useState('');
   const [conductores, setConductores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [moduloInicializado, setModuloInicializado] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterEstadoServicio, setFilterEstadoServicio] = useState('');
@@ -716,6 +717,7 @@ export default function Operadores() {
     } finally {
       if (fetchAbortControllerRef.current === controller && !silent) {
         setLoading(false);
+        setModuloInicializado(true);
       }
     }
   };
@@ -1361,7 +1363,7 @@ export default function Operadores() {
         )}
 
         <PantallaCargaAcotma
-          visible={Boolean(loading && conductores.length === 0)}
+          visible={Boolean(!moduloInicializado && loading && conductores.length === 0)}
           debajoHeader={true}
           mensaje="Cargando lista de T6..."
           subtitulo="GESTIÓN DE PERSONAS CONDUCTORAS"

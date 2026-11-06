@@ -227,6 +227,8 @@ export default function CargaExcel({ isPasteles = false }) {
     return Array.isArray(datos) ? datos : [];
   };
 
+  const [moduloInicializado, setModuloInicializado] = useState(false);
+
   const { data: serverData, isLoading: cargandoTabla, refetch: refetchData } = useQuery({
     queryKey: ['despacho-datos', tabActiva],
     queryFn: fetchDatos,
@@ -234,6 +236,12 @@ export default function CargaExcel({ isPasteles = false }) {
     refetchInterval: false, // Prevención de sobreescritura de tabla por Polling (15s)
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    if (!cargandoTabla && serverData) {
+      setModuloInicializado(true);
+    }
+  }, [cargandoTabla, serverData]);
 
 
   // Snapshot de lo que está en el servidor al cargar (por ECONOMICO). Permite guardar solo las unidades
@@ -1976,7 +1984,7 @@ export default function CargaExcel({ isPasteles = false }) {
         </div>
 
         <PantallaCargaAcotma
-          visible={Boolean(cargandoTabla && previewData.length === 0)}
+          visible={Boolean(!moduloInicializado && cargandoTabla && previewData.length === 0)}
           debajoHeader={true}
           mensaje="Cargando programación operativa..."
           subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"

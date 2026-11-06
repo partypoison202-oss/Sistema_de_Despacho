@@ -175,6 +175,7 @@ export default function Operadores() {
   const { user } = useContext(AuthContext);
   const [maniobristas, setManiobristas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [moduloInicializado, setModuloInicializado] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterEstadoServicio, setFilterEstadoServicio] = useState('');
@@ -235,6 +236,7 @@ export default function Operadores() {
       });
     } finally {
       setLoading(false);
+      setModuloInicializado(true);
     }
   };
 
@@ -465,7 +467,7 @@ export default function Operadores() {
         </div>
 
         <PantallaCargaAcotma
-          visible={Boolean(loading && (!maniobristas || maniobristas.length === 0))}
+          visible={Boolean(!moduloInicializado && loading && (!maniobristas || maniobristas.length === 0))}
           debajoHeader={true}
           mensaje="Cargando lista de maniobristas..."
           subtitulo="SITMAH - ACOTMA"

@@ -19,6 +19,7 @@ export default function Usuarios() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [moduloInicializado, setModuloInicializado] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterActivity, setFilterActivity] = useState('TODOS'); // 'TODOS' | 'EN_LINEA' | 'SIN_CONEXION'
 
@@ -114,15 +115,23 @@ export default function Usuarios() {
         fetch(`${API_BASE}/api/users/roles`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
+      if (usersRes.status === 401 || rolesRes.status === 401) {
+        window.dispatchEvent(new CustomEvent('auth:session_expired'));
+        return;
+      }
+
       const usersData = await usersRes.json();
       const rolesData = await rolesRes.json();
 
-      setUsers(usersData);
-      setRoles(rolesData);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+      setRoles(Array.isArray(rolesData) ? rolesData : []);
     } catch (_err) {
       console.error('Error fetching data:', _err);
+      setUsers([]);
+      setRoles([]);
     } finally {
       setLoading(false);
+      setModuloInicializado(true);
     }
   };
 
@@ -811,8 +820,9 @@ export default function Usuarios() {
   const userActivityCounts = useMemo(() => {
     let enLinea = 0;
     let sinConexion = 0;
+    const list = Array.isArray(users) ? users : [];
 
-    users.forEach((u) => {
+    list.forEach((u) => {
       const isOnline = Boolean(u.is_online);
       const hasActivity = isOnline || (u.last_seen && u.last_seen_text && u.last_seen_text !== 'Desconectado' && u.last_seen_text !== 'Sin conexión');
 
@@ -821,7 +831,7 @@ export default function Usuarios() {
     });
 
     return {
-      todos: users.length,
+      todos: list.length,
       enLinea,
       sinConexion,
     };
@@ -829,13 +839,14 @@ export default function Usuarios() {
 
   // Filtrado y ordenamiento de usuarios
   const filteredUsers = useMemo(() => {
-    return users
+    const list = Array.isArray(users) ? users : [];
+    return list
       .filter((user) => {
         // 1. Filtro por texto de búsqueda
         const term = searchTerm.toLowerCase();
         const matchesSearch =
           (user.nombre_completo || user.usuario || '').toLowerCase().includes(term) ||
-          user.usuario.toLowerCase().includes(term) ||
+          (user.usuario || '').toLowerCase().includes(term) ||
           (user.role?.nombre || '').toLowerCase().includes(term);
 
         if (!matchesSearch) return false;
@@ -982,7 +993,7 @@ export default function Usuarios() {
         </div>
 
         <PantallaCargaAcotma
-          visible={Boolean(loading && (!users || users.length === 0))}
+          visible={Boolean(!moduloInicializado && loading && (!users || users.length === 0))}
           debajoHeader={true}
           mensaje="Cargando datos de usuarios..."
           subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
