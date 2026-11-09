@@ -276,9 +276,12 @@ echo -e "\n${BLUE}🐘 3. Instalando dependencias de Laravel (Composer)...${NC}"
 cd laravel-api
 "$COMPOSER_BIN" install --no-interaction --prefer-dist --optimize-autoloader
 
-# Paso 4: Limpieza y optimización de caché de Laravel
+# Paso 4: Limpieza y optimización de caché de Laravel (sin borrar la tabla cache de PostgreSQL)
 echo -e "\n${BLUE}🧹 4. Limpiando y optimizando caché de Laravel...${NC}"
-"$PHP_BIN" artisan optimize:clear
+"$PHP_BIN" artisan config:clear
+"$PHP_BIN" artisan route:clear
+"$PHP_BIN" artisan view:clear
+"$PHP_BIN" artisan event:clear
 
 # Paso 5: Asignación de permisos en storage y bootstrap/cache ANTES de ejecutar artisan
 # NOTA CRÍTICA ROCKY LINUX 9: Se usa '2>/dev/null || true' porque bajo 'set -e', si algún archivo en storage
