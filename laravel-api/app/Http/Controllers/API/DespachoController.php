@@ -361,7 +361,11 @@ class DespachoController extends Controller
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
-            ->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), $tiposBusqueda)
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->whereIn(
+                DB::raw("LOWER(COALESCE(NULLIF(TRIM(informacion_operativa.tipo), ''), NULLIF(TRIM(unidades.tipo), ''), transportes.nombre))"),
+                $tiposBusqueda
+            )
             ->select(
                 'unidades.id as unidad_id',
                 'unidades.numero_eco',
@@ -2511,7 +2515,21 @@ class DespachoController extends Controller
             return;
         }
 
+        // Si ya existen unidades operativas/reserva inicializadas con la fecha de hoy,
+        // el día operativo actual ya está activo (evita reinicios a mitad del día tras limpiar caché o hacer deploy).
+        $diaYaInicializado = DB::table('informacion_operativa')
+            ->whereNotIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
+            ->whereNotNull('fecha_registro')
+            ->whereDate('fecha_registro', $hoy)
+            ->exists();
+
+        if ($diaYaInicializado) {
+            Cache::put('cambio_dia_operativo_ejecutado_'.$hoy, true, 300);
+            return;
+        }
+
         $esDiaAnterior = DB::table('informacion_operativa')
+            ->whereNotIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
             ->whereNotNull('fecha_registro')
             ->whereDate('fecha_registro', '<', $hoy)
             ->exists();
@@ -5615,6 +5633,7 @@ class DespachoController extends Controller
             $updateData['ciclo'] = null;
             if ($nuevoEstatus !== 'mantenimiento' && $nuevoEstatus !== 'percance') {
                 $updateData['falla'] = null;
+                $updateData['fecha_registro'] = Carbon::now('America/Mexico_City')->toDateString();
             } elseif (empty($updateData['falla'])) {
                 $updateData['falla'] = $motivoEstatus ?: strtoupper($nuevoEstatus);
             }
@@ -8283,6 +8302,7 @@ class DespachoController extends Controller
                     } else {
                         $insertData[] = [
                             'unidad_id' => $unidadId,
+                            'tipo' => !empty($tipoUnidadDB) ? $tipoUnidadDB : null,
                             'estatus' => 'reserva',
                             'patio_norte' => $patioNorteVal,
                             'itinerario' => $itinerarioVal,
@@ -8375,8 +8395,10 @@ class DespachoController extends Controller
                             'itinerario'                => 'false',
                         ];
                     } else {
+                        $tipoFallback = !empty($u->tipo) ? strtoupper(trim($u->tipo)) : null;
                         $insertData[] = [
                             'unidad_id'   => $u->id,
+                            'tipo'        => $tipoFallback,
                             'estatus'     => 'reserva',
                             'patio_norte' => 'false',
                             'itinerario'  => 'false',
