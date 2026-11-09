@@ -469,8 +469,8 @@ export default function Operadores() {
         <PantallaCargaAcotma
           visible={Boolean(!moduloInicializado && loading && (!maniobristas || maniobristas.length === 0))}
           debajoHeader={true}
-          mensaje="Cargando lista de maniobristas..."
-          subtitulo="SITMAH - ACOTMA"
+          mensaje="Cargando Gestión de maniobristas..."
+          subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
         />
 
         {loading ? (

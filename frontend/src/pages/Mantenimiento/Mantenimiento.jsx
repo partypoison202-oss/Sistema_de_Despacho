@@ -334,7 +334,7 @@ export default function Mantenimiento() {
       <PantallaCargaAcotma
         visible={cargando}
         debajoHeader={true}
-        mensaje={isInspeccion ? "Cargando control de combustible..." : "Cargando mantenimiento vehicular..."}
+        mensaje={isInspeccion ? "Cargando Control de combustible..." : "Cargando Mantenimiento parque vehicular..."}
         subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
       />
       <div className="mantenimiento">

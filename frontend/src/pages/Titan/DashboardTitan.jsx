@@ -227,7 +227,7 @@ const DashboardTitan = () => {
       <PantallaCargaAcotma
         visible={cargando}
         debajoHeader={true}
-        mensaje="Cargando unidades Titán..."
+        mensaje="Cargando Inspección de operación..."
         subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
       />
       <Header title="TITÁN - Unidades en Operación" />

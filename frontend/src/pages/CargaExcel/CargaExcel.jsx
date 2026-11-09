@@ -1986,7 +1986,13 @@ export default function CargaExcel({ isPasteles = false }) {
         <PantallaCargaAcotma
           visible={Boolean(!moduloInicializado && cargandoTabla && previewData.length === 0)}
           debajoHeader={true}
-          mensaje="Cargando programación operativa..."
+          mensaje={
+            isPasteles
+              ? 'Cargando Programación y Logística (Pasteles)...'
+              : isRelevos
+                ? 'Cargando Relevos de T6...'
+                : 'Cargando Programación y Logística...'
+          }
           subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
         />
 

@@ -995,7 +995,7 @@ export default function Usuarios() {
         <PantallaCargaAcotma
           visible={Boolean(!moduloInicializado && loading && (!users || users.length === 0))}
           debajoHeader={true}
-          mensaje="Cargando datos de usuarios..."
+          mensaje="Cargando Gestión de usuarios..."
           subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
         />
 

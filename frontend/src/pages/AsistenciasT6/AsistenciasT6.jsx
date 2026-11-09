@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
+import PantallaCargaAcotma, { LoaderBusAcotma } from '../../components/PantallaCarga/PantallaCargaAcotma';
 import API_BASE from '../../config/api';
 import '../Operadores/Operadores.css'; // Reutilizamos los estilos del módulo de operadores
 import '../CentroControl/CentroControl.css'; // Importamos para los estilos del header (centro-welcome, page-title, etc)
@@ -10,6 +11,7 @@ import GestionFaltasOperadores from '../Operadores/GestionFaltasOperadores';
 export default function AsistenciasT6() {
   const [conductores, setConductores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [moduloInicializado, setModuloInicializado] = useState(false);
   const navigate = useNavigate();
 
   const fechaActual = new Date().toLocaleDateString('es-ES', {
@@ -59,7 +61,10 @@ export default function AsistenciasT6() {
         });
       }
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent) {
+        setLoading(false);
+        setModuloInicializado(true);
+      }
     }
   };
 
@@ -71,6 +76,14 @@ export default function AsistenciasT6() {
   return (
     <div className="asistencias-t6-page bg-gray-50 min-h-screen">
       <Header title="Asistencias de T6" eyebrow="Gestión de Personal" />
+
+      <PantallaCargaAcotma
+        visible={Boolean(!moduloInicializado && loading && conductores.length === 0)}
+        debajoHeader={true}
+        mensaje="Cargando Asistencias de T6..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
+
       <main className="max-w-[1400px] mx-auto px-4 py-8">
         
         {/* Titulo y descripción enfocados a RH (Estilo Centro de Control) */}
@@ -85,9 +98,8 @@ export default function AsistenciasT6() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col justify-center items-center h-64 bg-white rounded-2xl shadow-sm border border-gray-200">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6b1d33]"></div>
-            <p className="mt-4 text-gray-600 font-medium">Cargando padrón de conductores...</p>
+          <div className="flex flex-col justify-center items-center h-64 bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <LoaderBusAcotma />
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{ minHeight: '600px' }}>

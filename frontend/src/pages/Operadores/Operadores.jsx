@@ -1365,8 +1365,8 @@ export default function Operadores() {
         <PantallaCargaAcotma
           visible={Boolean(!moduloInicializado && loading && conductores.length === 0)}
           debajoHeader={true}
-          mensaje="Cargando lista de T6..."
-          subtitulo="GESTIÓN DE PERSONAS CONDUCTORAS"
+          mensaje="Cargando Control de personas conductoras..."
+          subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
         />
 
         {(loading && conductores.length === 0 && activeTab !== 'itinerario') ? (
