@@ -30,18 +30,53 @@ class BitacoraConductorHelper
                     $table->timestamps();
                 });
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error al asegurar tabla bitacora_conductores: ' . $e->getMessage());
         }
     }
 
     /**
      * Registra una acción de gestión de conductores en la bitácora.
+     * Soporta ambas firmas:
+     * 1) registrarAccion($conductorObj, $tipoAccion, $detalles, $request = null)
+     * 2) registrarAccion($conductorId, $tarjeton, $nombreConductor, $tipoAccion, $detalles, $request = null)
      */
-    public static function registrarAccion($conductorId, $tarjeton, $nombreConductor, $tipoAccion, $detalles, $request = null)
-    {
+    public static function registrarAccion(
+        $conductorId,
+        $tarjeton = null,
+        $nombreConductor = null,
+        $tipoAccion = null,
+        $detalles = null,
+        $request = null
+    ) {
         try {
             self::ensureTableExists();
+
+            // Compatibilidad si el 1er parámetro es un objeto (modelo Conductor o stdClass)
+            if (is_object($conductorId)) {
+                $conductorObj = $conductorId;
+                $objId = $conductorObj->id ?? null;
+                $objTarjeton = $conductorObj->tarjeton ?? null;
+                $objNombre = trim(($conductorObj->nombres ?? '') . ' ' . ($conductorObj->apellidos ?? ''))
+                    ?: ($conductorObj->nombre_conductor ?? $conductorObj->nombre ?? null);
+
+                // Si se pasaron hasta 4 argumentos (ej: ($conductor, $tipoAccion, $detalles, $request))
+                if (func_num_args() <= 4) {
+                    $tipoAccion = $tarjeton; // 2do argumento
+                    $detalles = $nombreConductor; // 3er argumento
+                    $reqArg = func_num_args() >= 4 ? func_get_arg(3) : null;
+                    if ($reqArg && ($reqArg instanceof \Illuminate\Http\Request || is_object($reqArg))) {
+                        $request = $reqArg;
+                    }
+                    $conductorId = $objId;
+                    $tarjeton = $objTarjeton;
+                    $nombreConductor = $objNombre;
+                } else {
+                    $conductorId = $objId;
+                    if (empty($tarjeton)) $tarjeton = $objTarjeton;
+                    if (empty($nombreConductor)) $nombreConductor = $objNombre;
+                }
+            }
 
             $usuarioId = null;
             $usuarioNombre = 'Sistema';
@@ -61,13 +96,13 @@ class BitacoraConductorHelper
                 'nombre_conductor' => $nombreConductor ? (string)$nombreConductor : null,
                 'usuario_id'       => $usuarioId,
                 'usuario_nombre'   => $usuarioNombre,
-                'tipo_accion'      => $tipoAccion,
+                'tipo_accion'      => (string)($tipoAccion ?? 'ACCION'),
                 'detalles'         => $detalles,
                 'fecha'            => Carbon::today()->toDateString(),
                 'created_at'       => Carbon::now(),
                 'updated_at'       => Carbon::now(),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error al registrar en bitacora_conductores: ' . $e->getMessage());
         }
     }

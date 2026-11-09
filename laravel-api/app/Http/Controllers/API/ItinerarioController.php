@@ -617,14 +617,20 @@ class ItinerarioController extends Controller
                 ? $desde->toDateString()
                 : "{$desde->toDateString()} al {$hasta->toDateString()}";
             BitacoraConductorHelper::registrarAccion(
-                $conductor,
+                $conductor->id,
+                $conductor->tarjeton,
+                trim("{$conductor->nombres} {$conductor->apellidos}"),
                 'PERMUTA',
-                "Permuta (DP - Descanso) asignada con {$conductor2->tarjeton} - {$conductor2->nombres} {$conductor2->apellidos} ({$rangoTexto})" . ($motivoBase ? ". Motivo: {$motivoBase}" : '')
+                "Permuta (DP - Descanso) asignada con {$conductor2->tarjeton} - {$conductor2->nombres} {$conductor2->apellidos} ({$rangoTexto})" . ($motivoBase ? ". Motivo: {$motivoBase}" : ''),
+                $request
             );
             BitacoraConductorHelper::registrarAccion(
-                $conductor2,
+                $conductor2->id,
+                $conductor2->tarjeton,
+                trim("{$conductor2->nombres} {$conductor2->apellidos}"),
                 'PERMUTA',
-                "Permuta (AP - Asistencia) asignada con {$conductor->tarjeton} - {$conductor->nombres} {$conductor->apellidos} ({$rangoTexto})" . ($motivoBase ? ". Motivo: {$motivoBase}" : '')
+                "Permuta (AP - Asistencia) asignada con {$conductor->tarjeton} - {$conductor->nombres} {$conductor->apellidos} ({$rangoTexto})" . ($motivoBase ? ". Motivo: {$motivoBase}" : ''),
+                $request
             );
 
             return response()->json([
@@ -730,9 +736,12 @@ class ItinerarioController extends Controller
                         ? $desde->toDateString()
                         : "{$desde->toDateString()} al {$hasta->toDateString()}";
                     BitacoraConductorHelper::registrarAccion(
-                        $conductor,
+                        $conductor->id,
+                        $conductor->tarjeton,
+                        trim("{$conductor->nombres} {$conductor->apellidos}"),
                         'ASISTENCIA',
-                        "Asistencia asignada ({$rangoTexto}). Motivo: {$motivo}"
+                        "Asistencia asignada ({$rangoTexto}). Motivo: {$motivo}",
+                        $request
                     );
 
                     $totalProcesados++;
@@ -879,9 +888,12 @@ class ItinerarioController extends Controller
                         ? $desde->toDateString()
                         : "{$desde->toDateString()} al {$hasta->toDateString()}";
                     BitacoraConductorHelper::registrarAccion(
-                        $conductor,
+                        $conductor->id,
+                        $conductor->tarjeton,
+                        trim("{$conductor->nombres} {$conductor->apellidos}"),
                         $tipoBitacora,
-                        ucfirst($estado) . " registrado ({$rangoTexto}). Motivo: {$motivo}"
+                        ucfirst($estado) . " registrado ({$rangoTexto}). Motivo: {$motivo}",
+                        $request
                     );
 
                     $totalProcesados++;
