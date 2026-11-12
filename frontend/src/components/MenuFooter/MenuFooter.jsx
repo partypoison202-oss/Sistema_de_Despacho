@@ -8,7 +8,7 @@ export default function MenuFooter() {
         {/* Lado Izquierdo: Copyright */}
         <div className="menu-footer__left">
           <p className="menu-footer__copyright">
-            Copyrights &copy; 2026 Todos los derechos reservados por STM.
+            &copy; 2026 STM. Todos los derechos reservados.
           </p>
         </div>
 

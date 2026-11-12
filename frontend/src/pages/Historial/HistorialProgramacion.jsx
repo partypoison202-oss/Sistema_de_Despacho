@@ -9,6 +9,7 @@ import { formatearFechaDiaMesAnio, getValoresTransicion, formatAccion, getAccion
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import { compareRutas } from '../../utils/rutaUtils';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import './Historial.css';
 
 export default function HistorialProgramacion({ isPastelesOnly = false }) {
@@ -426,10 +427,8 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
         </div>
 
         {cargando ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
-            <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
-            <h3 style={{ color: '#4b5563', margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>Cargando programación...</h3>
-            <p style={{ color: '#9ca3af', marginTop: '0.5rem', fontSize: '0.85rem' }}>Buscando información logística en la base de datos</p>
+          <div className="historial-loading flex items-center justify-center p-8 min-h-[320px]">
+            <LoaderBusAcotma />
           </div>
         ) : activeTab === 'cambios' ? (
           <div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
+import PantallaCargaAcotma from '../PantallaCarga/PantallaCargaAcotma';
 import '../../pages/Menu/Menu.css';
 import API_BASE from '../../config/api';
 
@@ -48,7 +49,14 @@ export default function FleetSelection() {
   }, [navigate]);
 
   return (
-    <div className="dashboard-page">
+    <>
+      <PantallaCargaAcotma
+        visible={cargando}
+        debajoHeader={true}
+        mensaje="Cargando flota de unidades..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
+      <div className="dashboard-page">
       <Header hideBackButton={false} />
       
       <main className="dashboard-main">
@@ -105,5 +113,6 @@ export default function FleetSelection() {
         </div>
       </main>
     </div>
+    </>
   );
 }

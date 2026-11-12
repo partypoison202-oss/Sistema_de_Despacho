@@ -7,6 +7,7 @@ import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto, formatearFechaDiaMesAnio, getValoresTransicion } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import './Historial.css';
 
 export default function HistorialMesaControl() {
@@ -353,9 +354,8 @@ export default function HistorialMesaControl() {
 
         {/* CONTENIDO SEGÚN PESTAÑA */}
         {cargando ? (
-          <div style={{ textAlign: 'center', padding: '3rem 0', color: '#64748b' }}>
-            <div className="spinner" style={{ margin: '0 auto 1rem auto' }}></div>
-            Cargando historial de Mesa de Control...
+          <div className="historial-loading flex items-center justify-center p-8 min-h-[320px]">
+            <LoaderBusAcotma />
           </div>
         ) : activeTab === 'cambios' ? (
           cambiosFiltrados.length > 0 ? (

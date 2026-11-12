@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import UnitSelector from './componentsdetalleunidad/UnitSelector';
 import RutaSelector from '../../components/RutaSelector/RutaSelectorUnified';
@@ -1358,6 +1359,12 @@ export default function DetalleUnidad() {
 
   return (
     <div className="layout-container">
+      <PantallaCargaAcotma
+        visible={cargandoUnidades && unidadesList.length === 0}
+        debajoHeader={true}
+        mensaje={`Cargando unidades ${configActual?.title || ''}...`}
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
       <Header
         title={selectedOption || 'Seleccione Unidad'}
         eyebrow={`${configActual.title} / Detalle de Unidad`}

@@ -3,20 +3,24 @@ import { AuthContext } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import UserAvatar from '../../components/UserAvatar/UserAvatar';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './Usuarios.css';
 import API_BASE from '../../config/api';
-import * as XLSX from 'xlsx-js-style';
 
 export default function Usuarios() {
   const { token, user: currentUser, setUser, activarPantallaCarga } = useContext(AuthContext);
 
-  // Prueba de la pantalla de carga institucional (botón visible solo para Enrique_Hernandez)
+  // Prueba de la pantalla de carga institucional (botón visible para Enrique_Hernandez y Luis_Vargas)
   const esUsuarioPruebaCarga =
     String(currentUser?.usuario || '').trim().toLowerCase() === 'enrique_hernandez' ||
-    currentUser?.nombre_completo === 'Enrique Hernandez Hernandez';
+    String(currentUser?.usuario || '').trim().toLowerCase() === 'luis_vargas' ||
+    currentUser?.nombre_completo === 'Enrique Hernandez Hernandez' ||
+    currentUser?.nombre_completo === 'Luis Ángel Vargas Gutiérrez';
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [moduloInicializado, setModuloInicializado] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterActivity, setFilterActivity] = useState('TODOS'); // 'TODOS' | 'EN_LINEA' | 'SIN_CONEXION'
 
@@ -112,15 +116,23 @@ export default function Usuarios() {
         fetch(`${API_BASE}/api/users/roles`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
+      if (usersRes.status === 401 || rolesRes.status === 401) {
+        window.dispatchEvent(new CustomEvent('auth:session_expired'));
+        return;
+      }
+
       const usersData = await usersRes.json();
       const rolesData = await rolesRes.json();
 
-      setUsers(usersData);
-      setRoles(rolesData);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+      setRoles(Array.isArray(rolesData) ? rolesData : []);
     } catch (_err) {
       console.error('Error fetching data:', _err);
+      setUsers([]);
+      setRoles([]);
     } finally {
       setLoading(false);
+      setModuloInicializado(true);
     }
   };
 
@@ -506,7 +518,10 @@ export default function Usuarios() {
     }
   };
 
-  const downloadAdminUsersCSV = () => {
+  const downloadAdminUsersCSV = async () => {
+    const xlsxMod = await import('xlsx-js-style');
+    const XLSX = xlsxMod.default || xlsxMod;
+
     // Lista completa de todos los usuarios (extraída del Seeder oficial para incluir contraseñas legibles)
     const adminUsers = [
       ['Enrique Hernandez Hernandez', 'Enrique_Hernandez', 'ADMINISTRADOR', 'HHE_A26', 'ACCESO TOTAL'],
@@ -809,8 +824,9 @@ export default function Usuarios() {
   const userActivityCounts = useMemo(() => {
     let enLinea = 0;
     let sinConexion = 0;
+    const list = Array.isArray(users) ? users : [];
 
-    users.forEach((u) => {
+    list.forEach((u) => {
       const isOnline = Boolean(u.is_online);
       const hasActivity = isOnline || (u.last_seen && u.last_seen_text && u.last_seen_text !== 'Desconectado' && u.last_seen_text !== 'Sin conexión');
 
@@ -819,7 +835,7 @@ export default function Usuarios() {
     });
 
     return {
-      todos: users.length,
+      todos: list.length,
       enLinea,
       sinConexion,
     };
@@ -827,13 +843,14 @@ export default function Usuarios() {
 
   // Filtrado y ordenamiento de usuarios
   const filteredUsers = useMemo(() => {
-    return users
+    const list = Array.isArray(users) ? users : [];
+    return list
       .filter((user) => {
         // 1. Filtro por texto de búsqueda
         const term = searchTerm.toLowerCase();
         const matchesSearch =
           (user.nombre_completo || user.usuario || '').toLowerCase().includes(term) ||
-          user.usuario.toLowerCase().includes(term) ||
+          (user.usuario || '').toLowerCase().includes(term) ||
           (user.role?.nombre || '').toLowerCase().includes(term);
 
         if (!matchesSearch) return false;
@@ -979,21 +996,16 @@ export default function Usuarios() {
           </div>
         </div>
 
+        <PantallaCargaAcotma
+          visible={Boolean(!moduloInicializado && loading && (!users || users.length === 0))}
+          debajoHeader={true}
+          mensaje="Cargando Gestión de usuarios..."
+          subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+        />
+
         {loading ? (
-          <div className="loading-state">
-            <span
-              className="spinner"
-              style={{
-                borderColor: 'rgba(96, 26, 42, 0.2)',
-                borderTopColor: 'var(--color-maroon)',
-                width: '3rem',
-                height: '3rem',
-                borderWidth: '4px',
-              }}
-            ></span>
-            <p style={{ marginTop: '1rem', color: '#666', fontWeight: 'bold' }}>
-              Cargando datos de usuarios...
-            </p>
+          <div className="loading-state flex items-center justify-center p-8 min-h-[320px]">
+            <LoaderBusAcotma />
           </div>
         ) : (
           <div className="table-responsive">

@@ -13,6 +13,8 @@ import EstadisticasOperadores from './EstadisticasOperadores';
 import GestionFaltasOperadores from './GestionFaltasOperadores';
 import ItinerarioAsistencias from './ItinerarioAsistencias';
 import ModalAsignarFechas from './ModalAsignarFechas';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 
 
 // Helper para comprimir imágenes antes de enviarlas al servidor (evita errores 413 de Nginx y optimiza memoria)
@@ -376,13 +378,14 @@ const mostrarAlertaErrorConductores = (err) => {
 };
 
 export default function Operadores() {
-  const { user } = useContext(AuthContext);
+  const { user = null } = useContext(AuthContext) || {};
   const [modalFaltasOpen, setModalFaltasOpen] = useState(false);
   const [selectedConductorForFalta, setSelectedConductorForFalta] = useState('');
   const [selectedEstadoForAsignar, setSelectedEstadoForAsignar] = useState('falta');
   const [busquedaFaltas, setBusquedaFaltas] = useState('');
   const [conductores, setConductores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [moduloInicializado, setModuloInicializado] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterEstadoServicio, setFilterEstadoServicio] = useState('');
@@ -714,6 +717,7 @@ export default function Operadores() {
     } finally {
       if (fetchAbortControllerRef.current === controller && !silent) {
         setLoading(false);
+        setModuloInicializado(true);
       }
     }
   };
@@ -1358,10 +1362,16 @@ export default function Operadores() {
           </div>
         )}
 
+        <PantallaCargaAcotma
+          visible={Boolean(!moduloInicializado && loading && conductores.length === 0)}
+          debajoHeader={true}
+          mensaje="Cargando Control de personas conductoras..."
+          subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+        />
+
         {(loading && conductores.length === 0 && activeTab !== 'itinerario') ? (
-          <div className="operadores-loading">
-            <span className="spinner"></span>
-            <p>Cargando lista de T6...</p>
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex items-center justify-center min-h-[340px]">
+            <LoaderBusAcotma />
           </div>
         ) : activeTab === 'catalogo' ? (
           <div>

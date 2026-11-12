@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import * as XLSX from 'xlsx-js-style';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
@@ -13,6 +10,8 @@ import ModalReservaT6 from './ModalReservaT6';
 import ModalCambioUnidad from './ModalCambioUnidad';
 import ModalComparativaAlimentadoras from './ModalComparativaAlimentadoras';
 import ModalCiclos from './ModalCiclos';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
 import { getFechaActualLocal } from '../../utils/itinerarioUtils';
@@ -225,6 +224,8 @@ export default function CargaExcel({ isPasteles = false }) {
     return Array.isArray(datos) ? datos : [];
   };
 
+  const [moduloInicializado, setModuloInicializado] = useState(false);
+
   const { data: serverData, isLoading: cargandoTabla, refetch: refetchData } = useQuery({
     queryKey: ['despacho-datos', tabActiva],
     queryFn: fetchDatos,
@@ -233,6 +234,12 @@ export default function CargaExcel({ isPasteles = false }) {
     refetchOnWindowFocus: false,
   });
 
+  useEffect(() => {
+    if (!cargandoTabla && serverData) {
+      setModuloInicializado(true);
+    }
+  }, [cargandoTabla, serverData]);
+
 
   // Snapshot de lo que está en el servidor al cargar (por ECONOMICO). Permite guardar solo las unidades
   // realmente modificadas y detectar si alguien más las cambió mientras se editaba.
@@ -240,7 +247,7 @@ export default function CargaExcel({ isPasteles = false }) {
 
   const normalizeEcoKey = (eco) => String(eco ?? '').trim().replace(/^0+/, '') || '0';
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (serverData && !hasChanges) {
       const dataToSet = serverData.map(normalizarFilaServidor);
       const newMap = new Map();
@@ -250,7 +257,15 @@ export default function CargaExcel({ isPasteles = false }) {
       baselineRef.current = newMap;
       setPreviewData(dataToSet);
     }
-  }, [serverData, hasChanges]);
+  }, [serverData, hasChanges, tabActiva]);
+
+  const handleTabChange = (nuevaTab) => {
+    if (tabActiva === nuevaTab) return;
+    if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+    setHasChanges(false);
+    setPreviewData([]);
+    setTabActiva(nuevaTab);
+  };
 
   const trimString = (str) => String(str ?? '').trim();
 
@@ -265,7 +280,10 @@ export default function CargaExcel({ isPasteles = false }) {
     return t === 'URBANUS' ? 'URBANUSS' : t;
   };
 
-  const registrosVisibles = previewData.map((fila, originalIndex) => ({ fila, originalIndex }));
+  const excelPreviewData = useMemo(() => {
+    if (verInicio) return inicioData;
+    return previewData.map((fila, originalIndex) => ({ ...fila, __originalIndex: originalIndex }));
+  }, [verInicio, inicioData, previewData]);
 
 
   const faltaEnProcesoRef = useRef(new Set());
@@ -642,6 +660,13 @@ export default function CargaExcel({ isPasteles = false }) {
 
   // ─── GENERA EL PDF Y RETORNA EL BASE64 ───────────────────────────────────────
   const generarPDFProgramacion = async () => {
+    const [jsPdfMod, autoTableMod] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
+    const jsPDF = jsPdfMod.jsPDF || jsPdfMod.default;
+    const autoTable = autoTableMod.default || autoTableMod;
+
     const doc = new jsPDF({ orientation: 'landscape' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -1063,7 +1088,7 @@ export default function CargaExcel({ isPasteles = false }) {
   }, [hasChanges]);
 
   // ─── EXPORTAR EXCEL ───────────────────────────────────────────────────────────
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!previewData || previewData.length === 0) {
       Swal.fire({
         icon: 'info',
@@ -1073,6 +1098,9 @@ export default function CargaExcel({ isPasteles = false }) {
       });
       return;
     }
+
+    const xlsxMod = await import('xlsx-js-style');
+    const XLSX = xlsxMod.default || xlsxMod;
 
     let columnas;
     let encabezados;
@@ -1228,7 +1256,10 @@ export default function CargaExcel({ isPasteles = false }) {
   };
 
   // ─── DESCARGAR PLANTILLA ────────────────────────────────────────────────────────
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const xlsxMod = await import('xlsx-js-style');
+    const XLSX = xlsxMod.default || xlsxMod;
+
     const encabezados = [
       'TIPO UNIDAD',
       'SERVICIO',
@@ -1301,8 +1332,10 @@ export default function CargaExcel({ isPasteles = false }) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        const xlsxMod = await import('xlsx-js-style');
+        const XLSX = xlsxMod.default || xlsxMod;
         const bstr = evt.target.result;
         const workbook = XLSX.read(bstr, { type: 'binary' });
 
@@ -1772,11 +1805,11 @@ export default function CargaExcel({ isPasteles = false }) {
                 {isRelevos ? (
                   'Gestiona, asiste y concilia los relevos operativos de los T6'
                 ) : isPasteles ? (
-                  <>Vista y gestión de la programación correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
+                  'Vista y gestión de la programación operativa del día'
                 ) : tabActiva === 'HOY' ? (
-                  <>Vista del reporte correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
+                  'Vista y conciliación de la programación operativa directamente en el sistema'
                 ) : tabActiva === 'MANANA' ? (
-                  <>Edición de la programación correspondiente a mañana: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaMananaStr}</span></>
+                  'Edición y planificación de la programación correspondiente al día siguiente'
                 ) : (
                   'Organiza, edita y concilia la programación operativa directamente en el sistema'
                 )}
@@ -1805,36 +1838,20 @@ export default function CargaExcel({ isPasteles = false }) {
 
             {!isPasteles && (
               <div className="excel-tabs-container" style={{ margin: '0', flexShrink: 0 }}>
-                <button
-                  className={`excel-tab-btn ${tabActiva === 'HOY' ? 'active' : ''}`}
-                  onClick={() => {
-                    if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                    setHasChanges(false);
-                    setTabActiva('HOY');
-                  }}
-                >
-                  Día Operativo (Actual)
-                </button>
-                <button
-                  className={`excel-tab-btn ${tabActiva === 'MANANA' ? 'active' : ''}`}
-                  onClick={() => {
-                    if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                    setHasChanges(false);
-                    setTabActiva('MANANA');
-                  }}
-                >
-                  Día Siguiente
-                </button>
-                <button
-                  className={`excel-tab-btn ${tabActiva === 'FESTIVO' ? 'active' : ''}`}
-                  onClick={() => {
-                    if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                    setHasChanges(false);
-                    setTabActiva('FESTIVO');
-                  }}
-                >
-                  Días Festivos
-                </button>
+                {[
+                  { id: 'HOY', label: 'Día Operativo (Actual)' },
+                  { id: 'MANANA', label: 'Día Siguiente' },
+                  { id: 'FESTIVO', label: 'Días Festivos' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    className={`excel-tab-btn ${tabActiva === tab.id ? 'active' : ''}`}
+                    onClick={() => handleTabChange(tab.id)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -1973,20 +1990,31 @@ export default function CargaExcel({ isPasteles = false }) {
           </div>
         </div>
 
-        {cargandoTabla && previewData.length === 0 ? (
-          <div className="excel-card-table-loading" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-            <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '3rem', height: '3rem', marginBottom: '1rem', display: 'inline-block' }}></span>
-            <h3 style={{ color: '#4b5563', margin: 0 }}>Cargando programación diaria...</h3>
-            <p style={{ color: '#9ca3af', marginTop: '0.5rem' }}>Obteniendo los registros de hoy</p>
+        <PantallaCargaAcotma
+          visible={Boolean(!moduloInicializado && cargandoTabla && previewData.length === 0)}
+          debajoHeader={true}
+          mensaje={
+            isPasteles
+              ? 'Cargando Programación y Logística (Pasteles)...'
+              : isRelevos
+                ? 'Cargando Relevos de T6...'
+                : 'Cargando Programación y Logística...'
+          }
+          subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+        />
+
+        {(!moduloInicializado && cargandoTabla) ? (
+          <div className="excel-card-table-loading bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex items-center justify-center min-h-[360px]">
+            <LoaderBusAcotma />
           </div>
         ) : (
           <ExcelPreview
             readOnly={verInicio}
-            data={
-              verInicio
-                ? inicioData
-                : registrosVisibles.map(r => ({ ...r.fila, __originalIndex: r.originalIndex }))
-            }
+            isLoading={cargandoTabla && !verInicio}
+            tabActiva={tabActiva}
+            fechaHoyStr={fechaHoyStr}
+            fechaMananaStr={fechaMananaStr}
+            data={excelPreviewData}
             catalogUnidades={catalogUnidades}
             catalogConductores={catalogConductores}
             catalogManiobristas={catalogManiobristas}

@@ -54,6 +54,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { encierroModules } from '../../config/encierroModules';
 import Header from '../../components/Header/Header';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
@@ -1370,6 +1371,12 @@ export default function DetalleUnidadEncierro() {
 
   return (
     <div className="layout-container">
+      <PantallaCargaAcotma
+        visible={cargandoUnidades && unidadesList.length === 0}
+        debajoHeader={true}
+        mensaje={`Cargando encierro ${configActual?.title || ''}...`}
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
       <Header
         title={selectedOption || "Seleccione Unidad"}
         eyebrow={`${configActual.title} / Encierro — Detalle de Unidad`}

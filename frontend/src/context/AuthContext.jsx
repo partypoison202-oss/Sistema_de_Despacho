@@ -4,7 +4,18 @@ import Swal from 'sweetalert2';
 import PantallaCargaAcotma from '../components/PantallaCarga/PantallaCargaAcotma';
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const AuthContext = createContext();
+export const AuthContext = createContext({
+  user: null,
+  token: null,
+  logout: () => {},
+  login: () => {},
+  loading: false,
+  setUser: () => {},
+  canEditModulo: () => false,
+  pantallaCargaActiva: false,
+  activarPantallaCarga: () => {},
+  finalizarPantallaCarga: () => {},
+});
 
 // ── Mapa: código de módulo → ruta frontend ────────────────────────────────
 export const MODULO_RUTAS = {
@@ -55,7 +66,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const cambiarEstadoPantallaCarga = useCallback(async (activa) => {
-    sincronizarPantallaCarga(activa);
+    const estado = Boolean(activa);
+    sincronizarPantallaCarga(estado);
     if (!token) return;
     try {
       const res = await fetch(`${API_BASE}/api/sistema/pantalla-carga`, {
@@ -64,7 +76,7 @@ export const AuthProvider = ({ children }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ activa: Boolean(activa) }),
+        body: JSON.stringify({ activa: estado }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -284,6 +296,9 @@ export const AuthProvider = ({ children }) => {
       {children}
       <PantallaCargaAcotma
         visible={Boolean(token && pantallaCargaActiva)}
+        debajoHeader={true}
+        mensaje="Cargando..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
         mostrarFinalizar={esAdministradorActual}
         onFinalizar={() => cambiarEstadoPantallaCarga(false)}
       />

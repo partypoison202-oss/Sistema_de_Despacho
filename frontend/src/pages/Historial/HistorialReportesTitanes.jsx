@@ -5,6 +5,7 @@ import Header from '../../components/Header/Header';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import API_BASE from '../../config/api';
 import HistorialSearchBar from './HistorialSearchBar';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import '../Menu/Menu.css';
 import './HistorialReportesTitanes.css';
 
@@ -313,13 +314,8 @@ export default function HistorialReportesTitanes() {
         {/* Resultados */}
         <div className="hrt-resultados">
           {loadingReportes ? (
-            <div className="hrt-estado">
-              <div className="hrt-spinner" />
-              <p>
-                {filtros.titanId
-                  ? `Cargando reportes de ${titanPorId[filtros.titanId]?.nombre_completo || 'titán'}...`
-                  : 'Cargando reportes de todos los titanes...'}
-              </p>
+            <div className="hrt-estado flex items-center justify-center p-8 min-h-[300px]">
+              <LoaderBusAcotma />
             </div>
           ) : reportesFiltrados.length === 0 ? (
             <div className="hrt-estado">

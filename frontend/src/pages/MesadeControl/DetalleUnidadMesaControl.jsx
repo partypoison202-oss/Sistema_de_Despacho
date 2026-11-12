@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
 import UnitInfoPanelMesaControl from './UnitInfoPanelMesaControl';
@@ -1158,6 +1159,12 @@ export default function DetalleUnidadMesaControl() {
   // =========================== JSX ===========================
   return (
     <div className="layout-container">
+      <PantallaCargaAcotma
+        visible={cargandoUnidades && unidadesList.length === 0}
+        debajoHeader={true}
+        mensaje={`Cargando unidades ${configActual?.title || ''}...`}
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
       <Header
         title={selectedOption || 'Seleccione Unidad'}
         eyebrow={`${configActual.title} / Mesa de Control`}

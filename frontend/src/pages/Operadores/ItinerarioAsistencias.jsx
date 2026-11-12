@@ -5,6 +5,7 @@ import './ItinerarioAsistencias.css';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import ModalAsignarFechas from './ModalAsignarFechas';
 import { generarPDFItinerario } from '../../utils/generarPDFItinerario';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 
 export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
   const formatLocalYMD = (d = new Date()) => {
@@ -645,7 +646,9 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
 
       <div className="itinerario-grid-wrapper">
         {cargando ? (
-          <div className="itinerario-loading">Cargando itinerario...</div>
+          <div className="itinerario-loading">
+            <LoaderBusAcotma />
+          </div>
         ) : (
           <table className="itinerario-table">
             <thead>

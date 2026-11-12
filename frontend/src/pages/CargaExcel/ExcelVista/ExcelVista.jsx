@@ -1,8 +1,9 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import IOSTimePicker from '../../Unidades/componentsdetalleunidad/IOSTimePicker';
 import { AuthContext } from '../../../context/AuthContext';
+import LoaderBusAcotma from '../../../components/PantallaCarga/LoaderBusAcotma';
 import './ExcelVIsta.css';
 
 const HEADER_TRANSLATIONS = {
@@ -132,9 +133,13 @@ export default function ExcelPreview({
   hasChanges,
   isSaving,
   readOnly = false,
+  isLoading = false,
   isPasteles = false,
   isRelevos: isRelevosProp,
   onOpenCambioUnidad = null,
+  tabActiva = 'HOY',
+  fechaHoyStr = '',
+  fechaMananaStr = '',
 }) {
   const { user } = useContext(AuthContext);
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
@@ -169,9 +174,11 @@ export default function ExcelPreview({
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
   const tailHeaders = ['ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
 
-  const headers = isRelevos
-    ? [...baseHeaders, ...relevosHeaders, 'ESTATUS']
-    : [...baseHeaders, ...titularHeaders, ...tailHeaders];
+  const headers = useMemo(() => (
+    isRelevos
+      ? [...baseHeaders, ...relevosHeaders, 'ESTATUS']
+      : [...baseHeaders, ...titularHeaders, ...tailHeaders]
+  ), [isRelevos]);
 
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
@@ -191,7 +198,7 @@ export default function ExcelPreview({
   };
 
   // 1. Ordenar los datos por tipo de unidad (según el orden de la lista) y luego por ECO numérico
-  const sortedData = (data || []).map((fila, idx) => ({ ...fila, __originalIndex: idx })).sort((a, b) => {
+  const sortedData = useMemo(() => (data || []).map((fila, idx) => ({ ...fila, __originalIndex: idx })).sort((a, b) => {
     const typeA = String(a.TIPO_DE_UNIDAD || '').toUpperCase();
     const typeB = String(b.TIPO_DE_UNIDAD || '').toUpperCase();
 
@@ -234,7 +241,7 @@ export default function ExcelPreview({
     const ecoA = parseInt(a.ECONOMICO || '0', 10);
     const ecoB = parseInt(b.ECONOMICO || '0', 10);
     return ecoA - ecoB;
-  });
+  }), [data, ordenarPorRuta]);
 
   // Normaliza tarjetón quitando ceros a la izquierda — solo para COMPARAR (ej. "0151" === "151" === "1051" si mismo número)
   const normalizeTarjeton = (t) => {
@@ -254,13 +261,13 @@ export default function ExcelPreview({
 
   // Tarjetones que ya están asignados en la tabla actual (para corregir estado_servicio desactualizado del catálogo)
   // IMPORTANTE: usar las claves SIN tilde tal como están en el objeto de datos (TARJETON, no TARJETÓN)
-  const tarjetonesEnUso = new Set(
+  const tarjetonesEnUso = useMemo(() => new Set(
     (data || []).flatMap(f => [
       f['TARJETON'],
       f['RELEVO_TARJETON'],
       f['TARJETON_MANIOBRISTA'],
     ]).filter(t => t != null && String(t).trim() !== '').map(normalizeTarjeton)
-  );
+  ), [data]);
 
   // Devuelve el estado_servicio real: si ya está en la tabla lo fuerza a 'en_servicio'
   const getEstadoEfectivo = (conductor) => {
@@ -271,7 +278,7 @@ export default function ExcelPreview({
   };
 
   // 2. Filtrar los datos en base al término de búsqueda y tecnología seleccionada
-  const filteredData = sortedData.filter(fila => {
+  const filteredData = useMemo(() => sortedData.filter(fila => {
     if (!fila) return false;
 
     if (isRelevos) {
@@ -340,7 +347,7 @@ export default function ExcelPreview({
     }
 
     return true;
-  });
+  }), [sortedData, isRelevos, selectedTech, filterSinConductor, searchTerm, headers]);
 
   const handleOpenDropdown = (e, rowIndex, field) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -390,14 +397,67 @@ export default function ExcelPreview({
     };
   }, []);
 
+  const formatFechaCapitalizada = (texto) => {
+    if (!texto) return '';
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  };
+
+  const getFechaFallback = (offsetDays = 0) => {
+    const d = new Date();
+    if (offsetDays) d.setDate(d.getDate() + offsetDays);
+    return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const effectiveFechaHoy = fechaHoyStr || getFechaFallback(0);
+  const effectiveFechaManana = fechaMananaStr || getFechaFallback(1);
+
+  const fechaVisual = readOnly
+    ? formatFechaCapitalizada(effectiveFechaHoy)
+    : tabActiva === 'MANANA'
+    ? formatFechaCapitalizada(effectiveFechaManana)
+    : tabActiva === 'FESTIVO'
+    ? 'Programación Especial'
+    : formatFechaCapitalizada(effectiveFechaHoy);
+
+  const fechaTag = readOnly
+    ? 'Inicio del Día:'
+    : tabActiva === 'MANANA'
+    ? 'Día Siguiente:'
+    : tabActiva === 'FESTIVO'
+    ? 'Festivos:'
+    : 'Día Operativo:';
+
+  const badgeModifier = tabActiva === 'MANANA'
+    ? 'excel-table-fecha-badge--manana'
+    : tabActiva === 'FESTIVO'
+    ? 'excel-table-fecha-badge--festivo'
+    : 'excel-table-fecha-badge--hoy';
+
   return (
     <div className="excel-table-card">
       <div className="excel-table-header">
         <div className="excel-table-header-left">
-          <h3>{readOnly ? 'Programación de Inicio (Hoy)' : 'Programación Operativa Diaria'}</h3>
+          <div className="excel-table-title-row">
+            <h3>{readOnly ? 'Programación de Inicio (Hoy)' : 'Programación Operativa Diaria'}</h3>
+            <span className={`excel-table-fecha-badge ${badgeModifier}`} title="Fecha de la programación operativa">
+              <span className="excel-table-fecha-dot" aria-hidden="true" />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="excel-table-fecha-icon" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span className="excel-table-fecha-tag">{fechaTag}</span>
+              <span className="excel-table-fecha-text">{fechaVisual}</span>
+            </span>
+          </div>
           <p className="excel-table-subtitle">
             {readOnly
               ? 'Consulta histórica de cómo inició la programación para el día de hoy (Solo Lectura)'
+              : tabActiva === 'MANANA'
+              ? 'Captura, edita y concilia las unidades en ruta para el día de mañana'
+              : tabActiva === 'FESTIVO'
+              ? 'Captura, edita y concilia las unidades en ruta para días festivos'
               : 'Captura, edita y concilia las unidades en ruta para el día de hoy'
             }
           </p>
@@ -448,15 +508,22 @@ export default function ExcelPreview({
             />
           </div>
           <span className="registro-count-badge">
-            {filteredData.length === (data || []).length
-              ? `${(data || []).length} registros`
-              : `${filteredData.length} de ${(data || []).length} encontrados`
+            {isLoading
+              ? 'Cargando registros...'
+              : filteredData.length === (data || []).length
+                ? `${(data || []).length} registros`
+                : `${filteredData.length} de ${(data || []).length} encontrados`
             }
           </span>
         </div>
       </div>
 
-      <div className="table-wrapper">
+      {isLoading ? (
+        <div className="excel-table-loading-inline">
+          <LoaderBusAcotma />
+        </div>
+      ) : (
+        <div className="table-wrapper">
         <table className="excel-preview-table">
           <thead>
             <tr>
@@ -1358,8 +1425,9 @@ export default function ExcelPreview({
           </tbody>
         </table>
       </div>
+      )}
 
-      {hasChanges && (
+      {!isLoading && hasChanges && (
         <div className="excel-actions-bottom">
           <div className="cambios-advertencia">
             <span className="pulsing-dot"></span>

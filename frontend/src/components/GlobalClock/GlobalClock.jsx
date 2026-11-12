@@ -3,7 +3,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 
 const GlobalClock = ({ className = "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[9999] transition-all" }) => {
-  const { user } = useContext(AuthContext);
+  const { user = null } = useContext(AuthContext) || {};
   const { showClock } = useSettings();
   const [time, setTime] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);

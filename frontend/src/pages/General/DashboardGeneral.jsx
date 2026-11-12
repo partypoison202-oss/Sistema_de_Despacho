@@ -9,6 +9,7 @@ import TablaBitacoraGeneral from './components/TablaBitacoraGeneral';        // 
 import TablaRutasAlimentadoras from './components/TablaRutasAlimentadoras';  // NUEVO
 import { transportModules } from '../../config/transportModules';
 import { compareRutas } from '../../utils/rutaUtils';
+import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import API_BASE from '../../config/api';
 import './DashboardGeneral.css';
 
@@ -265,11 +266,18 @@ export default function Dashboard() {
   const cargando = cargandoConteos || cargandoHoy;
 
   return (
-    <div className="dashboard">
+    <>
+      <PantallaCargaAcotma
+        visible={cargando}
+        debajoHeader={true}
+        mensaje="Cargando Monitoreo operativo..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
+      />
+      <div className="dashboard">
       <Header />
       <main className="dashboard__main">
         <p className="page-eyebrow">VISIÓN GENERAL DE LA FLOTA</p>
-        <h1 className="page-title">MONITOR OPERATIVO</h1>
+        <h1 className="page-title">MONITOREO OPERATIVO</h1>
         <p className="dashboard__subtitle">
           Toque la imagen del transporte para ver la información de despacho
         </p>
@@ -398,5 +406,6 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+    </>
   );
 }

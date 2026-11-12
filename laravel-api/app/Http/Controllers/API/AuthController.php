@@ -155,9 +155,11 @@ class AuthController extends Controller
         $rolCodigo = strtoupper(trim($user->role->codigo ?? ''));
         $rolNombre = strtoupper(trim($user->role->nombre ?? ''));
         $esAdmin = ($rolCodigo === 'ADMINISTRADOR' || $rolNombre === 'ADMINISTRADOR');
-        $esEnrique = strtolower(trim($user->usuario ?? '')) === 'enrique_hernandez';
+        $userUsuario = strtolower(trim($user->usuario ?? ''));
+        $esEnrique = ($userUsuario === 'enrique_hernandez');
+        $esLuis = ($userUsuario === 'luis_vargas');
 
-        if (!$esAdmin && !$esEnrique) {
+        if (!$esAdmin && !$esEnrique && !$esLuis) {
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
@@ -187,10 +189,13 @@ class AuthController extends Controller
     private function obtenerEstadoPantallaCarga(): bool
     {
         try {
-            $this->asegurarTablaSistemaConfig();
-            $valor = \Illuminate\Support\Facades\DB::table('sistema_configuracion')
-                ->where('clave', 'pantalla_carga_activa')
-                ->value('valor');
+            $valor = Cache::remember('acotma_pantalla_carga_db_val', 15, function () {
+                $this->asegurarTablaSistemaConfig();
+                $v = \Illuminate\Support\Facades\DB::table('sistema_configuracion')
+                    ->where('clave', 'pantalla_carga_activa')
+                    ->value('valor');
+                return $v !== null ? (string) $v : '0';
+            });
             return $valor === '1' || $valor === 'true';
         } catch (\Throwable $e) {
             return (bool) Cache::get('acotma_pantalla_carga_activa', false);
@@ -204,6 +209,7 @@ class AuthController extends Controller
         } else {
             Cache::forget('acotma_pantalla_carga_activa');
         }
+        Cache::put('acotma_pantalla_carga_db_val', $activa ? '1' : '0', 15);
 
         try {
             $this->asegurarTablaSistemaConfig();

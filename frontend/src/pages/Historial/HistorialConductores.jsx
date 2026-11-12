@@ -9,6 +9,7 @@ import { formatearFechaDiaMesAnio } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import { DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
+import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import './Historial.css';
 
 export default function HistorialConductores() {
@@ -341,9 +342,8 @@ export default function HistorialConductores() {
 
         {/* Contenido de la Tabla */}
         {isLoading ? (
-          <div className="historial-loading">
-            <div className="spinner"></div>
-            <p>Cargando historial de personas conductoras...</p>
+          <div className="historial-loading flex items-center justify-center p-8 min-h-[320px]">
+            <LoaderBusAcotma />
           </div>
         ) : (
           <div className="historial-table-container">
