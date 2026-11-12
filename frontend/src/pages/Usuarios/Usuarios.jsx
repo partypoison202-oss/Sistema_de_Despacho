@@ -7,15 +7,16 @@ import LoaderBusAcotma from '../../components/PantallaCarga/LoaderBusAcotma';
 import PantallaCargaAcotma from '../../components/PantallaCarga/PantallaCargaAcotma';
 import './Usuarios.css';
 import API_BASE from '../../config/api';
-import * as XLSX from 'xlsx-js-style';
 
 export default function Usuarios() {
   const { token, user: currentUser, setUser, activarPantallaCarga } = useContext(AuthContext);
 
-  // Prueba de la pantalla de carga institucional (botón visible solo para Enrique_Hernandez)
+  // Prueba de la pantalla de carga institucional (botón visible para Enrique_Hernandez y Luis_Vargas)
   const esUsuarioPruebaCarga =
     String(currentUser?.usuario || '').trim().toLowerCase() === 'enrique_hernandez' ||
-    currentUser?.nombre_completo === 'Enrique Hernandez Hernandez';
+    String(currentUser?.usuario || '').trim().toLowerCase() === 'luis_vargas' ||
+    currentUser?.nombre_completo === 'Enrique Hernandez Hernandez' ||
+    currentUser?.nombre_completo === 'Luis Ángel Vargas Gutiérrez';
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -517,7 +518,10 @@ export default function Usuarios() {
     }
   };
 
-  const downloadAdminUsersCSV = () => {
+  const downloadAdminUsersCSV = async () => {
+    const xlsxMod = await import('xlsx-js-style');
+    const XLSX = xlsxMod.default || xlsxMod;
+
     // Lista completa de todos los usuarios (extraída del Seeder oficial para incluir contraseñas legibles)
     const adminUsers = [
       ['Enrique Hernandez Hernandez', 'Enrique_Hernandez', 'ADMINISTRADOR', 'HHE_A26', 'ACCESO TOTAL'],

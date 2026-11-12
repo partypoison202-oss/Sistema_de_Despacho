@@ -10,7 +10,14 @@ import { setupFetchInterceptor } from './utils/setupFetchInterceptor'
 // Inicializar interceptor global de fetch para manejo de sesiones expiradas / revocadas
 setupFetchInterceptor()
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

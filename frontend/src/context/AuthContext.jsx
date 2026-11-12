@@ -66,7 +66,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const cambiarEstadoPantallaCarga = useCallback(async (activa) => {
-    sincronizarPantallaCarga(activa);
+    const estado = Boolean(activa);
+    sincronizarPantallaCarga(estado);
     if (!token) return;
     try {
       const res = await fetch(`${API_BASE}/api/sistema/pantalla-carga`, {
@@ -75,7 +76,7 @@ export const AuthProvider = ({ children }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ activa: Boolean(activa) }),
+        body: JSON.stringify({ activa: estado }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -296,6 +297,8 @@ export const AuthProvider = ({ children }) => {
       <PantallaCargaAcotma
         visible={Boolean(token && pantallaCargaActiva)}
         debajoHeader={true}
+        mensaje="Cargando..."
+        subtitulo="APLICACIÓN DE CONTROL DE TRANSPORTE MASIVO"
         mostrarFinalizar={esAdministradorActual}
         onFinalizar={() => cambiarEstadoPantallaCarga(false)}
       />

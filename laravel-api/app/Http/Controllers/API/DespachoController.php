@@ -16,6 +16,35 @@ use Illuminate\Validation\ValidationException;
 
 class DespachoController extends Controller
 {
+    private static array $schemaMetaCache = [];
+
+    private static function hasCol(string $table, string $column): bool
+    {
+        $key = "col_{$table}_{$column}";
+        if (!array_key_exists($key, self::$schemaMetaCache)) {
+            self::$schemaMetaCache[$key] = (bool) Cache::remember($key, 86400, fn () => Schema::hasColumn($table, $column));
+        }
+        return self::$schemaMetaCache[$key];
+    }
+
+    private static function hasTbl(string $table): bool
+    {
+        $key = "tbl_{$table}";
+        if (!array_key_exists($key, self::$schemaMetaCache)) {
+            self::$schemaMetaCache[$key] = (bool) Cache::remember($key, 86400, fn () => Schema::hasTable($table));
+        }
+        return self::$schemaMetaCache[$key];
+    }
+
+    private static function getCols(string $table): array
+    {
+        $key = "cols_list_{$table}";
+        if (!array_key_exists($key, self::$schemaMetaCache)) {
+            self::$schemaMetaCache[$key] = Cache::remember($key, 86400, fn () => Schema::getColumnListing($table));
+        }
+        return self::$schemaMetaCache[$key];
+    }
+
     /**
      * Retorna la versión actual del estado de unidades para sincronización en tiempo real.
      */
@@ -3780,10 +3809,10 @@ class DespachoController extends Controller
 
         self::procesarEncierrosAutomaticos();
 
-        $hasRelevo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
-        $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');
-        $hasHoraRealSalidaPatio = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
-        $hasHoraSalida = Schema::hasColumn('informacion_operativa', 'hora_salida');
+        $hasRelevo = self::hasCol('informacion_operativa', 'relevo_tarjeton');
+        $hasHoraEncierro = self::hasCol('informacion_operativa', 'hora_encierro');
+        $hasHoraRealSalidaPatio = self::hasCol('informacion_operativa', 'hora_real_salida_patio');
+        $hasHoraSalida = self::hasCol('informacion_operativa', 'hora_salida');
 
         $colSalidaPatio = $hasHoraRealSalidaPatio
             ? 'informacion_operativa.hora_real_salida_patio'
@@ -4022,10 +4051,10 @@ class DespachoController extends Controller
             }
         }
 
-        $hasRelevo = Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
-        $hasHoraEncierro = Schema::hasColumn('informacion_operativa_manana', 'hora_encierro');
-        $hasHoraRealSalidaPatio = Schema::hasColumn('informacion_operativa_manana', 'hora_real_salida_patio');
-        $hasHoraSalida = Schema::hasColumn('informacion_operativa_manana', 'hora_salida');
+        $hasRelevo = self::hasCol('informacion_operativa_manana', 'relevo_tarjeton');
+        $hasHoraEncierro = self::hasCol('informacion_operativa_manana', 'hora_encierro');
+        $hasHoraRealSalidaPatio = self::hasCol('informacion_operativa_manana', 'hora_real_salida_patio');
+        $hasHoraSalida = self::hasCol('informacion_operativa_manana', 'hora_salida');
 
         $colSalidaPatio = $hasHoraRealSalidaPatio
             ? 'informacion_operativa_manana.hora_real_salida_patio'
@@ -4159,10 +4188,10 @@ class DespachoController extends Controller
             }
         }
 
-        $hasRelevo = Schema::hasColumn($tableName, 'relevo_tarjeton');
-        $hasHoraEncierro = Schema::hasColumn($tableName, 'hora_encierro');
-        $hasHoraRealSalidaPatio = Schema::hasColumn($tableName, 'hora_real_salida_patio');
-        $hasHoraSalida = Schema::hasColumn($tableName, 'hora_salida');
+        $hasRelevo = self::hasCol($tableName, 'relevo_tarjeton');
+        $hasHoraEncierro = self::hasCol($tableName, 'hora_encierro');
+        $hasHoraRealSalidaPatio = self::hasCol($tableName, 'hora_real_salida_patio');
+        $hasHoraSalida = self::hasCol($tableName, 'hora_salida');
 
         $colSalidaPatio = $hasHoraRealSalidaPatio
             ? "{$tableName}.hora_real_salida_patio"
@@ -4460,8 +4489,8 @@ class DespachoController extends Controller
         // Asegurar que exista el snapshot si se consulta
         BitacoraHelper::ensureInicioSnapshot();
 
-        $hasProgInicial = Schema::hasTable('programacion_inicial');
-        $hasProgCols = $hasProgInicial ? array_flip(Schema::getColumnListing('programacion_inicial')) : [];
+        $hasProgInicial = self::hasTbl('programacion_inicial');
+        $hasProgCols = $hasProgInicial ? array_flip(self::getCols('programacion_inicial')) : [];
 
         $progInicialCount = $hasProgInicial 
             ? DB::table('programacion_inicial')->where('fecha', $fechaHoy)->count() 
@@ -4485,24 +4514,24 @@ class DespachoController extends Controller
             DB::raw('COALESCE(' . ($hasProgInicial ? 'programacion_inicial.motivo_estatus, ' : '') . 'historial_operativo.motivo_estatus) as motivo_estatus'),
         ];
 
-        $hasManiobrista = Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
+        $hasManiobrista = self::hasCol('historial_operativo', 'tarjeton_maniobrista');
         if ($hasManiobrista) {
             $columns[] = 'historial_operativo.tarjeton_maniobrista';
             $columns[] = 'historial_operativo.nombre_maniobrista';
         }
 
-        $hasHoraSalidaPatio = Schema::hasColumn('historial_operativo', 'hora_salida_patio');
+        $hasHoraSalidaPatio = self::hasCol('historial_operativo', 'hora_salida_patio');
         if ($hasHoraSalidaPatio) {
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_salida_patio']) ? 'programacion_inicial.hora_salida_patio, ' : '') . 'historial_operativo.hora_salida_patio) as hora_salida_patio');
         }
 
-        $hasAcople = Schema::hasColumn('historial_operativo', 'acople');
+        $hasAcople = self::hasCol('historial_operativo', 'acople');
         if ($hasAcople) {
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['acople']) ? 'programacion_inicial.acople, ' : '') . 'historial_operativo.acople) as acople');
         }
 
-        $hasHoraRealSalida = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
-        $hasHoraSalidaLegacy = Schema::hasColumn('historial_operativo', 'hora_salida');
+        $hasHoraRealSalida = self::hasCol('historial_operativo', 'hora_real_salida_patio');
+        $hasHoraSalidaLegacy = self::hasCol('historial_operativo', 'hora_salida');
         $hasHoraSalida = $hasHoraRealSalida || $hasHoraSalidaLegacy;
         if ($hasHoraRealSalida) {
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_real_salida_patio']) ? 'programacion_inicial.hora_real_salida_patio, ' : '') . 'historial_operativo.hora_real_salida_patio) as hora_real_salida_patio');
@@ -4510,27 +4539,27 @@ class DespachoController extends Controller
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_real_salida_patio']) ? 'programacion_inicial.hora_real_salida_patio, ' : '') . 'historial_operativo.hora_salida) as hora_real_salida_patio');
         }
 
-        $hasPatioNorte = Schema::hasColumn('historial_operativo', 'patio_norte');
+        $hasPatioNorte = self::hasCol('historial_operativo', 'patio_norte');
         if ($hasPatioNorte) {
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['patio_norte']) ? 'CAST(programacion_inicial.patio_norte AS VARCHAR), ' : '') . 'CAST(historial_operativo.patio_norte AS VARCHAR)) as patio_norte');
         }
 
-        $hasItinerario = Schema::hasColumn('historial_operativo', 'itinerario');
+        $hasItinerario = self::hasCol('historial_operativo', 'itinerario');
         if ($hasItinerario) {
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['itinerario']) ? 'CAST(programacion_inicial.itinerario AS VARCHAR), ' : '') . 'CAST(historial_operativo.itinerario AS VARCHAR)) as itinerario');
         }
 
-        $hasHoraIncorp = Schema::hasColumn('historial_operativo', 'hora_incorporacion');
+        $hasHoraIncorp = self::hasCol('historial_operativo', 'hora_incorporacion');
         if ($hasHoraIncorp) {
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_incorporacion']) ? 'programacion_inicial.hora_incorporacion, ' : '') . 'historial_operativo.hora_incorporacion) as hora_incorporacion');
         }
 
-        $hasHoraDesinc = Schema::hasColumn('historial_operativo', 'hora_desincorporacion');
+        $hasHoraDesinc = self::hasCol('historial_operativo', 'hora_desincorporacion');
         if ($hasHoraDesinc) {
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_desincorporacion']) ? 'programacion_inicial.hora_desincorporacion, ' : '') . 'historial_operativo.hora_desincorporacion) as hora_desincorporacion');
         }
 
-        $hasHoraEncierro = Schema::hasColumn('historial_operativo', 'hora_encierro');
+        $hasHoraEncierro = self::hasCol('historial_operativo', 'hora_encierro');
         if ($hasHoraEncierro) {
             $columns[] = DB::raw('COALESCE(' . (isset($hasProgCols['hora_encierro']) ? 'programacion_inicial.hora_encierro, ' : '') . 'historial_operativo.hora_encierro) as hora_encierro');
         }

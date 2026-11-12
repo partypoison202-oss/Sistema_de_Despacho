@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
 
 export default function ModalTrasladoPatioNorte({ isOpen, onClose, previewData, logoUrl }) {
@@ -40,6 +38,13 @@ export default function ModalTrasladoPatioNorte({ isOpen, onClose, previewData, 
       });
       return;
     }
+
+    const [jsPdfMod, autoTableMod] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
+    const jsPDF = jsPdfMod.jsPDF || jsPdfMod.default;
+    const autoTable = autoTableMod.default || autoTableMod;
 
     const doc = new jsPDF({ orientation: 'portrait' });
     const pageWidth = doc.internal.pageSize.getWidth();

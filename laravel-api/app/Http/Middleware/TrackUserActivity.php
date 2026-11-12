@@ -31,7 +31,9 @@ class TrackUserActivity
                 $token = $user->currentAccessToken();
                 if ($token && method_exists($token, 'forceFill')) {
                     try {
-                        $token->forceFill(['last_used_at' => now()])->save();
+                        if (!isset($token->last_used_at) || !$token->last_used_at || now()->diffInSeconds($token->last_used_at) > 60) {
+                            $token->forceFill(['last_used_at' => now()])->save();
+                        }
                     } catch (\Throwable $e) {
                     }
                 }

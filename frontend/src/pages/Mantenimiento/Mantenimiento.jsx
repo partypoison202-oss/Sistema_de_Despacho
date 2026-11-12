@@ -12,8 +12,6 @@ import '../CentroControl/CentroControl.css';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import ReporteCombustiblePDF from './components/ReporteCombustiblePDF';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
 
@@ -209,6 +207,12 @@ export default function Mantenimiento() {
 
         setTimeout(async () => {
           if (pdfRef.current) {
+            const [html2canvasMod, jsPdfMod] = await Promise.all([
+              import('html2canvas'),
+              import('jspdf'),
+            ]);
+            const html2canvas = html2canvasMod.default || html2canvasMod;
+            const jsPDF = jsPdfMod.jsPDF || jsPdfMod.default;
             const canvas = await html2canvas(pdfRef.current, { scale: 2 });
             const imgData = canvas.toDataURL('image/png');
 

@@ -4,9 +4,6 @@ import Header from '../../components/Header/Header';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import ReporteCombustiblePDF from '../Mantenimiento/components/ReporteCombustiblePDF';
 import API_BASE from '../../config/api';
-import * as XLSX from 'xlsx';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import Swal from 'sweetalert2';
 import './ControlCombustible.css';
 
@@ -551,7 +548,9 @@ export default function ControlCombustible() {
   };
 
   // Exportar a Excel el formato de captura
-  const handleExportarExcelCaptura = () => {
+  const handleExportarExcelCaptura = async () => {
+    const xlsxMod = await import('xlsx');
+    const XLSX = xlsxMod.default || xlsxMod;
     const wb = XLSX.utils.book_new();
 
     ['urbanuss', 'zafiro', 'orion', 'vagoneta'].forEach(tec => {
@@ -579,7 +578,9 @@ export default function ControlCombustible() {
   };
 
   // Exportar a Excel el Resumen Semanal
-  const handleExportarExcelSemanal = () => {
+  const handleExportarExcelSemanal = async () => {
+    const xlsxMod = await import('xlsx');
+    const XLSX = xlsxMod.default || xlsxMod;
     const wb = XLSX.utils.book_new();
 
     // Hoja DIESEL
@@ -704,6 +705,12 @@ export default function ControlCombustible() {
       setTimeout(async () => {
         try {
           if (pdfRef.current) {
+            const [html2canvasMod, jsPdfMod] = await Promise.all([
+              import('html2canvas'),
+              import('jspdf'),
+            ]);
+            const html2canvas = html2canvasMod.default || html2canvasMod;
+            const jsPDF = jsPdfMod.jsPDF || jsPdfMod.default;
             const canvas = await html2canvas(pdfRef.current, { scale: 2, useCORS: true });
             const imgData = canvas.toDataURL('image/png');
 
